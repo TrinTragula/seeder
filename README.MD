@@ -2,6 +2,8 @@
 
 Find, show, share and admire Minecraft seeds (Java edition only).
 
+![Seeder screenshot](https://i.ibb.co/37Qptpq/seeder.png)
+
 This is a webapp based upon a library ([cubiomes](https://github.com/Cubitect/cubiomes))
 written by cubitect in C and compiled in webassembly by me.
 Go and give him love.

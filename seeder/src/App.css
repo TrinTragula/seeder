@@ -1,0 +1,15 @@
+.header {
+  padding-left: 2rem;
+  padding-right: 3rem;
+  border-bottom: 3px solid black;
+  background: #8FCA5C;
+}
+
+.header-link {
+  text-decoration: none;
+  color: black;
+}
+
+.header-link:hover {
+  text-shadow: 1px 1px gray;
+}

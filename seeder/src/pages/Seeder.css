@@ -1,0 +1,173 @@
+canvas {
+    flex: 1;
+}
+
+.map-container {
+    border-right: 3px solid black;
+    position: relative;
+}
+
+button {
+    margin: 0;
+    padding: 0;
+    font-family: 'Minecraft';
+    border-radius: 0;
+    height: 33px;
+    cursor: pointer;
+}
+
+.full-button {
+    width: 100%;
+}
+
+.half-button {
+    width: 50%;
+}
+
+.panel-container {
+    overflow: scroll;
+    padding: 15px;
+}
+
+.arrow {
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    position: absolute;
+    width: 75px;
+    height: 50px;
+    background: #ffffff90;
+    cursor: pointer;
+}
+
+.arrow-up {
+    top: 5px;
+    left: calc(50% - 37.5px);
+}
+
+.arrow-left {
+    top: calc(50% - 25px);
+    left: calc(0px - 7px);
+    transform: rotate(270deg);
+}
+
+.arrow-down {
+    top: calc(100% - 55px);
+    left: calc(50% - 37.5px);
+    transform: rotate(180deg);
+}
+
+.arrow-right {
+    top: calc(50% - 25px);
+    right: calc(0px - 7px);
+    transform: rotate(90deg);
+}
+
+.loading {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: #a9a9a996;
+    z-index: 3;
+    justify-content: center;
+    align-items: center;
+    text-shadow: 2px 2px grey;
+}
+
+.menu-toggle {
+    display: none;
+}
+
+.stop-button {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.togglable {
+    height: 30px;
+    width: 30px;
+    align-self: center;
+}
+
+.coords {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: #ffffffbb;
+    padding: 5px;
+    max-width: 30%;
+}
+
+.biome-info {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#structures-shown {
+    margin-left: 11px;
+    vertical-align: middle;
+}
+
+.legend {
+    font-size: 12px;
+    position: absolute;
+    background: whitesmoke;
+    width: fit-content;
+    max-width: 90%;
+    padding: 3px;
+    border: 3px solid black;
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+    margin-top: 5px;
+    text-align: center;
+    height: 80%;
+}
+
+@media only screen and (max-width: 701px) {
+    .panel-container {
+        position: absolute;
+        background: whitesmoke;
+        display: none;
+    }
+    .panel-container.menu-toggled {
+        display: block;
+        width: 90%;
+        padding: 3px;
+        border: 3px solid black;
+        margin-left: auto;
+        margin-right: auto;
+        left: 0;
+        right: 0;
+        margin-top: 5px;
+        text-align: center;
+        height: 75%;
+    }
+    .menu-toggle {
+        display: block;
+        position: absolute;
+        width: 75px;
+        height: 50px;
+        background: #ffffff90;
+        cursor: pointer;
+        right: 5px;
+        bottom: 5px;
+    }
+    .hide-mobile {
+        display: none;
+    }
+    .coords {
+        font-size: 12px;
+    }
+}

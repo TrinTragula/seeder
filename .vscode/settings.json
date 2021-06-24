@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "generator.h": "c",
+        "finders.h": "c",
+        "*.tcc": "c",
+        "optional": "c",
+        "functional": "c",
+        "iosfwd": "c",
+        "stdexcept": "c"
+    }
+}

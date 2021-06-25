@@ -26,6 +26,10 @@ export default function About() {
                     It uses fancy new technology to run the same code in your browser, so that you
                     can look up your seeds/find your perfect ones whitout installing or configuring anything.
                 </p>
+                <h3>Where's the code?</h3>
+                <p className="paragraph">
+                    <a href="https://github.com/TrinTragula/seeder">Here</a>
+                </p>
                 <h3>
                     Features:
                 </h3>

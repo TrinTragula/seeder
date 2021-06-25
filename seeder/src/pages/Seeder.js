@@ -24,7 +24,11 @@ export default function Seeder() {
     const canvas = useRef();
     const drawer = useRef();
     const [mcVersion, setMcVersion] = useState(Number.isInteger(urlVersion) ? urlVersion : VERSIONS["1.17"]);
-    const [seed, setSeed] = useState(Number.isInteger(urlSeed) ? urlSeed : getRandomSeed());
+    const [seed, setSeed] = useState(
+        Number.isInteger(Number.parseInt(urlSeed))
+            ? Number.parseInt(urlSeed) + ""
+            : getRandomSeed()
+    );
     const [x, setX] = useState(null);
     const [z, setZ] = useState(null);
     const [biome, setBiome] = useState(null);

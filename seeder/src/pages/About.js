@@ -9,6 +9,13 @@ export default function About() {
                     <h1>Seeder</h1>
                     <small className="margin-left-15">(0.3.0)</small>
                 </div>
+                <div className="flex-row flex-align-center">
+                    <div className="margin-3">Buy me a coffee!</div>
+                    <form className="margin-3" action="https://www.paypal.com/donate" method="post" target="_top">
+                        <input style={{ border: "0px" }} type="hidden" name="hosted_button_id" value="LNMNHMPCKH6MG" />
+                        <input style={{ verticalAlign: "bottom", border: "0px" }} type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+                    </form>
+                </div>
                 <h3>Who</h3>
                 <p className="paragraph">
                     <a href="https://github.com/TrinTragula">TrinTragula</a>

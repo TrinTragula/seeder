@@ -7,7 +7,7 @@ export default function About() {
             <div className="about-container">
                 <div className="flex-row flex-align-center">
                     <h1>Seeder</h1>
-                    <small className="margin-left-15">(0.3.0)</small>
+                    <small className="margin-left-15">(0.3.1)</small>
                 </div>
                 <div className="flex-row flex-align-center">
                     <div className="margin-3">Buy me a coffee!</div>
@@ -15,6 +15,12 @@ export default function About() {
                         <input style={{ border: "0px" }} type="hidden" name="hosted_button_id" value="LNMNHMPCKH6MG" />
                         <input style={{ verticalAlign: "bottom", border: "0px" }} type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
                     </form>
+                </div>
+                <div>BTC:
+                    <small><i>bc1q7j97cnz7jce3kgf3fh7hgfvu2h9q5ywrmleh0d</i></small>
+                </div>
+                <div>ETH:
+                    <small><i>0x1fDA7E78fa0894b919b08DEF22B50e404D15384a</i></small>
                 </div>
                 <h3>Who</h3>
                 <p className="paragraph">

@@ -16,11 +16,11 @@ export default function About() {
                         <input style={{ verticalAlign: "bottom", border: "0px" }} type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
                     </form>
                 </div>
-                <div>BTC:
-                    <small><i>bc1q7j97cnz7jce3kgf3fh7hgfvu2h9q5ywrmleh0d</i></small>
+                <div className="flex-row flex-align-center">BTC:
+                    <small className="address"><i>bc1q7j97cnz7jce3kgf3fh7hgfvu2h9q5ywrmleh0d</i></small>
                 </div>
-                <div>ETH:
-                    <small><i>0x1fDA7E78fa0894b919b08DEF22B50e404D15384a</i></small>
+                <div className="flex-row flex-align-center">ETH:
+                    <small className="address"><i>0x1fDA7E78fa0894b919b08DEF22B50e404D15384a</i></small>
                 </div>
                 <h3>Who</h3>
                 <p className="paragraph">

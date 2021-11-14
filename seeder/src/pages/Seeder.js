@@ -365,8 +365,19 @@ export default function Seeder() {
                         {buttonText}
                     </button>
                 </div>
+
+                <hr />
+
                 <div className="flex-row margin-3">
-                    <div className="margin-3">Buy me a coffee!</div>
+                    <div className="margin-3">
+                        <img height="25" style={{ verticalAlign: "top" }} src="svg/opensea.svg" />
+                        <a href="https://opensea.io/collection/mcseeder-collection" target="_blank">
+                            Own a seed in the blockchain!
+                        </a>
+                    </div>
+                </div>
+                <div className="flex-row margin-3">
+                    <div className="margin-3">Or buy me a coffee!</div>
                     <form className="margin-3" action="https://www.paypal.com/donate" method="post" target="_top">
                         <input style={{ border: "0px" }} type="hidden" name="hosted_button_id" value="LNMNHMPCKH6MG" />
                         <input style={{ verticalAlign: "bottom", border: "0px" }} type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />

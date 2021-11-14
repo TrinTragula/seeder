@@ -370,8 +370,8 @@ export default function Seeder() {
 
                 <div className="flex-row margin-3">
                     <div className="margin-3">
-                        <img height="25" style={{ verticalAlign: "top" }} src="svg/opensea.svg" />
-                        <a href="https://opensea.io/collection/mcseeder-collection" target="_blank">
+                        <img height="25" style={{ verticalAlign: "top" }} src="svg/opensea.svg" alt="OpenSea logo" />
+                        <a href="https://opensea.io/collection/mcseeder-collection" target="_blank" rel="noreferrer">
                             Own a seed in the blockchain!
                         </a>
                     </div>

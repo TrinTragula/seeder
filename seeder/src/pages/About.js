@@ -11,7 +11,7 @@ export default function About() {
                 </div>
                 <div className="flex-row flex-align-center">
                     <div className="margin-3">
-                        <img height="25" style={{ verticalAlign: "top" }} src="svg/opensea.svg" alt="OpenSea logo" />
+                        <img height="25" style={{ verticalAlign: "top", marginRight: "9px" }} src="svg/opensea.svg" alt="OpenSea logo" />
                         <a href="https://opensea.io/collection/mcseeder-collection" target="_blank" rel="noreferrer">
                             Own a seed in the blockchain!
                         </a>

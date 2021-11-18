@@ -369,14 +369,14 @@ export default function Seeder() {
                 <hr />
 
                 <div className="flex-row margin-3">
-                    <div className="margin-3">
-                        <img height="25" style={{ verticalAlign: "top", marginRight: "9px" }} src="svg/opensea.svg" alt="OpenSea logo" />
+                    <div className="flex-row">
                         <a href="https://opensea.io/collection/mcseeder-collection" target="_blank" rel="noreferrer">
                             Own a seed in the blockchain!
                         </a>
+                        <img className="margin-left-10" height="25" style={{ verticalAlign: "top" }} src="svg/opensea.svg" alt="OpenSea logo" />
                     </div>
                 </div>
-                <div className="flex-row margin-3">
+                <div className="flex-row">
                     <div className="margin-3">Or buy me a coffee!</div>
                     <form className="margin-3" action="https://www.paypal.com/donate" method="post" target="_top">
                         <input style={{ border: "0px" }} type="hidden" name="hosted_button_id" value="LNMNHMPCKH6MG" />

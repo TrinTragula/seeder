@@ -23,7 +23,7 @@ export default function Seeder() {
     const getRandomSeed = () => "" + Math.floor(Math.random() * 1_000_000_000);
     const canvas = useRef();
     const drawer = useRef();
-    const [mcVersion, setMcVersion] = useState(Number.isInteger(urlVersion) ? urlVersion : VERSIONS["1.17"]);
+    const [mcVersion, setMcVersion] = useState(Number.isInteger(urlVersion) ? urlVersion : VERSIONS["1.18"]);
     const [seed, setSeed] = useState(
         Number.isInteger(Number.parseInt(urlSeed))
             ? Number.parseInt(urlSeed) + ""

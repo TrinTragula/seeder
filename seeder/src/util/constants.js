@@ -78,6 +78,14 @@ export const BIOMES = [
     { value: 171, label: "Crimson Forest" },
     { value: 172, label: "Warped Forest" },
     { value: 173, label: "Basalt Delta" },
+    { value: 174, label: "Dripstone Caves" },
+    { value: 175, label: "Lusch Caves" },
+    { value: 177, label: "Meadow" },
+    { value: 178, label: "Grove" },
+    { value: 179, label: "Snowy Slopes" },
+    { value: 180, label: "Jagged Peaks" },
+    { value: 181, label: "Frozen Peaks" },
+    { value: 182, label: "Stony Peaks" },
 ];
 
 export const VERSIONS = {
@@ -99,6 +107,7 @@ export const VERSIONS = {
     "1.15": 15,
     "1.16": 16,
     "1.17": 17,
+    "1.18": 18,
 };
 
 export const VERSIONS_OPTIONS = Object.keys(VERSIONS).map(v => ({ label: v, value: VERSIONS[v] }));

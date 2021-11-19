@@ -4,7 +4,7 @@ export class QueueManager {
         this.numberOfWorkers = numberOfWorkers ?? navigator.hardwareConcurrency ?? 1;
         this.workers = [];
         this.workerCounter = 0;
-        this.COLORS = {};
+        this.COLORS = null;
         this.drawCache = {};
         this.seedUpdateCallback = null;
         this._spawnWorkers();

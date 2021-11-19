@@ -54,7 +54,10 @@ export default function Seeder() {
 
     const [showLegend, setShowLegend] = useState(false);
 
-    const drawSeed = (mcVersion, seed, structuresToShow, queueManager) => {
+    const [isRandomSeedButtonDisabled, setIsRandomSeedButtonDisabled] = useState(false);
+
+    const drawSeed = (mcVersion, seed, structuresToShow, queueManager, forced = false) => {
+        setIsRandomSeedButtonDisabled(true);
         if (!drawer?.current) {
             canvas.current.width = canvas.current.offsetWidth;
             canvas.current.height = canvas.current.offsetHeight - 15;
@@ -64,16 +67,24 @@ export default function Seeder() {
                 setBiome(biome);
             }, 75, 1);
         }
+        if (forced) {
+            drawer.current.clear();
+        }
+        drawer.current.setShowStructureCoords(showStructureCoords);
         drawer.current.setSeed(seed);
         drawer.current.setMcVersion(mcVersion);
-        drawer.current.showSpawn(([,]) => {
-            drawer.current.showStrongholds(() => {
+        setUrl(seed, mcVersion, setButtonText);
+        drawer.current.draw(() => {
+            setIsRandomSeedButtonDisabled(false);
+            if (forced) {
+                drawer.current.findSpawn(() => drawer.current.drawStructures());
+                drawer.current.findStrongholds(() => drawer.current.drawStructures());
                 for (const structure of structuresToShow) {
-                    drawer.current.showStructure(structure);
+                    drawer.current.findStructure(structure, () => drawer.current.drawStructures());
                 }
-                drawer.current.draw();
-                setUrl(seed, mcVersion, setButtonText);
-            });
+            } else {
+                drawer.current.drawStructures();
+            }
         });
     }
 
@@ -103,7 +114,7 @@ export default function Seeder() {
         if (canvas?.current) {
             canvas.current.width = canvas.current.offsetWidth;
             canvas.current.height = canvas.current.offsetHeight - 15;
-            drawer.current.draw();
+            drawSeed(mcVersion, seed, structuresToShow, queueManager);
         }
     }
 
@@ -113,12 +124,8 @@ export default function Seeder() {
     }, []);
 
     useEffect(() => {
-        drawSeed(mcVersion, seed, structuresToShow, queueManager);
-    }, [mcVersion, seed, structuresToShow, queueManager]);
-
-    useEffect(() => {
-        drawer.current.setShowStructureCoords(showStructureCoords);
-    }, [showStructureCoords]);
+        drawSeed(mcVersion, seed, structuresToShow, queueManager, true);
+    }, [mcVersion, seed, structuresToShow, queueManager, showStructureCoords]);
 
     const setRandomSeed = () => {
         const rendomSeed = getRandomSeed();
@@ -323,7 +330,7 @@ export default function Seeder() {
                     <button style={{ borderLeft: '0px' }} className="flex-1" onClick={() => handleEnterSeed()}>GO</button>
                 </div>
                 <div className="margin-3">
-                    <button className="full-button" onClick={() => setRandomSeed()}>Random seed</button>
+                    <button disabled={isRandomSeedButtonDisabled} className="full-button" onClick={() => setRandomSeed()}>Random seed</button>
                 </div>
                 <div className="margin-3 hide-mobile">Use your keyboard to navigate the map</div>
                 <div className="margin-3">

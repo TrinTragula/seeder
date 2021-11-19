@@ -8,7 +8,7 @@ class Seeder {
     }
 
     initWASM() {
-        this.WASMgenerateArea = this.module.cwrap("generate_area", "array", ["number", "number", "number", "number", "number", "number"]);
+        this.WASMgenerateArea = this.module.cwrap("generate_area", "array", ["number", "number", "number", "number", "number", "number", "number"]);
         this.WASMfreeMemory = this.module.cwrap("free_memory");
         this.WASMgetColors = this.module.cwrap("get_colors");
         this.WASMfreeArea = this.module.cwrap("free_area");
@@ -37,9 +37,9 @@ class Seeder {
     }
 
     // Get the colors array
-    getAreaColors(mcVersion, seed, x, z, areaWidth, areaHeight) {
+    getAreaColors(mcVersion, seed, x, z, areaWidth, areaHeight, dimension) {
         seed = BigInt(seed);
-        const res = this.WASMgenerateArea(mcVersion, seed, x, z, areaWidth, areaHeight);
+        const res = this.WASMgenerateArea(mcVersion, seed, x, z, areaWidth, areaHeight, dimension);
         const biomes = this.module.HEAP32.subarray(res >> 2, (res >> 2) + (areaWidth * areaHeight));
         this.WASMfreeMemory();
         const colors = [];

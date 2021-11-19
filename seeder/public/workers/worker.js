@@ -13,12 +13,12 @@ function loadDone() {
 
 function listener(e) {
     if (e.data.kind == "GET_AREA") {
-        var { mcVersion, seed, startX, startY, widthX, widthY } = e.data.data;
+        var { mcVersion, seed, startX, startY, widthX, widthY, dimension } = e.data.data;
         self.postMessage({
             kind: "DONE_GET_AREA",
             data: {
-                seed, startX, startY, widthX, widthY,
-                colors: self.seeder.getAreaColors(mcVersion, seed, startX, startY, widthX, widthY)
+                seed, startX, startY, widthX, widthY, dimension,
+                colors: self.seeder.getAreaColors(mcVersion, seed, startX, startY, widthX, widthY, dimension)
             }
         });
     // }

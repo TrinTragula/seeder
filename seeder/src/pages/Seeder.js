@@ -3,7 +3,7 @@ import { QueueManager } from '../library/queue';
 import { DrawSeed } from '../library/draw';
 import Select, { createFilter } from 'react-select'
 import './Seeder.css';
-import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS } from '../util/constants';
+import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS } from '../util/constants';
 import { debounce, copyToClipboard, setUrl } from '../util/functions';
 
 export default function Seeder() {
@@ -33,6 +33,7 @@ export default function Seeder() {
     const [z, setZ] = useState(null);
     const [biome, setBiome] = useState(null);
     const [inputSeed, setInputSeed] = useState(seed);
+    const [dimension, setDimension] = useState(0);
     const [queueManager] = useState(() => new QueueManager("/workers/worker.js"));
 
     const [biomesToFind, setBiomesToFind] = useState(null);
@@ -56,7 +57,7 @@ export default function Seeder() {
 
     const [isRandomSeedButtonDisabled, setIsRandomSeedButtonDisabled] = useState(false);
 
-    const drawSeed = (mcVersion, seed, structuresToShow, queueManager, forced = false) => {
+    const drawSeed = (mcVersion, seed, dimension, structuresToShow, queueManager, forced = false) => {
         setIsRandomSeedButtonDisabled(true);
         if (!drawer?.current) {
             canvas.current.width = canvas.current.offsetWidth;
@@ -73,16 +74,18 @@ export default function Seeder() {
         drawer.current.setShowStructureCoords(showStructureCoords);
         drawer.current.setSeed(seed);
         drawer.current.setMcVersion(mcVersion);
+        drawer.current.setDimension(dimension);
         setUrl(seed, mcVersion, setButtonText);
         drawer.current.draw(() => {
             setIsRandomSeedButtonDisabled(false);
-            if (forced) {
+            if (forced && dimension === 0) {
+                // todo: callback solo se impostazioni non cambiate
                 drawer.current.findSpawn(() => drawer.current.drawStructures());
                 drawer.current.findStrongholds(() => drawer.current.drawStructures());
                 for (const structure of structuresToShow) {
                     drawer.current.findStructure(structure, () => drawer.current.drawStructures());
                 }
-            } else {
+            } else if (dimension === 0) {
                 drawer.current.drawStructures();
             }
         });
@@ -114,7 +117,7 @@ export default function Seeder() {
         if (canvas?.current) {
             canvas.current.width = canvas.current.offsetWidth;
             canvas.current.height = canvas.current.offsetHeight - 15;
-            drawSeed(mcVersion, seed, structuresToShow, queueManager);
+            drawSeed(mcVersion, seed, dimension, structuresToShow, queueManager);
         }
     }
 
@@ -124,8 +127,8 @@ export default function Seeder() {
     }, []);
 
     useEffect(() => {
-        drawSeed(mcVersion, seed, structuresToShow, queueManager, true);
-    }, [mcVersion, seed, structuresToShow, queueManager, showStructureCoords]);
+        drawSeed(mcVersion, seed, dimension, structuresToShow, queueManager, true);
+    }, [mcVersion, seed, dimension, structuresToShow, queueManager, showStructureCoords]);
 
     const setRandomSeed = () => {
         const rendomSeed = getRandomSeed();
@@ -200,12 +203,6 @@ export default function Seeder() {
                         <label htmlFor="structures-shown">Show structures coords</label>
                         <input id="structures-shown" defaultChecked={true} className="margin-3" type="checkbox" value={showStructureCoords}
                             onClick={() => setShowStructureCoords(!showStructureCoords)} />
-                    </div>
-                    <div className="margin-3 width-total">
-                        <div className="margin-3">Select MC version</div>
-                        <Select options={VERSIONS_OPTIONS} onChange={(val) => {
-                            setMcVersion(val?.value);
-                        }} value={VERSIONS_OPTIONS.find(v => v.value === mcVersion)} />
                     </div>
                     <div className="margin-3 width-total">
                         <div className="margin-3">Structures to show</div>
@@ -331,6 +328,18 @@ export default function Seeder() {
                 </div>
                 <div className="margin-3">
                     <button disabled={isRandomSeedButtonDisabled} className="full-button" onClick={() => setRandomSeed()}>Random seed</button>
+                </div>
+                <div className="margin-3 width-total">
+                    <div className="margin-3">Dimension</div>
+                    <Select options={DIMENSIONS_OPTIONS} onChange={(val) => {
+                        setDimension(val?.value);
+                    }} value={DIMENSIONS_OPTIONS.find(v => v.value === dimension)} />
+                </div>
+                <div className="margin-3 width-total">
+                    <div className="margin-3">Select MC version</div>
+                    <Select options={VERSIONS_OPTIONS} onChange={(val) => {
+                        setMcVersion(val?.value);
+                    }} value={VERSIONS_OPTIONS.find(v => v.value === mcVersion)} />
                 </div>
                 <div className="margin-3 hide-mobile">Use your keyboard to navigate the map</div>
                 <div className="margin-3">

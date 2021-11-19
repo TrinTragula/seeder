@@ -129,3 +129,10 @@ export const STRUCTURES_OPTIONS = [
     // { value: 14, label: <div className="flex-row flex-align-center"><img src="/img/spawn.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />"Bastion"</div> },
     // { value: 15, label: <div className="flex-row flex-align-center"><img src="/img/spawn.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />"End City"</div> },
 ];
+
+export const DIMENSIONS_OPTIONS = [
+    { value: 0, label: "Overworld" },
+    { value: -1, label: "Nether" },
+    { value: 1, label: "End" },
+];
+

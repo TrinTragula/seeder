@@ -11,8 +11,8 @@ export class QueueManager {
         this.getColors();
     }
 
-    draw(mcVersion, seed, startX, startY, widthX, widthY, callback) {
-        const cacheKey = mcVersion + "-" + seed + "-" + startX + "-" + startY + "-" + widthX + "-" + widthY;
+    draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, callback) {
+        const cacheKey = mcVersion + "-" + seed + "-" + startX + "-" + startY + "-" + widthX + "-" + widthY + "-" + dimension;
         const cachedColors = this.drawCache[cacheKey];
         if (cachedColors) {
             callback(cachedColors);
@@ -24,13 +24,13 @@ export class QueueManager {
                     worker.callback = callback;
                     worker.postMessage({
                         kind: "GET_AREA",
-                        data: { mcVersion, seed, startX, startY, widthX, widthY }
+                        data: { mcVersion, seed, startX, startY, widthX, widthY, dimension }
                     });
                     return;
                 }
             }
         }
-        setTimeout(() => this.draw(mcVersion, seed, startX, startY, widthX, widthY, callback), 33);
+        setTimeout(() => this.draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, callback), 33);
     }
 
     findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, threads, callback) {
@@ -198,7 +198,7 @@ export class QueueManager {
         }
         else if (e.data.kind === "DONE_GET_AREA") {
             const data = e.data.data;
-            const cacheKey = data.seed + "-" + data.startX + "-" + data.startY + "-" + data.widthX + "-" + data.widthY;
+            const cacheKey = data.seed + "-" + data.startX + "-" + data.startY + "-" + data.widthX + "-" + data.widthY + "-" + data.dimension;
             this.drawCache[cacheKey] = data.colors;
             worker.callback(data.colors);
             this._cleanWorker(worker);

@@ -13,12 +13,12 @@ all: release
 
 debug: CFLAGS += -DDEBUG -O0 -ggdb3
 debug: libcubiomes
-release: CFLAGS += -O3
+release: CFLAGS += -O3 -g3
 release: libcubiomes
 native: CFLAGS += -O3 -march=native
 native: libcubiomes
 
-libcubiomes: layers.o generator.o finders.o util.o
+libcubiomes: noise.o biome_tree.o layers.o generator.o finders.o util.o
 	$(AR) $(ARFLAGS) libcubiomes.a $^
 
 
@@ -29,6 +29,12 @@ generator.o: ../cubiomes/generator.c ../cubiomes/generator.h
 	$(CC) -c $(CFLAGS) $<
 
 layers.o: ../cubiomes/layers.c ../cubiomes/layers.h
+	$(CC) -c $(CFLAGS) $<
+
+biome_tree.o: ../cubiomes/biome_tree.c
+	$(CC) -c $(CFLAGS) $<
+
+noise.o: ../cubiomes/noise.c ../cubiomes/noise.h
 	$(CC) -c $(CFLAGS) $<
 
 util.o: ../cubiomes/util.c ../cubiomes/util.h

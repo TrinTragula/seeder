@@ -1,5 +1,14 @@
 # Seeder
 
+TODO:
+[ ] FINIRE PORTING
+[ ] DIM SELECTOR
+[ ] TEST ACCURATI
+[ ] COLORI BIOMI GIUSTI E AGGIORNATI
+[ ] VELOCIZZARE TROVARE STRONGHOLD, PER ORA SONO NERFATI
+[ ] RANDOM SEED CHOOSER MIGLIORE
+
+
 Find, show, share and admire Minecraft seeds (Java edition only).
 
 ![Seeder screenshot](https://i.ibb.co/37Qptpq/seeder.png)

@@ -8,17 +8,16 @@ class Seeder {
     }
 
     initWASM() {
-        this.WASMgenerateFromSeed = this.module.cwrap("generate_from_seed", "number", ["number", "number", "number", "number"]);
         this.WASMgenerateArea = this.module.cwrap("generate_area", "array", ["number", "number", "number", "number", "number", "number"]);
         this.WASMfreeMemory = this.module.cwrap("free_memory");
         this.WASMgetColors = this.module.cwrap("get_colors");
-        this.WASMfindBiomes = this.module.cwrap("find_biomes", "number", ["number", "array", "number", "number", "number", "number", "number", "number"]);
         this.WASMfreeArea = this.module.cwrap("free_area");
+        // this.WASMfindBiomes = this.module.cwrap("find_biomes", "number", ["number", "array", "number", "number", "number", "number", "number", "number"]);
         this.WASMfindSpawn = this.module.cwrap("find_spawn", "number", ["number", "number"]);
         this.WASMfindStrongholds = this.module.cwrap("find_strongholds", "array", ["number", "number", "number"]);
-        this.WASMfindStructures = this.module.cwrap("find_structures", "number", ["number", "number", "number", "number", "number", "number"]);
-        this.WASMfindBiomesWithStructures = this.module.cwrap("find_biomes_with_structure", "number", ["number", "number", "array", "number", "number", "number", "number", "number"]);
-        this.WASMgetStructuresInRegions = this.module.cwrap("get_structure_in_regions", "array", ["number", "number", "number"]);
+        // this.WASMfindStructures = this.module.cwrap("find_structures", "number", ["number", "number", "number", "number", "number", "number"]);
+        // this.WASMfindBiomesWithStructures = this.module.cwrap("find_biomes_with_structure", "number", ["number", "number", "array", "number", "number", "number", "number", "number"]);
+        // this.WASMgetStructuresInRegions = this.module.cwrap("get_structure_in_regions", "array", ["number", "number", "number"]);
     }
 
     initColors() {
@@ -53,12 +52,12 @@ class Seeder {
         return colors;
     }
 
-    findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed) {
-        const input = new Uint8Array(new Int32Array(biomes).buffer)
-        const result = this.WASMfindBiomes(mcVersion, input, biomes.length, x, z, widthX, widthZ, startingSeed);
-        this.WASMfreeArea();
-        return result;
-    }
+    // findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed) {
+    //     const input = new Uint8Array(new Int32Array(biomes).buffer)
+    //     const result = this.WASMfindBiomes(mcVersion, input, biomes.length, x, z, widthX, widthZ, startingSeed);
+    //     this.WASMfreeArea();
+    //     return result;
+    // }
 
     findSpawn(mcVersion, seed) {
         seed = BigInt(seed);
@@ -82,31 +81,31 @@ class Seeder {
         return coords;
     }
 
-    findStructures(mcVersion, structType, x, z, range, startingSeed) {
-        const res = this.WASMfindStructures(mcVersion, structType, x, z, range, startingSeed);
-        return res;
-    }
+    // findStructures(mcVersion, structType, x, z, range, startingSeed) {
+    //     const res = this.WASMfindStructures(mcVersion, structType, x, z, range, startingSeed);
+    //     return res;
+    // }
 
-    findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed) {
-        const input = new Uint8Array(new Int32Array(biomes).buffer)
-        const result = this.WASMfindBiomesWithStructures(mcVersion, structType, input, biomes.length, x, z, range, startingSeed);
-        this.WASMfreeArea();
-        return result;
-    }
+    // findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed) {
+    //     const input = new Uint8Array(new Int32Array(biomes).buffer)
+    //     const result = this.WASMfindBiomesWithStructures(mcVersion, structType, input, biomes.length, x, z, range, startingSeed);
+    //     this.WASMfreeArea();
+    //     return result;
+    // }
 
-    getStructuresInRegions(mcVersion, structType, seed, regionsRange) {
-        seed = BigInt(seed);
-        const res = this.WASMgetStructuresInRegions(mcVersion, structType, seed, regionsRange);
-        const rawCoords = this.module.HEAP32.subarray(res >> 2, (res >> 2) + (regionsRange * regionsRange * 2 * 4));
-        const coords = rawCoords.reduce((p, c, i, a) => {
-            if (i % 2 == 0) {
-                const pos = a.slice(i, i + 2);
-                if (pos[0] !== -1 && pos[1] !== -1) {
-                    p.push(a.slice(i, i + 2))
-                }
-            }
-            return p;
-        }, []);
-        return coords;
-    }
+    // getStructuresInRegions(mcVersion, structType, seed, regionsRange) {
+    //     seed = BigInt(seed);
+    //     const res = this.WASMgetStructuresInRegions(mcVersion, structType, seed, regionsRange);
+    //     const rawCoords = this.module.HEAP32.subarray(res >> 2, (res >> 2) + (regionsRange * regionsRange * 2 * 4));
+    //     const coords = rawCoords.reduce((p, c, i, a) => {
+    //         if (i % 2 == 0) {
+    //             const pos = a.slice(i, i + 2);
+    //             if (pos[0] !== -1 && pos[1] !== -1) {
+    //                 p.push(a.slice(i, i + 2))
+    //             }
+    //         }
+    //         return p;
+    //     }, []);
+    //     return coords;
+    // }
 }

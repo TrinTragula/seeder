@@ -76,7 +76,7 @@ export class DrawSeed {
     }
 
     showStrongholds(callback) {
-        this.queue.findStrongholds(this.mcVersion, this.seed, 150, ({ coords }) => {
+        this.queue.findStrongholds(this.mcVersion, this.seed, 1 /* TODO: CHANGE ME */, ({ coords }) => {
             this.strongholds = coords;
             const strongholdsShownBefore = this.strongholdsShown;
             this.strongholdsShown = true;

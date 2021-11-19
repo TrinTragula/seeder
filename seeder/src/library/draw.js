@@ -40,10 +40,20 @@ export class DrawSeed {
         }
     }
 
+    clear() {
+        this.biomesDict = {};
+        this.spawnX = null;
+        this.spawnZ = null;
+        this.strongholds = null;
+        this.structures = {};
+        this.strongholdsShown = false;
+        this.spawnShown = false;
+        this.structuresShown = {};
+    }
+
     setShowStructureCoords(value) {
         if (value !== this.showStructureCoords) {
             this.showStructureCoords = value;
-            this.draw();
         }
     }
 
@@ -51,12 +61,6 @@ export class DrawSeed {
         if (this.seed !== seed) {
             this.seed = seed;
             this.structures = {};
-            if (this.spawnShown) {
-                this.showSpawn();
-            }
-            if (this.strongholdsShown) {
-                this.showStrongholds();
-            }
         }
     }
 
@@ -64,33 +68,28 @@ export class DrawSeed {
         this.mcVersion = mcVersion;
     }
 
-    showSpawn(callback) {
+    findSpawn(callback) {
         this.queue.findSpawn(this.mcVersion, this.seed, (x, z) => {
             this.spawnX = x;
             this.spawnZ = z;
-            const spawnShownBefore = this.spawnShown;
             this.spawnShown = true;
-            if (!spawnShownBefore) this._afterDrawDone();
             if (callback) callback([this.spawnX, this.spawnZ]);
         });
     }
 
-    showStrongholds(callback) {
-        this.queue.findStrongholds(this.mcVersion, this.seed, 1 /* TODO: CHANGE ME */, ({ coords }) => {
+    findStrongholds(callback) {
+        this.queue.findStrongholds(this.mcVersion, this.seed, 150, ({ coords }) => {
             this.strongholds = coords;
-            const strongholdsShownBefore = this.strongholdsShown;
             this.strongholdsShown = true;
-            if (!strongholdsShownBefore) this._afterDrawDone();
             if (callback) callback(this.strongholds);
         });
     }
 
-    showStructure(structType, callback) {
+    findStructure(structType, callback) {
         this.queue.getStructuresInRegions(this.mcVersion, structType, this.seed, 50, ({ coords }) => {
             this.structures[structType] = coords;
-            this.structuresShown[structType] = true;
-            this._afterDrawDone();
             if (callback) callback(this.structures[structType]);
+            this.structuresShown[structType] = true;
         });
     }
 
@@ -101,7 +100,7 @@ export class DrawSeed {
         }
     }
 
-    draw() {
+    draw(callback = null) {
         console.time("Drawing seed");
         if (this.toDraw > 0) {
             setTimeout(() => this.draw(), 333);
@@ -123,7 +122,10 @@ export class DrawSeed {
                     this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, (colors) => {
                         this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                         if (this.toDraw === 1) {
-                            this._afterDrawDone();
+                            this.drawStructures();
+                            if (callback) {
+                                callback();
+                            }
                             console.timeEnd("Drawing seed");
                         }
                         this.toDraw--;
@@ -179,7 +181,7 @@ export class DrawSeed {
                 this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, (colors) => {
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
-                        this._afterDrawDone();
+                        this.drawStructures();
                     }
                     this.toDraw--;
                 });
@@ -215,7 +217,7 @@ export class DrawSeed {
                 this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, (colors) => {
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
-                        this._afterDrawDone();
+                        this.drawStructures();
                     }
                     this.toDraw--;
                 });
@@ -252,7 +254,7 @@ export class DrawSeed {
                 this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, (colors) => {
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
-                        this._afterDrawDone();
+                        this.drawStructures();
                     }
                     this.toDraw--;
                 });
@@ -288,7 +290,7 @@ export class DrawSeed {
                 this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, (colors) => {
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
-                        this._afterDrawDone();
+                        this.drawStructures();
                     }
                     this.toDraw--;
                 });
@@ -309,7 +311,7 @@ export class DrawSeed {
         }
     }
 
-    _afterDrawDone() {
+    drawStructures() {
         if (this.spawnShown && this.spawnX != null && this.spawnZ != null) {
             let drawX = Math.floor(this.spawnX / 4) * this.pixDim + this.offsetX * this.drawDim;
             let drawZ = Math.floor(this.spawnZ / 4) * this.pixDim + this.offsetZ * this.drawDim;
@@ -420,9 +422,11 @@ export class DrawSeed {
         if (this.biomesDict && this.biomesDict[trueX] && this.biomesDict[trueX][trueY]) {
             const rgba = this.biomesDict[trueX][trueY];
             const key = rgba.join('-');
-            const index = this.queue.COLORS.findIndex(x => x.join('-') === key);
-            if (index > -1) {
-                return [4 * trueX, 4 * trueY, BIOMES.find(x => x.value === index)?.label];
+            if (this.queue.COLORS) {
+                const index = this.queue.COLORS.findIndex(x => x.join('-') === key);
+                if (index > -1) {
+                    return [4 * trueX, 4 * trueY, BIOMES.find(x => x.value === index)?.label];
+                }
             }
         }
         return [null, null, null];

@@ -149,8 +149,8 @@ export class DrawSeed {
             let widthX = this.drawDim;
             let widthY = this.drawDim;
             this.spiral(xSize, ySize, (i, j) => {
-                let startX = this.drawDim * (i - (this.offsetX / this.pixDim));
-                let startY = this.drawDim * (j - (this.offsetZ / this.pixDim));
+                let startX = Math.floor(this.drawDim * (i - (this.offsetX / this.pixDim)));
+                let startY = Math.floor(this.drawDim * (j - (this.offsetZ / this.pixDim)));
                 let drawStartX = (this.drawDim * this.pixDim) * i;
                 let drawStartY = (this.drawDim * this.pixDim) * j;
                 this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, this.yHeight, (colors) => {
@@ -205,8 +205,8 @@ export class DrawSeed {
 
             const ySize = this.canvas.height / (this.drawDim * this.pixDim);
             for (let i = 0; i < xSize; i++) {
-                let startX = this.drawDim * (i - (this.offsetX / this.pixDim));
-                let startY = this.drawDim * (ySize - 1 - (this.offsetZ / this.pixDim));
+                let startX = Math.floor(this.drawDim * (i - (this.offsetX / this.pixDim)));
+                let startY = Math.floor(this.drawDim * (ySize - 1 - (this.offsetZ / this.pixDim)));
                 let widthX = this.drawDim;
                 let widthY = this.drawDim;
                 let drawStartX = (this.drawDim * this.pixDim) * i;
@@ -241,8 +241,8 @@ export class DrawSeed {
             this.ctx.translate(0, -this.drawDim);
 
             for (let i = 0; i < xSize; i++) {
-                let startX = this.drawDim * (i - (this.offsetX / this.pixDim));
-                let startY = this.drawDim * (-(this.offsetZ / this.pixDim));
+                let startX = Math.floor(this.drawDim * (i - (this.offsetX / this.pixDim)));
+                let startY = Math.floor(this.drawDim * (-(this.offsetZ / this.pixDim)));
                 let widthX = this.drawDim;
                 let widthY = this.drawDim;
                 let drawStartX = (this.drawDim * this.pixDim) * i;
@@ -278,8 +278,8 @@ export class DrawSeed {
 
             const xSize = this.canvas.width / (this.drawDim * this.pixDim);
             for (let j = 0; j < ySize; j++) {
-                let startX = this.drawDim * (xSize - 1 - (this.offsetX / this.pixDim));
-                let startY = this.drawDim * (j - (this.offsetZ / this.pixDim));
+                let startX = Math.floor(this.drawDim * (xSize - 1 - (this.offsetX / this.pixDim)));
+                let startY = Math.floor(this.drawDim * (j - (this.offsetZ / this.pixDim)));
                 let widthX = this.drawDim;
                 let widthY = this.drawDim;
                 let drawStartX = this.canvas.width - (this.drawDim * this.pixDim);
@@ -314,8 +314,8 @@ export class DrawSeed {
             this.ctx.translate(-this.drawDim, 0);
 
             for (let j = 0; j < ySize; j++) {
-                let startX = this.drawDim * (-(this.offsetX / this.pixDim));
-                let startY = this.drawDim * (j - (this.offsetZ / this.pixDim));
+                let startX = Math.floor(this.drawDim * (-(this.offsetX / this.pixDim)));
+                let startY = Math.floor(this.drawDim * (j - (this.offsetZ / this.pixDim)));
                 let widthX = this.drawDim;
                 let widthY = this.drawDim;
                 let drawStartX = 0;

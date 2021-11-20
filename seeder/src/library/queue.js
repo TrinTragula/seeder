@@ -198,7 +198,7 @@ export class QueueManager {
         }
         else if (e.data.kind === "DONE_GET_AREA") {
             const data = e.data.data;
-            const cacheKey = data.seed + "-" + data.startX + "-" + data.startY + "-" + data.widthX + "-" + data.widthY + "-" + data.dimension + "-" + data.yHeight;
+            const cacheKey = data.mcVersion + "-" + data.seed + "-" + data.startX + "-" + data.startY + "-" + data.widthX + "-" + data.widthY + "-" + data.dimension + "-" + data.yHeight;
             this.drawCache[cacheKey] = data.colors;
             worker.callback(data.colors);
             this._cleanWorker(worker);

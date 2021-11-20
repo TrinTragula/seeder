@@ -17,7 +17,7 @@ function listener(e) {
         self.postMessage({
             kind: "DONE_GET_AREA",
             data: {
-                seed, startX, startY, widthX, widthY, dimension, yHeight,
+                mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight,
                 colors: self.seeder.getAreaColors(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight)
             }
         });

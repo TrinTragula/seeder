@@ -21,15 +21,15 @@ function listener(e) {
                 colors: self.seeder.getAreaColors(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight)
             }
         });
-    // }
-    // else if (e.data.kind == "GET_BIOMES") {
-    //     var { mcVersion, biomes, x, z, widthX, widthZ, startingSeed } = e.data.data;
-    //     self.postMessage({
-    //         kind: "DONE_GET_BIOMES",
-    //         data: {
-    //             seed: self.seeder.findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed)
-    //         }
-    //     });
+    }
+    else if (e.data.kind == "GET_BIOMES") {
+        var { mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight } = e.data.data;
+        self.postMessage({
+            kind: "DONE_GET_BIOMES",
+            data: {
+                seed: self.seeder.findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight)
+            }
+        });
     }
     else if (e.data.kind == "GET_SPAWN") {
         var { mcVersion, seed } = e.data.data;

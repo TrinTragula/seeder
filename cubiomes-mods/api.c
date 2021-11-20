@@ -5,7 +5,6 @@
 #include "../cubiomes/util.h"
 #include <stdio.h>
 
-Generator g;
 int *biomeIds;
 int *area;
 
@@ -17,9 +16,9 @@ int main()
 EMSCRIPTEN_KEEPALIVE
 int *generate_area(int mcVersion, int64_t seed, int areaX, int areaZ, int areaWidth, int areaHeight, int dimension, int yHeight)
 {
+    Generator g;
     setupGenerator(&g, mcVersion, 0);
-    int scale = 4;
-    Range r = {scale, areaX, areaZ, areaWidth, areaHeight, yHeight / 4 , 1};
+    Range r = {4, areaX, areaZ, areaWidth, areaHeight, yHeight / 4 , 1};
     biomeIds = allocCache(&g, r);
     applySeed(&g, dimension, seed); // 0 = overworld, 1 = end, 2 = nether
     genBiomes(&g, biomeIds, r);
@@ -42,25 +41,29 @@ unsigned char *get_colors()
 
 EM_JS(void, call_seed_update, (), {self.postMessage({kind : "SEED_UPDATE"})});
 
-// EMSCRIPTEN_KEEPALIVE
-// int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w, int h, int starting_seed)
-// {
-//     setupGenerator(&g, mcVersion, 0);
-//     BiomeFilter filter;
-//     filter = setupBiomeFilter(wanted, count);
+EMSCRIPTEN_KEEPALIVE
+int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w, int h, int starting_seed, int dimension, int yHeight)
+{
+    Generator g;
+    setupGenerator(&g, mcVersion, 0);
+    BiomeFilter filter;
+    int* excluded;
+    filter = setupBiomeFilter(wanted, count, excluded, 0);
+    Range r = {4, x, z, w, h, yHeight / 4 , 1};
+    biomeIds = allocCache(&g, r);
 
-//     int64_t seed;
-//     for (seed = starting_seed;; seed++)
-//     {
-//         if (seed % 10000 == 0)
-//         {
-//             call_seed_update();
-//         }
-//         if (checkForBiomes(&g, x, 256, z, w, h, filter, 1))
-//             break;
-//     }
-//     return seed;
-// }
+    int64_t seed;
+    for (seed = starting_seed;; seed++)
+    {
+        if (seed % 100 == 0)
+        {
+            call_seed_update();
+        }
+        if (checkForBiomes(&g, biomeIds, r, dimension, seed, filter, 1, NULL))
+            break;
+    }
+    return seed;
+}
 
 EMSCRIPTEN_KEEPALIVE
 void free_area()
@@ -71,6 +74,7 @@ void free_area()
 EMSCRIPTEN_KEEPALIVE
 Pos *find_spawn(int mcVersion, int64_t seed)
 {
+    Generator g;
     setupGenerator(&g, mcVersion, 0);
     applySeed(&g, 0, seed); // 0 = overworld
     Pos pos = getSpawn(&g);
@@ -80,6 +84,7 @@ Pos *find_spawn(int mcVersion, int64_t seed)
 EMSCRIPTEN_KEEPALIVE
 Pos *find_strongholds(int mcVersion, int64_t seed, int howMany)
 {
+    Generator g;
     StrongholdIter sh;
     Pos pos = initFirstStronghold(&sh, mcVersion, seed);
     setupGenerator(&g, mcVersion, 0);

@@ -197,7 +197,7 @@ export class DrawSeed {
             tempCanvas.height = this.canvas.height;
             tempCtx.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height);
 
-            this.ctx.fillStyle = "#000";
+            this.ctx.fillStyle = "#333333";
             this.ctx.fillRect(0, this.canvas.height - this.drawDim, this.canvas.width, this.canvas.height);
             this.ctx.translate(0, -this.drawDim);
             this.ctx.drawImage(tempCanvas, 0, 0);
@@ -234,7 +234,7 @@ export class DrawSeed {
             tempCanvas.height = this.canvas.height;
             tempCtx.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height);
 
-            this.ctx.fillStyle = "#000";
+            this.ctx.fillStyle = "#333333";
             this.ctx.fillRect(0, 0, this.canvas.width, this.drawDim);
             this.ctx.translate(0, this.drawDim);
             this.ctx.drawImage(tempCanvas, 0, 0);
@@ -270,7 +270,7 @@ export class DrawSeed {
             tempCanvas.height = this.canvas.height;
             tempCtx.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height);
 
-            this.ctx.fillStyle = "#000";
+            this.ctx.fillStyle = "#333333";
             this.ctx.fillRect(this.canvas.width - this.drawDim, 0, this.canvas.width, this.canvas.height);
             this.ctx.translate(-this.drawDim, 0);
             this.ctx.drawImage(tempCanvas, 0, 0);
@@ -307,7 +307,7 @@ export class DrawSeed {
             tempCanvas.height = this.canvas.height;
             tempCtx.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height);
 
-            this.ctx.fillStyle = "#000";
+            this.ctx.fillStyle = "#333333";
             this.ctx.fillRect(0, 0, this.drawDim, this.canvas.height);
             this.ctx.translate(this.drawDim, 0);
             this.ctx.drawImage(tempCanvas, 0, 0);
@@ -432,10 +432,11 @@ export class DrawSeed {
                 const realii = Math.floor(ii / this.pixDim);
                 pixels[ii + base] = colors[(realii * widthX) + realjj];
 
-                if ((ii % this.pixDim) === 0 && jmodulo)
+                if ((ii % this.pixDim) === 0 && jmodulo) {
                     if (!this.biomesDict[startX + realii]) {
                         this.biomesDict[startX + realii] = {};
                     }
+                }
                 this.biomesDict[startX + realii][startY + realjj] = colors[(realii * widthX) + realjj];
             }
         }

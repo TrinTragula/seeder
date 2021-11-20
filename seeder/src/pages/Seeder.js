@@ -6,6 +6,11 @@ import './Seeder.css';
 import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS } from '../util/constants';
 import { debounce, copyToClipboard, setUrl } from '../util/functions';
 
+const isNumeric = (str) => {
+    if (typeof str != "string") return false;
+    return !isNaN(str) && !isNaN(parseFloat(str));
+}
+
 export default function Seeder() {
     const filterConfig = {
         ignoreCase: true,
@@ -23,7 +28,7 @@ export default function Seeder() {
     const getRandomSeed = () => "" + Math.floor(-4_294_967_296 + Math.random() * 8_589_934_593);
     const canvas = useRef();
     const drawer = useRef();
-    const [mcVersion, setMcVersion] = useState(Number.isInteger(urlVersion) ? urlVersion : VERSIONS["1.18"]);
+    const [mcVersion, setMcVersion] = useState(isNumeric(urlVersion) ? Number.parseInt(urlVersion) : VERSIONS["1.18"]);
     const [seed, setSeed] = useState(
         Number.isInteger(Number.parseInt(urlSeed))
             ? Number.parseInt(urlSeed) + ""
@@ -151,12 +156,6 @@ export default function Seeder() {
         setInputSeed(rendomSeed);
     }
 
-    const isNumeric = (str) => {
-        if (typeof str != "string") return false // we only process strings!  
-        return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
-            !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
-    }
-
     const seedFromString = function (s) {
         let h;
         for (let i = 0; i < s.length; i++) {
@@ -213,7 +212,9 @@ export default function Seeder() {
                 queueManager.findBiomes(
                     mcVersion,
                     biomesToFind, -range, -range,
-                    range * 2, range * 2, lastFoundSeed + 1, 9999,
+                    range * 2, range * 2, lastFoundSeed + 1, 
+                    dimension, yHeight,
+                    9999,
                     callback
                 );
             } else if (structureToFind) {
@@ -333,7 +334,7 @@ export default function Seeder() {
                 </div>
             }
             <div className="map-container flex-5 flex-row">
-                <canvas ref={canvas}></canvas>
+                <canvas ref={canvas} style={{ background: "#333333" }}></canvas>
                 <img alt="seed menu toggle"
                     className="menu-toggle"
                     onClick={() => setMenuToggled(!menuToggled)} src="/svg/menu.svg">

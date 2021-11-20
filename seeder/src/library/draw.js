@@ -50,7 +50,8 @@ export class DrawSeed {
         this.structures = {};
         this.strongholdsShown = false;
         this.spawnShown = false;
-        this.structuresShown = {};
+        this.offsetX = Math.floor((this.canvas.width / this.drawDim) / 2);
+        this.offsetZ = Math.floor((this.canvas.height / this.drawDim) / 2);
     }
 
     setShowStructureCoords(value) {
@@ -82,6 +83,10 @@ export class DrawSeed {
     }
 
     findSpawn(callback) {
+        if (this.spawnX && this.spawnZ) {
+            if (callback) callback(this.seed, this.spawnX, this.spawnZ);
+            return;
+        }
         this.queue.findSpawn(this.mcVersion, this.seed, (x, z) => {
             this.spawnX = x;
             this.spawnZ = z;
@@ -91,6 +96,10 @@ export class DrawSeed {
     }
 
     findStrongholds(callback) {
+        if (this.strongholds?.length > 0) {
+            if (callback) callback(this.seed, this.strongholds);
+            return;
+        }
         this.queue.findStrongholds(this.mcVersion, this.seed, 150, ({ coords }) => {
             this.strongholds = coords;
             this.strongholdsShown = true;
@@ -99,7 +108,12 @@ export class DrawSeed {
     }
 
     findStructure(structType, callback) {
-        this.queue.getStructuresInRegions(this.mcVersion, structType, this.seed, 50, ({ coords }) => {
+        if (this.structures && this.structures[structType]?.length > 0) {
+            if (callback) callback(this.seed, this.structures[structType]);
+            this.structuresShown[structType] = true;
+            return;
+        }
+        this.queue.getStructuresInRegions(this.mcVersion, structType, this.seed, 50, this.dimension, ({ coords }) => {
             this.structures[structType] = coords;
             if (callback) callback(this.seed, this.structures[structType]);
             this.structuresShown[structType] = true;

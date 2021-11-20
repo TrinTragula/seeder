@@ -18,7 +18,7 @@ int *generate_area(int mcVersion, int64_t seed, int areaX, int areaZ, int areaWi
 {
     Generator g;
     setupGenerator(&g, mcVersion, 0);
-    Range r = {4, areaX, areaZ, areaWidth, areaHeight, yHeight / 4 , 1};
+    Range r = {4, areaX, areaZ, areaWidth, areaHeight, yHeight / 4, 1};
     biomeIds = allocCache(&g, r);
     applySeed(&g, dimension, seed); // 0 = overworld, 1 = end, 2 = nether
     genBiomes(&g, biomeIds, r);
@@ -47,9 +47,9 @@ int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w,
     Generator g;
     setupGenerator(&g, mcVersion, 0);
     BiomeFilter filter;
-    int* excluded;
+    int *excluded;
     filter = setupBiomeFilter(wanted, count, excluded, 0);
-    Range r = {4, x, z, w, h, yHeight / 4 , 1};
+    Range r = {4, x, z, w, h, yHeight / 4, 1};
     biomeIds = allocCache(&g, r);
 
     int64_t seed;
@@ -116,45 +116,46 @@ Pos *find_strongholds(int mcVersion, int64_t seed, int howMany)
     return coords;
 }
 
-// EMSCRIPTEN_KEEPALIVE
-// int64_t find_structures(int mcVersion, int structType, int x, int z, int range, int starting_seed)
-// {
-//     LayerStack g;
-//     setupGenerator(&g, mcVersion);
+EMSCRIPTEN_KEEPALIVE
+int64_t find_structures(int mcVersion, int structType, int x, int z, int range, int starting_seed, int dimension)
+{
+    Generator g;
+    setupGenerator(&g, mcVersion, 0);
 
-//     int64_t lower48;
-//     int64_t tot = 0;
-//     for (lower48 = starting_seed;; lower48++)
-//     {
-//         if (tot % 10000 == 0)
-//         {
-//             call_seed_update();
-//         }
-//         tot++;
+    int64_t lower48;
+    int64_t tot = 0;
+    for (lower48 = starting_seed;; lower48++)
+    {
+        if (tot % 10000 == 0)
+        {
+            call_seed_update();
+        }
+        tot++;
 
-//         Pos p;
-//         if (!getStructurePos(structType, mcVersion, lower48, 0, 0, &p))
-//             continue;
+        Pos p;
+        if (!getStructurePos(structType, mcVersion, lower48, 0, 0, &p))
+            continue;
 
-//         if ((p.x > (x + range)) || (p.z > (z + range)) || (p.x < (x - range)) || (p.z < (z - range)))
-//             continue;
+        if ((p.x > (x + range)) || (p.z > (z + range)) || (p.x < (x - range)) || (p.z < (z - range)))
+            continue;
 
-//         int64_t upper16;
-//         for (upper16 = 0; upper16 < 0x10000; upper16++)
-//         {
-//             if (tot % 10000 == 0)
-//             {
-//                 call_seed_update();
-//             }
-//             tot++;
-//             int64_t seed = lower48 | (upper16 << 48);
-//             if (isViableStructurePos(structType, mcVersion, &g, seed, p.x, p.z))
-//             {
-//                 return seed;
-//             }
-//         }
-//     }
-// }
+        int64_t upper16;
+        for (upper16 = 0; upper16 < 0x10000; upper16++)
+        {
+            if (tot % 10000 == 0)
+            {
+                call_seed_update();
+            }
+            tot++;
+            int64_t seed = lower48 | (upper16 << 48);
+            applySeed(&g, dimension, seed);
+            if (isViableStructurePos(structType, &g, p.x, p.z))
+            {
+                return seed;
+            }
+        }
+    }
+}
 
 // EMSCRIPTEN_KEEPALIVE
 // int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], int count, int x, int z, int range, int starting_seed)
@@ -213,31 +214,31 @@ Pos *find_strongholds(int mcVersion, int64_t seed, int howMany)
 //     }
 // }
 
-// EMSCRIPTEN_KEEPALIVE
-// Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int range)
-// {
-//     LayerStack g;
-//     setupGenerator(&g, mcVersion);
+EMSCRIPTEN_KEEPALIVE
+Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int range, int dimension)
+{
+    Generator g;
+    setupGenerator(&g, mcVersion, 0);
+    applySeed(&g, dimension, seed);
 
-//     int regionX;
-//     int regionY;
-//     int i;
-//     Pos coords[4 * range * range];
-//     for (regionX = -range; regionX < range; regionX++)
-//     {
-//         for (regionY = -range; regionY < range; regionY++)
-//         {
-//             Pos p;
-//             getStructurePos(structType, mcVersion, seed, regionX, regionY, &p);
-
-//             if (!isViableStructurePos(structType, mcVersion, &g, seed, p.x, p.z))
-//             {
-//                 p.x = -1;
-//                 p.z = -1;
-//             }
-//             coords[i] = p;
-//             i++;
-//         }
-//     }
-//     return coords;
-// }
+    int regionX;
+    int regionY;
+    int i;
+    Pos coords[4 * range * range];
+    for (regionX = -range; regionX < range; regionX++)
+    {
+        for (regionY = -range; regionY < range; regionY++)
+        {
+            Pos p;
+            getStructurePos(structType, mcVersion, seed, regionX, regionY, &p);
+            if (!isViableStructurePos(structType, &g, p.x, p.z))
+            {
+                p.x = -1;
+                p.z = -1;
+            }
+            coords[i] = p;
+            i++;
+        }
+    }
+    return coords;
+}

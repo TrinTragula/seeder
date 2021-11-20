@@ -58,7 +58,7 @@ export default function Seeder() {
 
     const [isRandomSeedButtonDisabled, setIsRandomSeedButtonDisabled] = useState(false);
 
-    const drawSeed = (mcVersion, seed, dimension, yHeight, structuresToShow, queueManager, forced = false) => {
+    const drawSeed = (forced = false) => {
         setIsRandomSeedButtonDisabled(true);
         if (!drawer?.current) {
             canvas.current.width = canvas.current.offsetWidth;
@@ -79,13 +79,24 @@ export default function Seeder() {
         drawer.current.setYHeight(yHeight);
         setUrl(seed, mcVersion, setButtonText);
         drawer.current.draw(() => {
-            setIsRandomSeedButtonDisabled(false);
             if (forced && dimension === 0) {
-                // todo: callback solo se impostazioni non cambiate
-                drawer.current.findSpawn(() => drawer.current.drawStructures());
-                drawer.current.findStrongholds(() => drawer.current.drawStructures());
+                drawer.current.findSpawn((spawnSeed,) => {
+                    setIsRandomSeedButtonDisabled(false);
+                    if (seed === spawnSeed) {
+                        drawer.current.drawStructures();
+                    }
+                });
+                drawer.current.findStrongholds((strongholdSeed,) => {
+                    if (seed === strongholdSeed) {
+                        drawer.current.drawStructures()
+                    }
+                });
                 for (const structure of structuresToShow) {
-                    drawer.current.findStructure(structure, () => drawer.current.drawStructures());
+                    drawer.current.findStructure(structure, (structureSeed,) => {
+                        if (seed === structureSeed) {
+                            drawer.current.drawStructures();
+                        }
+                    });
                 }
             } else if (dimension === 0) {
                 drawer.current.drawStructures();
@@ -119,18 +130,18 @@ export default function Seeder() {
         if (canvas?.current) {
             canvas.current.width = canvas.current.offsetWidth;
             canvas.current.height = canvas.current.offsetHeight - 15;
-            drawSeed(mcVersion, seed, dimension, yHeight, structuresToShow, queueManager);
+            drawSeed();
         }
     }
 
     useEffect(() => {
         setOnKeyDownCallback();
-        window.addEventListener('resize', debounce(onResize, 333));
+        window.addEventListener('resize', debounce(onResize, 500));
         // eslint-disable-next-line
     }, []);
 
     useEffect(() => {
-        drawSeed(mcVersion, seed, dimension, yHeight, structuresToShow, queueManager, true);
+        drawSeed(true);
         // eslint-disable-next-line
     }, [mcVersion, seed, dimension, yHeight, structuresToShow, queueManager, showStructureCoords]);
 

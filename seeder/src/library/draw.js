@@ -86,7 +86,7 @@ export class DrawSeed {
             this.spawnX = x;
             this.spawnZ = z;
             this.spawnShown = true;
-            if (callback) callback([this.spawnX, this.spawnZ]);
+            if (callback) callback(this.seed, this.spawnX, this.spawnZ);
         });
     }
 
@@ -94,14 +94,14 @@ export class DrawSeed {
         this.queue.findStrongholds(this.mcVersion, this.seed, 150, ({ coords }) => {
             this.strongholds = coords;
             this.strongholdsShown = true;
-            if (callback) callback(this.strongholds);
+            if (callback) callback(this.seed, this.strongholds);
         });
     }
 
     findStructure(structType, callback) {
         this.queue.getStructuresInRegions(this.mcVersion, structType, this.seed, 50, ({ coords }) => {
             this.structures[structType] = coords;
-            if (callback) callback(this.structures[structType]);
+            if (callback) callback(this.seed, this.structures[structType]);
             this.structuresShown[structType] = true;
         });
     }

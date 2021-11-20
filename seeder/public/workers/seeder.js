@@ -12,7 +12,7 @@ class Seeder {
         this.WASMfreeMemory = this.module.cwrap("free_memory");
         this.WASMgetColors = this.module.cwrap("get_colors");
         this.WASMfreeArea = this.module.cwrap("free_area");
-        // this.WASMfindBiomes = this.module.cwrap("find_biomes", "number", ["number", "array", "number", "number", "number", "number", "number", "number"]);
+        this.WASMfindBiomes = this.module.cwrap("find_biomes", "number", ["number", "array", "number", "number", "number", "number", "number", "number", "number", "number"]);
         this.WASMfindSpawn = this.module.cwrap("find_spawn", "number", ["number", "number"]);
         this.WASMfindStrongholds = this.module.cwrap("find_strongholds", "array", ["number", "number", "number"]);
         // this.WASMfindStructures = this.module.cwrap("find_structures", "number", ["number", "number", "number", "number", "number", "number"]);
@@ -41,7 +41,6 @@ class Seeder {
         seed = BigInt(seed);
         const res = this.WASMgenerateArea(mcVersion, seed, x, z, areaWidth, areaHeight, dimension, yHeight);
         const biomes = this.module.HEAP32.subarray(res >> 2, (res >> 2) + (areaWidth * areaHeight));
-        this.WASMfreeMemory();
         const colors = [];
         for (let j = 0; j < areaWidth; j++) {
             for (let i = 0; i < areaHeight; i++) {
@@ -49,15 +48,17 @@ class Seeder {
                 colors.push(this.COLORS[biomeId]);
             }
         }
+        this.WASMfreeMemory();
         return colors;
     }
 
-    // findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed) {
-    //     const input = new Uint8Array(new Int32Array(biomes).buffer)
-    //     const result = this.WASMfindBiomes(mcVersion, input, biomes.length, x, z, widthX, widthZ, startingSeed);
-    //     this.WASMfreeArea();
-    //     return result;
-    // }
+    findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight) {
+        const input = new Uint8Array(new Int32Array(biomes).buffer)
+        const result = this.WASMfindBiomes(mcVersion, input, biomes.length, x, z, widthX, widthZ, startingSeed, dimension, yHeight);
+        this.WASMfreeMemory();
+        this.WASMfreeArea();
+        return result;
+    }
 
     findSpawn(mcVersion, seed) {
         seed = BigInt(seed);

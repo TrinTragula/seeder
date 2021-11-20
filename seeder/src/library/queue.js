@@ -33,7 +33,7 @@ export class QueueManager {
         setTimeout(() => this.draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight, callback), 33);
     }
 
-    findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, threads, callback) {
+    findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight, threads, callback) {
         startingSeed = startingSeed ?? 0;
         for (let worker of this.workers) {
             if (!worker.busy && threads !== 0) {
@@ -48,7 +48,7 @@ export class QueueManager {
                 };
                 worker.postMessage({
                     kind: "GET_BIOMES",
-                    data: { mcVersion, biomes, x, z, widthX, widthZ, startingSeed }
+                    data: { mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight }
                 });
                 startingSeed += 1000000;
                 threads--;

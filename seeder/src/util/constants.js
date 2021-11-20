@@ -136,3 +136,11 @@ export const DIMENSIONS_OPTIONS = [
     { value: 1, label: "End" },
 ];
 
+export const HEIGHT_OPTIONS = [
+    { value: 320, label: "Surface (Y=320)" },
+    { value: 62, label: "Sea level (Y=62)" },
+    { value: 42, label: "Underground (Y=42)" },
+    { value: 0, label: "Deep undergorund (Y=0)" },
+    { value: -30, label: "Deeper undergorund (Y=-30)" },
+    { value: -70, label: "Bedrock (Y=-64)" },
+]

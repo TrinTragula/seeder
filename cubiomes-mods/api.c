@@ -15,10 +15,11 @@ int main()
 
 // TODO: ADD SCALE AND DIMENSION
 EMSCRIPTEN_KEEPALIVE
-int *generate_area(int mcVersion, int64_t seed, int areaX, int areaZ, int areaWidth, int areaHeight, int dimension)
+int *generate_area(int mcVersion, int64_t seed, int areaX, int areaZ, int areaWidth, int areaHeight, int dimension, int yHeight)
 {
     setupGenerator(&g, mcVersion, 0);
-    Range r = {4 /* scale */, areaX, areaZ, areaWidth, areaHeight, 256, 1}; // at world height
+    int scale = 4;
+    Range r = {scale, areaX, areaZ, areaWidth, areaHeight, yHeight / 4 , 1};
     biomeIds = allocCache(&g, r);
     applySeed(&g, dimension, seed); // 0 = overworld, 1 = end, 2 = nether
     genBiomes(&g, biomeIds, r);

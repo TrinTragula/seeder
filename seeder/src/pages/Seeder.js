@@ -3,7 +3,7 @@ import { QueueManager } from '../library/queue';
 import { DrawSeed } from '../library/draw';
 import Select, { createFilter } from 'react-select'
 import './Seeder.css';
-import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS } from '../util/constants';
+import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS } from '../util/constants';
 import { debounce, copyToClipboard, setUrl } from '../util/functions';
 
 export default function Seeder() {
@@ -33,7 +33,8 @@ export default function Seeder() {
     const [z, setZ] = useState(null);
     const [biome, setBiome] = useState(null);
     const [inputSeed, setInputSeed] = useState(seed);
-    const [dimension, setDimension] = useState(0);
+    const [dimension, setDimension] = useState(0); // Overworld
+    const [yHeight, setYHeight] = useState(320); // Top of the world
     const [queueManager] = useState(() => new QueueManager("/workers/worker.js"));
 
     const [biomesToFind, setBiomesToFind] = useState(null);
@@ -50,14 +51,14 @@ export default function Seeder() {
 
     const [buttonText, setButtonText] = useState('COPY');
 
-    const [optionsRendered, setOptionsRendered] = useState(false);
+    const [optionsRendered, setOptionsRendered] = useState(true);
     const [finderRendered, setFinderRendered] = useState(false);
 
     const [showLegend, setShowLegend] = useState(false);
 
     const [isRandomSeedButtonDisabled, setIsRandomSeedButtonDisabled] = useState(false);
 
-    const drawSeed = (mcVersion, seed, dimension, structuresToShow, queueManager, forced = false) => {
+    const drawSeed = (mcVersion, seed, dimension, yHeight, structuresToShow, queueManager, forced = false) => {
         setIsRandomSeedButtonDisabled(true);
         if (!drawer?.current) {
             canvas.current.width = canvas.current.offsetWidth;
@@ -75,6 +76,7 @@ export default function Seeder() {
         drawer.current.setSeed(seed);
         drawer.current.setMcVersion(mcVersion);
         drawer.current.setDimension(dimension);
+        drawer.current.setYHeight(yHeight);
         setUrl(seed, mcVersion, setButtonText);
         drawer.current.draw(() => {
             setIsRandomSeedButtonDisabled(false);
@@ -117,18 +119,20 @@ export default function Seeder() {
         if (canvas?.current) {
             canvas.current.width = canvas.current.offsetWidth;
             canvas.current.height = canvas.current.offsetHeight - 15;
-            drawSeed(mcVersion, seed, dimension, structuresToShow, queueManager);
+            drawSeed(mcVersion, seed, dimension, yHeight, structuresToShow, queueManager);
         }
     }
 
     useEffect(() => {
         setOnKeyDownCallback();
         window.addEventListener('resize', debounce(onResize, 333));
+        // eslint-disable-next-line
     }, []);
 
     useEffect(() => {
-        drawSeed(mcVersion, seed, dimension, structuresToShow, queueManager, true);
-    }, [mcVersion, seed, dimension, structuresToShow, queueManager, showStructureCoords]);
+        drawSeed(mcVersion, seed, dimension, yHeight, structuresToShow, queueManager, true);
+        // eslint-disable-next-line
+    }, [mcVersion, seed, dimension, yHeight, structuresToShow, queueManager, showStructureCoords]);
 
     const setRandomSeed = () => {
         const rendomSeed = getRandomSeed();
@@ -341,6 +345,15 @@ export default function Seeder() {
                         setMcVersion(val?.value);
                     }} value={VERSIONS_OPTIONS.find(v => v.value === mcVersion)} />
                 </div>
+                {
+                    mcVersion >= VERSIONS["1.18"] &&
+                    <div className="margin-3 width-total">
+                        <div className="margin-3">Biome layer</div>
+                        <Select options={HEIGHT_OPTIONS} onChange={(val) => {
+                            setYHeight(val?.value);
+                        }} value={HEIGHT_OPTIONS.find(v => v.value === yHeight)} />
+                    </div>
+                }
                 <div className="margin-3 hide-mobile">Use your keyboard to navigate the map</div>
                 <div className="margin-3">
                     <button className="half-button" onClick={() => drawer.current.zoom()}>Zoom +</button>
@@ -352,19 +365,19 @@ export default function Seeder() {
 
                 <hr />
 
+                <div className="margin-3 flex-row" onClick={() => setFinderRendered(!finderRendered)}>
+                    <h3 className="flex-1">Seed finder <span style={{ color: "#ff8c00" }}>(TRY ME!)</span></h3>
+                    <img alt="arrow up" className={`togglable arrow-${finderRendered ? 'up' : 'down'}  margin-left-15 bordered pointer`} src="/svg/arrow.svg"></img>
+                </div>
+                {renderFinder()}
+                
+                <hr />
+
                 <div className="margin-3 flex-row" onClick={() => setOptionsRendered(!optionsRendered)}>
                     <h3 className="flex-1">Options</h3>
                     <img alt="arrow up" className={`togglable arrow-${optionsRendered ? 'up' : 'down'}  margin-left-15 bordered pointer`} src="/svg/arrow.svg"></img>
                 </div>
                 {renderOptions()}
-
-                <hr />
-
-                <div className="margin-3 flex-row" onClick={() => setFinderRendered(!finderRendered)}>
-                    <h3 className="flex-1">Seed finder</h3>
-                    <img alt="arrow up" className={`togglable arrow-${finderRendered ? 'up' : 'down'}  margin-left-15 bordered pointer`} src="/svg/arrow.svg"></img>
-                </div>
-                {renderFinder()}
 
                 <hr />
 

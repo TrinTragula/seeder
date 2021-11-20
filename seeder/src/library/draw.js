@@ -4,6 +4,7 @@ export class DrawSeed {
     constructor(mcVersion, queue, canvas, onclick, onmousemove, drawDim, pixDim, offsetX, offsetZ) {
         this.mcVersion = mcVersion;
         this.dimension = 0; // Overworld
+        this.yHeight = 320; // Top of the world
         this.queue = queue;
         this.canvas = canvas;
         this.biomesDict = {};
@@ -70,6 +71,12 @@ export class DrawSeed {
         }
     }
 
+    setYHeight(yHeight) {
+        if (this.yHeight !== yHeight) {
+            this.yHeight = yHeight;
+        }
+    }
+
     setMcVersion(mcVersion) {
         this.mcVersion = mcVersion;
     }
@@ -106,6 +113,28 @@ export class DrawSeed {
         }
     }
 
+    spiral(xDim, yDim, callback) {
+        let x = 0;
+        let y = 0;
+        let dx = 0;
+        let dy = -1;
+        const baseX = Math.ceil(xDim / 2) - 1;
+        const baseY = Math.ceil(yDim / 2) - 1;
+        for (let i = 0; i < Math.pow(Math.max(xDim, yDim), 2); i++) {
+            if ((-(xDim / 2) < x && x <= (xDim / 2)) && (-(yDim / 2) < y && y <= (yDim / 2))) {
+                callback(baseX + x, baseY + y);
+            }
+            if ((x === y) || (x < 0 && x === -y) || (x > 0 && x === (1 - y))) {
+                const tempDy = dy;
+                dy = dx;
+                dx = -tempDy;
+            }
+            x = x + dx;
+            y = y + dy;
+        }
+        return;
+    }
+
     draw(callback = null) {
         console.time("Drawing seed");
         if (this.toDraw > 0) {
@@ -119,25 +148,23 @@ export class DrawSeed {
             this.toDraw = xSize * ySize;
             let widthX = this.drawDim;
             let widthY = this.drawDim;
-            for (let i = 0; i < xSize; i++) {
-                for (let j = 0; j < ySize; j++) {
-                    let startX = this.drawDim * (i - (this.offsetX / this.pixDim));
-                    let startY = this.drawDim * (j - (this.offsetZ / this.pixDim));
-                    let drawStartX = (this.drawDim * this.pixDim) * i;
-                    let drawStartY = (this.drawDim * this.pixDim) * j;
-                    this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, (colors) => {
-                        this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
-                        if (this.toDraw === 1) {
-                            this.drawStructures();
-                            if (callback) {
-                                callback();
-                            }
-                            console.timeEnd("Drawing seed");
+            this.spiral(xSize, ySize, (i, j) => {
+                let startX = this.drawDim * (i - (this.offsetX / this.pixDim));
+                let startY = this.drawDim * (j - (this.offsetZ / this.pixDim));
+                let drawStartX = (this.drawDim * this.pixDim) * i;
+                let drawStartY = (this.drawDim * this.pixDim) * j;
+                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, this.yHeight, (colors) => {
+                    this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
+                    if (this.toDraw === 1) {
+                        this.drawStructures();
+                        if (callback) {
+                            callback();
                         }
-                        this.toDraw--;
-                    });
-                }
-            }
+                        console.timeEnd("Drawing seed");
+                    }
+                    this.toDraw--;
+                });
+            });
         }
     }
 
@@ -184,7 +211,7 @@ export class DrawSeed {
                 let widthY = this.drawDim;
                 let drawStartX = (this.drawDim * this.pixDim) * i;
                 let drawStartY = this.canvas.height - (this.drawDim * this.pixDim);
-                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, (colors) => {
+                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, this.yHeight, (colors) => {
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
                         this.drawStructures();
@@ -220,7 +247,7 @@ export class DrawSeed {
                 let widthY = this.drawDim;
                 let drawStartX = (this.drawDim * this.pixDim) * i;
                 let drawStartY = 0;
-                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, (colors) => {
+                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, this.yHeight, (colors) => {
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
                         this.drawStructures();
@@ -257,7 +284,7 @@ export class DrawSeed {
                 let widthY = this.drawDim;
                 let drawStartX = this.canvas.width - (this.drawDim * this.pixDim);
                 let drawStartY = (this.drawDim * this.pixDim) * j;
-                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, (colors) => {
+                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, this.yHeight, (colors) => {
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
                         this.drawStructures();
@@ -293,7 +320,7 @@ export class DrawSeed {
                 let widthY = this.drawDim;
                 let drawStartX = 0;
                 let drawStartY = (this.drawDim * this.pixDim) * j;
-                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, (colors) => {
+                this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, this.yHeight, (colors) => {
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
                         this.drawStructures();

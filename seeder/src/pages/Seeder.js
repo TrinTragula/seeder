@@ -20,7 +20,7 @@ export default function Seeder() {
     const urlSeed = params?.seed;
     const urlVersion = params?.version;
 
-    const getRandomSeed = () => "" + Math.floor(Math.random() * 1_000_000_000);
+    const getRandomSeed = () => "" + Math.floor(-4_294_967_296 + Math.random() * 8_589_934_593);
     const canvas = useRef();
     const drawer = useRef();
     const [mcVersion, setMcVersion] = useState(Number.isInteger(urlVersion) ? urlVersion : VERSIONS["1.18"]);
@@ -140,9 +140,26 @@ export default function Seeder() {
         setInputSeed(rendomSeed);
     }
 
+    const isNumeric = (str) => {
+        if (typeof str != "string") return false // we only process strings!  
+        return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+            !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+    }
+
+    const seedFromString = function (s) {
+        let h;
+        for (let i = 0; i < s.length; i++) {
+            h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+        }
+        return h;
+    };
+
     const handleEnterSeed = () => {
-        const newSeed = inputSeed;
+        let newSeed = inputSeed;
         if (newSeed && newSeed !== seed) {
+            if (!isNumeric(newSeed)) {
+                newSeed = seedFromString(newSeed);
+            }
             setSeed(newSeed);
         }
     }
@@ -370,7 +387,7 @@ export default function Seeder() {
                     <img alt="arrow up" className={`togglable arrow-${finderRendered ? 'up' : 'down'}  margin-left-15 bordered pointer`} src="/svg/arrow.svg"></img>
                 </div>
                 {renderFinder()}
-                
+
                 <hr />
 
                 <div className="margin-3 flex-row" onClick={() => setOptionsRendered(!optionsRendered)}>

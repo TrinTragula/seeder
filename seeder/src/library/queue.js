@@ -11,8 +11,12 @@ export class QueueManager {
         this.getColors();
     }
 
+    getCacheKey(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight) {
+        return mcVersion + "-" + seed + "-" + startX + "-" + startY + "-" + widthX + "-" + widthY + "-" + dimension + "-" + yHeight;
+    }
+
     draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight, callback) {
-        const cacheKey = mcVersion + "-" + seed + "-" + startX + "-" + startY + "-" + widthX + "-" + widthY + "-" + dimension + "-" + yHeight;
+        const cacheKey = this.getCacheKey(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight);
         const cachedColors = this.drawCache[cacheKey];
         if (cachedColors) {
             callback(cachedColors);
@@ -86,7 +90,7 @@ export class QueueManager {
         setTimeout(() => this.findStrongholds(mcVersion, seed, howMany, callback), 33);
     }
 
-    findStructures(mcVersion, structType, x, z, range, startingSeed, threads, callback) {
+    findStructures(mcVersion, structType, x, z, range, startingSeed, dimension, threads, callback) {
         startingSeed = startingSeed ?? 0;
         for (let worker of this.workers) {
             if (!worker.busy && threads !== 0) {
@@ -101,7 +105,7 @@ export class QueueManager {
                 };
                 worker.postMessage({
                     kind: "FIND_STRUCTURES",
-                    data: { mcVersion, structType, x, z, range, startingSeed }
+                    data: { mcVersion, structType, x, z, range, startingSeed, dimension }
                 });
                 startingSeed += 1000000;
                 threads--;
@@ -132,19 +136,19 @@ export class QueueManager {
         }
     }
 
-    getStructuresInRegions(mcVersion, structType, seed, regionsRange, callback) {
+    getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension, callback) {
         for (let worker of this.workers) {
             if (!worker.busy) {
                 worker.busy = true;
                 worker.callback = callback;
                 worker.postMessage({
                     kind: "GET_STRUCTURES_IN_REGIONS",
-                    data: { mcVersion, structType, seed, regionsRange }
+                    data: { mcVersion, structType, seed, regionsRange, dimension }
                 });
                 return;
             }
         }
-        setTimeout(() => this.getStructuresInRegions(mcVersion, structType, seed, regionsRange, callback), 33);
+        setTimeout(() => this.getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension, callback), 33);
     }
 
     getColors() {
@@ -198,7 +202,7 @@ export class QueueManager {
         }
         else if (e.data.kind === "DONE_GET_AREA") {
             const data = e.data.data;
-            const cacheKey = data.mcVersion + "-" + data.seed + "-" + data.startX + "-" + data.startY + "-" + data.widthX + "-" + data.widthY + "-" + data.dimension + "-" + data.yHeight;
+            const cacheKey = this.getCacheKey(data.mcVersion, data.seed, data.startX, data.startY, data.widthX, data.widthY, data.dimension, data.yHeight);
             this.drawCache[cacheKey] = data.colors;
             worker.callback(data.colors);
             this._cleanWorker(worker);

@@ -82,6 +82,7 @@ export default function Seeder() {
         drawer.current.setMcVersion(mcVersion);
         drawer.current.setDimension(dimension);
         drawer.current.setYHeight(yHeight);
+        drawer.current.setStructuresShown(structuresToShow);
         setUrl(seed, mcVersion, setButtonText);
         drawer.current.draw(() => {
             if (forced) {
@@ -148,7 +149,7 @@ export default function Seeder() {
     useEffect(() => {
         drawSeed(true);
         // eslint-disable-next-line
-    }, [mcVersion, seed, dimension, yHeight, structuresToShow, queueManager, showStructureCoords]);
+    }, [mcVersion, seed, dimension, yHeight, queueManager, structuresToShow, showStructureCoords]);
 
     const setRandomSeed = () => {
         const rendomSeed = getRandomSeed();
@@ -196,7 +197,7 @@ export default function Seeder() {
                 foundSeed = "" + foundSeed;
                 setSeed(foundSeed);
                 setInputSeed(foundSeed);
-                setLastFoundSeed(foundSeed);
+                setLastFoundSeed(parseInt(foundSeed));
                 setIsFindingSeed(false);
             }
 
@@ -212,7 +213,7 @@ export default function Seeder() {
                 queueManager.findBiomes(
                     mcVersion,
                     biomesToFind, -range, -range,
-                    range * 2, range * 2, lastFoundSeed + 1, 
+                    range * 2, range * 2, lastFoundSeed + 1,
                     dimension, yHeight,
                     9999,
                     callback
@@ -221,7 +222,7 @@ export default function Seeder() {
                 queueManager.findStructures(
                     mcVersion,
                     structureToFind, -range, -range,
-                    range * 2, lastFoundSeed + 1, 9999,
+                    range * 2, lastFoundSeed + 1, dimension, 9999,
                     callback
                 );
             }
@@ -241,7 +242,6 @@ export default function Seeder() {
                         <div className="margin-3">Structures to show</div>
                         <Select options={STRUCTURES_OPTIONS} isClearable={true} isMulti onChange={(val) => {
                             const newValues = [...val?.map(x => x?.value)];
-                            drawer.current.setStructuresShown(newValues)
                             setStructuresToShow(newValues);
                         }} value={structuresToShow && STRUCTURES_OPTIONS.filter(v => structuresToShow.includes(v.value))}
                             filterOption={createFilter(filterConfig)} />
@@ -265,7 +265,6 @@ export default function Seeder() {
                         setLastFoundSeed(0);
                         setStructureToFind(val?.value);
                         if (val?.value && !structuresToShow?.includes(val?.value)) {
-                            drawer.current.setStructuresShown([val?.value, ...structuresToShow])
                             setStructuresToShow([val?.value, ...structuresToShow]);
                         }
                     }} filterOption={createFilter(filterConfig)} />

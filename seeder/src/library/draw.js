@@ -345,7 +345,7 @@ export class DrawSeed {
     }
 
     drawStructures() {
-        if (this.spawnShown && this.spawnX != null && this.spawnZ != null) {
+        if (this.spawnShown && this.dimension === 0 && this.spawnX != null && this.spawnZ != null) {
             let drawX = Math.floor(this.spawnX / 4) * this.pixDim + this.offsetX * this.drawDim;
             let drawZ = Math.floor(this.spawnZ / 4) * this.pixDim + this.offsetZ * this.drawDim;
             if (drawX > 0 && drawZ > 0 && drawX < this.canvas.width && drawZ < this.canvas.height) {
@@ -367,7 +367,7 @@ export class DrawSeed {
             }
         }
 
-        if (this.strongholdsShown && this.strongholds && this.strongholds.length > 0) {
+        if (this.strongholdsShown && this.dimension === 0 && this.strongholds && this.strongholds.length > 0) {
             for (const stronghold of this.strongholds) {
                 let drawX = Math.floor(stronghold[0] / 4) * this.pixDim + this.offsetX * this.drawDim;
                 let drawZ = Math.floor(stronghold[1] / 4) * this.pixDim + this.offsetZ * this.drawDim;
@@ -391,7 +391,7 @@ export class DrawSeed {
             }
         }
 
-        if (this.structuresShown) {
+        if (this.structuresShown && this.dimension === 0) {
             for (let structureKey of Object.keys(this.structuresShown)) {
                 if (this.structures[structureKey]) {
                     for (const structure of this.structures[structureKey]) {

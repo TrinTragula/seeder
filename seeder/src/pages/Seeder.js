@@ -79,7 +79,7 @@ export default function Seeder() {
         drawer.current.setYHeight(yHeight);
         setUrl(seed, mcVersion, setButtonText);
         drawer.current.draw(() => {
-            if (forced && dimension === 0) {
+            if (forced) {
                 drawer.current.findSpawn((spawnSeed,) => {
                     setIsRandomSeedButtonDisabled(false);
                     if (seed === spawnSeed) {
@@ -98,7 +98,7 @@ export default function Seeder() {
                         }
                     });
                 }
-            } else if (dimension === 0) {
+            } else {
                 drawer.current.drawStructures();
             }
         });

@@ -123,7 +123,7 @@ export default function Seeder() {
             e = e || window.event;
             move(e);
         };
-        document.onkeydown = checkKey;
+        document.onkeydown = debounce((e) => checkKey(e), 15);
     }
 
     const onResize = () => {

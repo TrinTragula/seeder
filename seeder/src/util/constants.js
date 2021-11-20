@@ -131,9 +131,9 @@ export const STRUCTURES_OPTIONS = [
 ];
 
 export const DIMENSIONS_OPTIONS = [
-    { value: 0, label: "Overworld" },
-    { value: -1, label: "Nether" },
-    { value: 1, label: "End" },
+    { value: 0, label: <div className="flex-row flex-align-center"><img alt="Overworld" src="/img/grass.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Overworld</div> },
+    { value: -1, label: <div className="flex-row flex-align-center"><img alt="Nether" src="/img/nether_bricks.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Nether</div> },
+    { value: 1, label: <div className="flex-row flex-align-center"><img alt="End" src="/img/endstone.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End</div> },
 ];
 
 export const HEIGHT_OPTIONS = [

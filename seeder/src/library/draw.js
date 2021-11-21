@@ -405,7 +405,7 @@ export class DrawSeed {
             }
         }
 
-        if (this.structuresShown && this.dimension === 0) {
+        if (this.structuresShown) {
             for (let structureKey of Object.keys(this.structuresShown)) {
                 if (this.structures[structureKey]) {
                     for (const structure of this.structures[structureKey]) {
@@ -496,9 +496,12 @@ export class DrawSeed {
         /*  Mansion */          9: '/img/mansion.png',
         /*  Outpost */          10: '/img/outpost.png',
         /*  Ruined_Portal */    11: '/img/portal.png',
-        /*  Treasure */         12: '/img/treasure.png',
-        /*  Fortress */         13: '',
-        /*  Bastion */          14: '',
-        /*  End_City */         15: '',
+        // 12 Ruined_Portal_N,
+        /*  Treasure */         13: '/img/treasure.png',
+        // 14 Mineshaft,
+        /*  Fortress */         15: '/img/fortress.png',
+        /*  Bastion */          16: '/img/bastion.png',
+        /*  End_City */         17: '/img/end_city.png',
+        /*  End_Gateway */      18: '/img/end_gateway.png',
     }
 }

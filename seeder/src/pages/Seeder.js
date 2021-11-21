@@ -129,7 +129,7 @@ export default function Seeder() {
             e = e || window.event;
             move(e);
         };
-        document.onkeydown = debounce((e) => checkKey(e), 15);
+        document.onkeydown = debounce((e) => checkKey(e), 1);
     }
 
     const onResize = () => {

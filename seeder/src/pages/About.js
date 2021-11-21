@@ -10,14 +10,14 @@ export default function About() {
                     <small className="margin-left-15">(0.4.0)</small>
                 </div>
                 <h3>Who</h3>
-                <p className="paragraph">
+                <div className="paragraph">
                     <div>
                         I'm <a href="https://github.com/TrinTragula">TrinTragula</a> on GitHub.
                     </div>
                     Feel free to contact me on Twitter <a href="https://twitter.com/McSeeder" target="_blank" rel="noreferrer">@McSeeder</a>
-                </p>
+                </div>
                 <h3>Can I help?</h3>
-                <p className="paragraph">
+                <div className="paragraph">
                     <div className="flex-row flex-align-center">
                         <div className="margin-3">
                             <div>
@@ -44,24 +44,24 @@ export default function About() {
                     <div className="flex-row flex-align-center margin-3">
                         <small className="address">ETH: <i>0x1fDA7E78fa0894b919b08DEF22B50e404D15384a</i></small>
                     </div>
-                </p>
+                </div>
                 <h3>What</h3>
-                <p className="paragraph">
+                <div className="paragraph">
                     Find, show, share and admire Minecraft seeds (Java edition only).
-                </p>
-                <p className="paragraph">
+                </div>
+                <div className="paragraph">
                     This is a webapp based upon a library (<a href="https://github.com/Cubitect/cubiomes">cubiomes</a>)
                     written by cubitect in C and compiled in webassembly by me.
                     Go and give him love.
-                </p>
-                <p className="paragraph">
+                </div>
+                <div className="paragraph">
                     It uses fancy new technology to run the same code in your browser, so that you
                     can look up your seeds/find your perfect ones whitout installing or configuring anything.
-                </p>
+                </div>
                 <h3>Where's the code?</h3>
-                <p className="paragraph">
+                <div className="paragraph">
                     <a href="https://github.com/TrinTragula/seeder">Here</a>
-                </p>
+                </div>
                 <h3>
                     Features:
                 </h3>
@@ -73,6 +73,7 @@ export default function About() {
                     <li>Find a seed containing a strcuture AND a list of biomes in a given range</li>
                     <li>Works with different MC versions</li>
                     <li>Finding rare seeds may slow down you PC while the search is running (seed finding is a very CPU intensive job)</li>
+                    <li>Support for the Nether and End</li>
                 </ul>
                 <h3>
                     Coming features:
@@ -82,7 +83,6 @@ export default function About() {
                     <li>Find a list of structures, not just one</li>
                     <li>Move the map using your mouse (for now you can use your keyboard)</li>
                     <li>Better zoom</li>
-                    <li>Other dimensions</li>
                 </ul>
             </div >
         </div >

@@ -11,12 +11,11 @@ class Seeder {
         this.WASMgenerateArea = this.module.cwrap("generate_area", "array", ["number", "number", "number", "number", "number", "number", "number", "number"]);
         this.WASMfreeMemory = this.module.cwrap("free_memory");
         this.WASMgetColors = this.module.cwrap("get_colors");
-        this.WASMfreeArea = this.module.cwrap("free_area");
         this.WASMfindBiomes = this.module.cwrap("find_biomes", "number", ["number", "array", "number", "number", "number", "number", "number", "number", "number", "number"]);
         this.WASMfindSpawn = this.module.cwrap("find_spawn", "number", ["number", "number"]);
         this.WASMfindStrongholds = this.module.cwrap("find_strongholds", "array", ["number", "number", "number"]);
         this.WASMfindStructures = this.module.cwrap("find_structures", "number", ["number", "number", "number", "number", "number", "number", "number"]);
-        // this.WASMfindBiomesWithStructures = this.module.cwrap("find_biomes_with_structure", "number", ["number", "number", "array", "number", "number", "number", "number", "number"]);
+        this.WASMfindBiomesWithStructures = this.module.cwrap("find_biomes_with_structure", "number", ["number", "number", "array", "number", "number", "number", "number", "number", "number", "number"]);
         this.WASMgetStructuresInRegions = this.module.cwrap("get_structure_in_regions", "array", ["number", "number", "number", "number"]);
     }
 
@@ -56,7 +55,6 @@ class Seeder {
         const input = new Uint8Array(new Int32Array(biomes).buffer)
         const result = this.WASMfindBiomes(mcVersion, input, biomes.length, x, z, widthX, widthZ, startingSeed, dimension, yHeight);
         this.WASMfreeMemory();
-        this.WASMfreeArea();
         return result;
     }
 
@@ -87,12 +85,12 @@ class Seeder {
         return res;
     }
 
-    // findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed) {
-    //     const input = new Uint8Array(new Int32Array(biomes).buffer)
-    //     const result = this.WASMfindBiomesWithStructures(mcVersion, structType, input, biomes.length, x, z, range, startingSeed);
-    //     this.WASMfreeArea();
-    //     return result;
-    // }
+    findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight) {
+        const input = new Uint8Array(new Int32Array(biomes).buffer)
+        const result = this.WASMfindBiomesWithStructures(mcVersion, structType, input, biomes.length, x, z, range, startingSeed, dimension, yHeight);
+        this.WASMfreeMemory();
+        return result;
+    }
 
     getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension) {
         seed = BigInt(seed);

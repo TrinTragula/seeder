@@ -1,8 +1,10 @@
-# Seeder v 0.4.0
+# Seeder v0.4.0
 
 Find, show, share and admire Minecraft seeds (Java edition only).
 
-![Seeder screenshot](https://i.ibb.co/37Qptpq/seeder.png)
+Works up to **1.18**!
+
+![Seeder demo gif](https://i.ibb.co/KxW0Fm4/seeder1-18-dim.gif)
 
 This is a webapp based upon a library ([cubiomes](https://github.com/Cubitect/cubiomes))
 written by cubitect in C and compiled in webassembly by me.

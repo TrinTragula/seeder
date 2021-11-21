@@ -136,7 +136,8 @@ export class DrawSeed {
         const baseY = Math.ceil(yDim / 2) - 1;
         for (let i = 0; i < Math.pow(Math.max(xDim, yDim), 2); i++) {
             if ((-(xDim / 2) < x && x <= (xDim / 2)) && (-(yDim / 2) < y && y <= (yDim / 2))) {
-                callback(baseX + x, baseY + y);
+                var shouldStop = callback(baseX + x, baseY + y);
+                if (shouldStop) return;
             }
             if ((x === y) || (x < 0 && x === -y) || (x > 0 && x === (1 - y))) {
                 const tempDy = dy;
@@ -149,10 +150,13 @@ export class DrawSeed {
         return;
     }
 
+    currenTicket = null;
     draw(callback = null) {
+        const ticket = this.mcVersion + "-" + this.seed + "-" + this.offsetX + "-" + this.offsetZ + "-" + this.drawDim + "-" + this.pixDim + "-" + this.dimension + "-" + this.yHeight;
+        this.currenTicket = ticket;
         console.time("Drawing seed");
         if (this.toDraw > 0) {
-            setTimeout(() => this.draw(), 333);
+            setTimeout(() => this.draw(), 10);
         }
         else {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -167,7 +171,15 @@ export class DrawSeed {
                 let startY = Math.floor(this.drawDim * (j - (this.offsetZ / this.pixDim)));
                 let drawStartX = (this.drawDim * this.pixDim) * i;
                 let drawStartY = (this.drawDim * this.pixDim) * j;
+                if (this.currenTicket !== ticket) {
+                    this.toDraw -= xSize * ySize;
+                    return true;
+                }
                 this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, this.yHeight, (colors) => {
+                    if (this.currenTicket !== ticket) {
+                        this.toDraw -= xSize * ySize;
+                        return true;
+                    }
                     this._drawLoop(colors, startX, startY, drawStartX, drawStartY, widthX, widthY);
                     if (this.toDraw === 1) {
                         this.drawStructures();
@@ -178,6 +190,7 @@ export class DrawSeed {
                     }
                     this.toDraw--;
                 });
+                return false; // countinue, don't stop iterating
             });
         }
     }

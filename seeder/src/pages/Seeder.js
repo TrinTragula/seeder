@@ -281,7 +281,7 @@ export default function Seeder() {
                     }} />
                 </div>
                 <div className="margin-3">
-                    <button className="full-button" onClick={() => findSeed()} disabled={!(range > 0 && (biomesToFind?.length > 0 || structureToFind))}>
+                    <button className="full-button" onClick={() => findSeed()} disabled={isRandomSeedButtonDisabled || !(range > 0 && (biomesToFind?.length > 0 || structureToFind))}>
                         {lastFoundSeed > 0 ? 'Find another' : 'Find'}
                     </button>
                 </div>

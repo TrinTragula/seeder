@@ -13,21 +13,21 @@ function loadDone() {
 
 function listener(e) {
     if (e.data.kind == "GET_AREA") {
-        var { mcVersion, seed, startX, startY, widthX, widthY } = e.data.data;
+        var { mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight } = e.data.data;
         self.postMessage({
             kind: "DONE_GET_AREA",
             data: {
-                seed, startX, startY, widthX, widthY,
-                colors: self.seeder.getAreaColors(mcVersion, seed, startX, startY, widthX, widthY)
+                mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight,
+                colors: self.seeder.getAreaColors(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight)
             }
         });
     }
     else if (e.data.kind == "GET_BIOMES") {
-        var { mcVersion, biomes, x, z, widthX, widthZ, startingSeed } = e.data.data;
+        var { mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight } = e.data.data;
         self.postMessage({
             kind: "DONE_GET_BIOMES",
             data: {
-                seed: self.seeder.findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed)
+                seed: self.seeder.findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight)
             }
         });
     }
@@ -48,28 +48,31 @@ function listener(e) {
         });
     }
     else if (e.data.kind == "FIND_STRUCTURES") {
-        var { mcVersion, structType, x, z, range, startingSeed } = e.data.data;
-        const seed = self.seeder.findStructures(mcVersion, structType, x, z, range, startingSeed);
+        var { mcVersion, structType, x, z, range, startingSeed, dimension } = e.data.data;
+        const seed = self.seeder.findStructures(mcVersion, structType, x, z, range, startingSeed, dimension);
         self.postMessage({
             kind: "DONE_FIND_STRUCTURES",
             data: { seed }
         });
-    } else if (e.data.kind == "GET_BIOMES_WITH_STRUCTURES") {
-        var { mcVersion, structType, biomes, x, z, range, startingSeed } = e.data.data;
+    }
+    else if (e.data.kind == "GET_BIOMES_WITH_STRUCTURES") {
+        var { mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight } = e.data.data;
         self.postMessage({
             kind: "DONE_GET_BIOMES_WITH_STRUCTURES",
             data: {
-                seed: self.seeder.findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed)
+                seed: self.seeder.findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight)
             }
         });
-    } else if (e.data.kind == "GET_STRUCTURES_IN_REGIONS"){
-        var { mcVersion, structType, seed, regionsRange } = e.data.data;
-        const coords = self.seeder.getStructuresInRegions(mcVersion, structType, seed, regionsRange);
+    }
+    else if (e.data.kind == "GET_STRUCTURES_IN_REGIONS") {
+        var { mcVersion, structType, seed, regionsRange, dimension } = e.data.data;
+        const coords = self.seeder.getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension);
         self.postMessage({
             kind: "DONE_GET_STRUCTURES_IN_REGIONS",
             data: { coords }
         });
-    } else if (e.data.kind == "GET_COLORS"){
+    }
+    else if (e.data.kind == "GET_COLORS") {
         self.postMessage({
             kind: "DONE_GET_COLORS",
             data: { colors: self.seeder.COLORS }

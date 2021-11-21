@@ -105,6 +105,7 @@ export default function Seeder() {
                     });
                 }
             } else {
+                setIsRandomSeedButtonDisabled(false);
                 drawer.current.drawStructures();
             }
         });

@@ -124,10 +124,13 @@ export const STRUCTURES_OPTIONS = [
     { value: 9, pureText: "Mansion", label: <div className="flex-row flex-align-center"><img alt="Mansion" src="/img/mansion.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Mansion</div> },
     { value: 10, pureText: "Outpost", label: <div className="flex-row flex-align-center"><img alt="Outpost" src="/img/outpost.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Outpost</div> },
     { value: 11, pureText: "Ruined Portal", label: <div className="flex-row flex-align-center"><img alt="Ruined Portal" src="/img/portal.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Ruined Portal</div> },
-    // { value: 12, label: <div className="flex-row flex-align-center"><img src="/img/spawn.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />"Treasure"</div> },
-    // { value: 13, label: <div className="flex-row flex-align-center"><img src="/img/spawn.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />"Fortress"</div> },
-    // { value: 14, label: <div className="flex-row flex-align-center"><img src="/img/spawn.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />"Bastion"</div> },
-    // { value: 15, label: <div className="flex-row flex-align-center"><img src="/img/spawn.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />"End City"</div> },
+    // 12 Ruined_Portal_N,
+    // 13 Treasure,
+    // 14 Mineshaft,
+    { value: 15, pureText: "Fortress", label: <div className="flex-row flex-align-center"><img alt="Fortress" src="/img/fortress.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Fortress</div> },
+    { value: 16, pureText: "Bastion", label: <div className="flex-row flex-align-center"><img alt="Bastion" src="/img/bastion.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Bastion</div> },
+    { value: 17, pureText: "End City", label: <div className="flex-row flex-align-center"><img alt="End City" src="/img/end_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End City</div> },
+    { value: 18, pureText: "End Gateway", label: <div className="flex-row flex-align-center"><img alt="End Gateway" src="/img/end_gateway.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End Gateway</div> },
 ];
 
 export const DIMENSIONS_OPTIONS = [

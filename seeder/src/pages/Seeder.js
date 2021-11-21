@@ -206,7 +206,7 @@ export default function Seeder() {
                     mcVersion,
                     structureToFind,
                     biomesToFind, -range, -range,
-                    range * 2, lastFoundSeed + 1, 9999,
+                    range * 2, lastFoundSeed + 1, dimension, yHeight, 9999,
                     callback
                 );
             } else if (biomesToFind?.length > 0) {
@@ -326,6 +326,7 @@ export default function Seeder() {
                 isFindingSeed &&
                 <div className="loading flex-column">
                     <h1>Finding seed...</h1>
+                    <div className="loader"></div>
                     <h3 className="margin-bottom-25">
                         {seedFindingSpeed ? seedFindingSpeed + " seed/s" : "Calculating speed..."}
                     </h3>

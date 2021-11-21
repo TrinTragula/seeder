@@ -15,26 +15,27 @@ export class QueueManager {
         return mcVersion + "-" + seed + "-" + startX + "-" + startY + "-" + widthX + "-" + widthY + "-" + dimension + "-" + yHeight;
     }
 
-    draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight, callback) {
-        const cacheKey = this.getCacheKey(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight);
-        const cachedColors = this.drawCache[cacheKey];
-        if (cachedColors) {
-            callback(cachedColors);
-            return;
-        } else {
-            for (let worker of this.workers) {
-                if (!worker.busy) {
-                    worker.busy = true;
-                    worker.callback = callback;
-                    worker.postMessage({
-                        kind: "GET_AREA",
-                        data: { mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight }
-                    });
-                    return;
-                }
+    draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight, callback, force = false) {
+        if (!force) {
+            const cacheKey = this.getCacheKey(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight);
+            const cachedColors = this.drawCache[cacheKey];
+            if (cachedColors) {
+                callback(cachedColors);
+                return;
             }
         }
-        setTimeout(() => this.draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight, callback), 33);
+        for (let worker of this.workers) {
+            if (!worker.busy) {
+                worker.busy = true;
+                worker.callback = callback;
+                worker.postMessage({
+                    kind: "GET_AREA",
+                    data: { mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight }
+                });
+                return;
+            }
+        }
+        setTimeout(() => this.draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight, callback, true), 1);
     }
 
     findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight, threads, callback) {
@@ -72,7 +73,7 @@ export class QueueManager {
                 return;
             }
         }
-        setTimeout(() => this.findSpawn(mcVersion, seed, callback), 33);
+        setTimeout(() => this.findSpawn(mcVersion, seed, callback), 1);
     }
 
     findStrongholds(mcVersion, seed, howMany, callback) {
@@ -87,7 +88,7 @@ export class QueueManager {
                 return;
             }
         }
-        setTimeout(() => this.findStrongholds(mcVersion, seed, howMany, callback), 33);
+        setTimeout(() => this.findStrongholds(mcVersion, seed, howMany, callback), 1);
     }
 
     findStructures(mcVersion, structType, x, z, range, startingSeed, dimension, threads, callback) {
@@ -113,7 +114,7 @@ export class QueueManager {
         }
     }
 
-    findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed, threads, callback) {
+    findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight, threads, callback) {
         startingSeed = startingSeed ?? 0;
         for (let worker of this.workers) {
             if (!worker.busy && threads !== 0) {
@@ -128,7 +129,7 @@ export class QueueManager {
                 };
                 worker.postMessage({
                     kind: "GET_BIOMES_WITH_STRUCTURES",
-                    data: { mcVersion, structType, biomes, x, z, range, startingSeed }
+                    data: { mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight }
                 });
                 startingSeed += 1000000;
                 threads--;
@@ -148,7 +149,7 @@ export class QueueManager {
                 return;
             }
         }
-        setTimeout(() => this.getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension, callback), 33);
+        setTimeout(() => this.getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension, callback), 1);
     }
 
     getColors() {
@@ -161,7 +162,7 @@ export class QueueManager {
                 return;
             }
         }
-        setTimeout(() => this.getColors(), 33);
+        setTimeout(() => this.getColors(), 1);
     }
 
     printStatus() {

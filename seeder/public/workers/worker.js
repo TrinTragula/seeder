@@ -55,15 +55,16 @@ function listener(e) {
             data: { seed }
         });
     }
-    // } else if (e.data.kind == "GET_BIOMES_WITH_STRUCTURES") {
-    //     var { mcVersion, structType, biomes, x, z, range, startingSeed } = e.data.data;
-    //     self.postMessage({
-    //         kind: "DONE_GET_BIOMES_WITH_STRUCTURES",
-    //         data: {
-    //             seed: self.seeder.findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed)
-    //         }
-    //     });
-    else if (e.data.kind == "GET_STRUCTURES_IN_REGIONS"){
+    else if (e.data.kind == "GET_BIOMES_WITH_STRUCTURES") {
+        var { mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight } = e.data.data;
+        self.postMessage({
+            kind: "DONE_GET_BIOMES_WITH_STRUCTURES",
+            data: {
+                seed: self.seeder.findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight)
+            }
+        });
+    }
+    else if (e.data.kind == "GET_STRUCTURES_IN_REGIONS") {
         var { mcVersion, structType, seed, regionsRange, dimension } = e.data.data;
         const coords = self.seeder.getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension);
         self.postMessage({

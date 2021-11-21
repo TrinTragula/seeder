@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 int *biomeIds;
-int *area;
 
 int main()
 {
@@ -48,14 +47,14 @@ int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w,
     setupGenerator(&g, mcVersion, 0);
     BiomeFilter filter;
     int *excluded;
-    filter = setupBiomeFilter(wanted, count, excluded, 0);
+    filter = setupBiomeFilter(wanted, count, NULL, 0);
     Range r = {4, x, z, w, h, yHeight / 4, 1};
     biomeIds = allocCache(&g, r);
 
     int64_t seed;
     for (seed = starting_seed;; seed++)
     {
-        if (seed % 100 == 0)
+        if (seed % 10000 == 0)
         {
             call_seed_update();
         }
@@ -63,12 +62,6 @@ int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w,
             break;
     }
     return seed;
-}
-
-EMSCRIPTEN_KEEPALIVE
-void free_area()
-{
-    free(area);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -157,62 +150,59 @@ int64_t find_structures(int mcVersion, int structType, int x, int z, int range, 
     }
 }
 
-// EMSCRIPTEN_KEEPALIVE
-// int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], int count, int x, int z, int range, int starting_seed)
-// {
-//     setupGenerator(&g, mcVersion);
-//     BiomeFilter filter;
-//     filter = setupBiomeFilter(wanted, count);
+EMSCRIPTEN_KEEPALIVE
+int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], int count, int x, int z, int range, int starting_seed, int dimension, int yHeight)
+{
+    Generator g;
+    setupGenerator(&g, mcVersion, 0);
 
-//     int entry;
-//     if (mcVersion >= MC_1_13)
-//     {
-//         entry = L_OCEAN_MIX_4;
-//     }
-//     else
-//     {
-//         entry = L_RIVER_MIX_4;
-//     }
-//     area = allocCache(&g.layers[entry], range / 2, range / 2);
+    BiomeFilter filter;
+    int *excluded;
+    filter = setupBiomeFilter(wanted, count, NULL, 0);
 
-//     int64_t seed;
-//     int64_t lower48;
-//     int range_fourth = range / 4;
-//     int64_t tot = 0;
-//     for (lower48 = starting_seed;; lower48++)
-//     {
-//         if (tot % 10000 == 0)
-//         {
-//             call_seed_update();
-//         }
-//         tot++;
+    int64_t seed;
+    int64_t lower48;
+    int range_fourth = range / 4;
+    int64_t tot = 0;
 
-//         Pos p;
-//         if (!getStructurePos(structType, mcVersion, lower48, 0, 0, &p))
-//             continue;
+    Range r = {4, x - range_fourth, z - range_fourth, range_fourth * 2, range_fourth * 2, yHeight / 4, 1};
+    biomeIds = allocCache(&g, r);
 
-//         if ((p.x > (x + range)) || (p.z > (z + range)) || (p.x < (x - range)) || (p.z < (z - range)))
-//             continue;
+    for (lower48 = starting_seed;; lower48++)
+    {
+        if (tot % 10000 == 0)
+        {
+            call_seed_update();
+        }
+        tot++;
 
-//         int64_t upper16;
-//         for (upper16 = 0; upper16 < 0x10000; upper16++)
-//         {
-//             if (tot % 10000 == 0)
-//             {
-//                 call_seed_update();
-//             }
-//             tot++;
-//             int64_t seed = lower48 | (upper16 << 48);
-//             if (isViableStructurePos(structType, mcVersion, &g, seed, p.x, p.z))
-//             {
-//                 if (checkForBiomes(&g, entry, area, seed, x - range_fourth, z - range_fourth, range_fourth * 2, range_fourth * 2, filter, 1) > 0)
-//                 {
-//                     return seed;
-//                 }
-//             }
-//         }
-//     }
-// }
+        Pos p;
+        if (!getStructurePos(structType, mcVersion, lower48, 0, 0, &p))
+            continue;
+
+        if ((p.x > (x + range)) || (p.z > (z + range)) || (p.x < (x - range)) || (p.z < (z - range)))
+            continue;
+
+        int64_t upper16;
+        for (upper16 = 0; upper16 < 0x10000; upper16++)
+        {
+            if (tot % 10000 == 0)
+            {
+                call_seed_update();
+            }
+            tot++;
+            int64_t seed = lower48 | (upper16 << 48);
+            applySeed(&g, dimension, seed);
+            if (isViableStructurePos(structType, &g, p.x, p.z))
+            {
+                if (checkForBiomes(&g, biomeIds, r, dimension, seed, filter, 1, NULL) > 0)
+                {
+                    return seed;
+                }
+            }
+        }
+    }
+}
 
 EMSCRIPTEN_KEEPALIVE
 Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int range, int dimension)

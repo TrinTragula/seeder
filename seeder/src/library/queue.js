@@ -4,36 +4,41 @@ export class QueueManager {
         this.numberOfWorkers = numberOfWorkers ?? navigator.hardwareConcurrency ?? 1;
         this.workers = [];
         this.workerCounter = 0;
-        this.COLORS = {};
+        this.COLORS = null;
         this.drawCache = {};
         this.seedUpdateCallback = null;
         this._spawnWorkers();
         this.getColors();
     }
 
-    draw(mcVersion, seed, startX, startY, widthX, widthY, callback) {
-        const cacheKey = mcVersion + "-" + seed + "-" + startX + "-" + startY + "-" + widthX + "-" + widthY;
-        const cachedColors = this.drawCache[cacheKey];
-        if (cachedColors) {
-            callback(cachedColors);
-            return;
-        } else {
-            for (let worker of this.workers) {
-                if (!worker.busy) {
-                    worker.busy = true;
-                    worker.callback = callback;
-                    worker.postMessage({
-                        kind: "GET_AREA",
-                        data: { mcVersion, seed, startX, startY, widthX, widthY }
-                    });
-                    return;
-                }
-            }
-        }
-        setTimeout(() => this.draw(mcVersion, seed, startX, startY, widthX, widthY, callback), 33);
+    getCacheKey(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight) {
+        return mcVersion + "-" + seed + "-" + startX + "-" + startY + "-" + widthX + "-" + widthY + "-" + dimension + "-" + yHeight;
     }
 
-    findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, threads, callback) {
+    draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight, callback, force = false) {
+        if (!force) {
+            const cacheKey = this.getCacheKey(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight);
+            const cachedColors = this.drawCache[cacheKey];
+            if (cachedColors) {
+                callback(cachedColors);
+                return;
+            }
+        }
+        for (let worker of this.workers) {
+            if (!worker.busy) {
+                worker.busy = true;
+                worker.callback = callback;
+                worker.postMessage({
+                    kind: "GET_AREA",
+                    data: { mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight }
+                });
+                return;
+            }
+        }
+        setTimeout(() => this.draw(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight, callback, true), 1);
+    }
+
+    findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight, threads, callback) {
         startingSeed = startingSeed ?? 0;
         for (let worker of this.workers) {
             if (!worker.busy && threads !== 0) {
@@ -48,7 +53,7 @@ export class QueueManager {
                 };
                 worker.postMessage({
                     kind: "GET_BIOMES",
-                    data: { mcVersion, biomes, x, z, widthX, widthZ, startingSeed }
+                    data: { mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight }
                 });
                 startingSeed += 1000000;
                 threads--;
@@ -68,7 +73,7 @@ export class QueueManager {
                 return;
             }
         }
-        setTimeout(() => this.findSpawn(mcVersion, seed, callback), 33);
+        setTimeout(() => this.findSpawn(mcVersion, seed, callback), 1);
     }
 
     findStrongholds(mcVersion, seed, howMany, callback) {
@@ -83,10 +88,10 @@ export class QueueManager {
                 return;
             }
         }
-        setTimeout(() => this.findStrongholds(mcVersion, seed, howMany, callback), 33);
+        setTimeout(() => this.findStrongholds(mcVersion, seed, howMany, callback), 1);
     }
 
-    findStructures(mcVersion, structType, x, z, range, startingSeed, threads, callback) {
+    findStructures(mcVersion, structType, x, z, range, startingSeed, dimension, threads, callback) {
         startingSeed = startingSeed ?? 0;
         for (let worker of this.workers) {
             if (!worker.busy && threads !== 0) {
@@ -101,7 +106,7 @@ export class QueueManager {
                 };
                 worker.postMessage({
                     kind: "FIND_STRUCTURES",
-                    data: { mcVersion, structType, x, z, range, startingSeed }
+                    data: { mcVersion, structType, x, z, range, startingSeed, dimension }
                 });
                 startingSeed += 1000000;
                 threads--;
@@ -109,7 +114,7 @@ export class QueueManager {
         }
     }
 
-    findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed, threads, callback) {
+    findBiomesWithStructures(mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight, threads, callback) {
         startingSeed = startingSeed ?? 0;
         for (let worker of this.workers) {
             if (!worker.busy && threads !== 0) {
@@ -124,7 +129,7 @@ export class QueueManager {
                 };
                 worker.postMessage({
                     kind: "GET_BIOMES_WITH_STRUCTURES",
-                    data: { mcVersion, structType, biomes, x, z, range, startingSeed }
+                    data: { mcVersion, structType, biomes, x, z, range, startingSeed, dimension, yHeight }
                 });
                 startingSeed += 1000000;
                 threads--;
@@ -132,19 +137,19 @@ export class QueueManager {
         }
     }
 
-    getStructuresInRegions(mcVersion, structType, seed, regionsRange, callback) {
+    getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension, callback) {
         for (let worker of this.workers) {
             if (!worker.busy) {
                 worker.busy = true;
                 worker.callback = callback;
                 worker.postMessage({
                     kind: "GET_STRUCTURES_IN_REGIONS",
-                    data: { mcVersion, structType, seed, regionsRange }
+                    data: { mcVersion, structType, seed, regionsRange, dimension }
                 });
                 return;
             }
         }
-        setTimeout(() => this.getStructuresInRegions(mcVersion, structType, seed, regionsRange, callback), 33);
+        setTimeout(() => this.getStructuresInRegions(mcVersion, structType, seed, regionsRange, dimension, callback), 1);
     }
 
     getColors() {
@@ -157,7 +162,7 @@ export class QueueManager {
                 return;
             }
         }
-        setTimeout(() => this.getColors(), 33);
+        setTimeout(() => this.getColors(), 1);
     }
 
     printStatus() {
@@ -198,7 +203,7 @@ export class QueueManager {
         }
         else if (e.data.kind === "DONE_GET_AREA") {
             const data = e.data.data;
-            const cacheKey = data.seed + "-" + data.startX + "-" + data.startY + "-" + data.widthX + "-" + data.widthY;
+            const cacheKey = this.getCacheKey(data.mcVersion, data.seed, data.startX, data.startY, data.widthX, data.widthY, data.dimension, data.yHeight);
             this.drawCache[cacheKey] = data.colors;
             worker.callback(data.colors);
             this._cleanWorker(worker);

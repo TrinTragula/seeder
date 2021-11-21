@@ -11,4 +11,8 @@ ReactDOM.render(
   document.getElementById('root')
 );
 
-serviceWorkerRegistration.register();
+try {
+  serviceWorkerRegistration.unregister();
+} catch { 
+  console.log("Error releasing service worker");
+}

@@ -135,12 +135,44 @@ button {
     height: 80%;
 }
 
+.loader {
+    border: 16px solid #13131399;
+    border-top: 16px solid #8FCA5C;
+    border-radius: 15%;
+    width: 25px;
+    height: 25px;
+    animation: spin 0.5s step-start infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    25% {
+        transform: rotate(90deg);
+    }
+
+    50% {
+        transform: rotate(180deg);
+    }
+
+    75% {
+        transform: rotate(270deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 @media only screen and (max-width: 701px) {
     .panel-container {
         position: absolute;
         background: whitesmoke;
         display: none;
     }
+
     .panel-container.menu-toggled {
         display: block;
         width: 90%;
@@ -154,6 +186,7 @@ button {
         text-align: center;
         height: 75%;
     }
+
     .menu-toggle {
         display: block;
         position: absolute;
@@ -164,9 +197,11 @@ button {
         right: 5px;
         bottom: 5px;
     }
+
     .hide-mobile {
         display: none;
     }
+
     .coords {
         font-size: 12px;
     }

@@ -79,7 +79,7 @@ export const BIOMES = [
     { value: 172, label: "Warped Forest" },
     { value: 173, label: "Basalt Delta" },
     { value: 174, label: "Dripstone Caves" },
-    { value: 175, label: "Lusch Caves" },
+    { value: 175, label: "Lush Caves" },
     { value: 177, label: "Meadow" },
     { value: 178, label: "Grove" },
     { value: 179, label: "Snowy Slopes" },

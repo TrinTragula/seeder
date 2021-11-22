@@ -143,7 +143,7 @@ export default function Seeder() {
 
     useEffect(() => {
         setOnKeyDownCallback();
-        window.addEventListener('resize', debounce(onResize, 500));
+        window.addEventListener('resize', debounce(onResize, 333));
         // eslint-disable-next-line
     }, []);
 

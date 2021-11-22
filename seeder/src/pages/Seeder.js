@@ -31,7 +31,7 @@ export default function Seeder() {
     const [mcVersion, setMcVersion] = useState(isNumeric(urlVersion) ? Number.parseInt(urlVersion) : VERSIONS["1.18"]);
     const [seed, setSeed] = useState(
         Number.isInteger(Number.parseInt(urlSeed))
-            ? Number.parseInt(urlSeed) + ""
+            ? urlSeed + ""
             : getRandomSeed()
     );
     const [x, setX] = useState(null);
@@ -137,13 +137,13 @@ export default function Seeder() {
         if (canvas?.current) {
             canvas.current.width = canvas.current.offsetWidth;
             canvas.current.height = canvas.current.offsetHeight - 15;
-            drawSeed();
+            drawer.current.draw();
         }
     }
 
     useEffect(() => {
         setOnKeyDownCallback();
-        window.addEventListener('resize', debounce(onResize, 333));
+        window.addEventListener('resize', debounce(() => onResize(), 333));
         // eslint-disable-next-line
     }, []);
 

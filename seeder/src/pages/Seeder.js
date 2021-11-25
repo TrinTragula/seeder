@@ -146,10 +146,10 @@ export default function Seeder() {
         window.addEventListener('resize', debounce(() => onResize(), 333));
 
         d3Item.current = d3.select(visibleCanvas.current).call(d3.zoom()
-            .scaleExtent([0.75, 1.5])
+            .scaleExtent([0.5, 3])
             .on("zoom", ({ transform }) => {
-                transfromX.current = -transform.x - visibleCanvas.current.width / 2;
-                transfromY.current = -transform.y - visibleCanvas.current.height / 2;
+                transfromX.current = -transform.x / transform.k - (visibleCanvas.current.width / 2);
+                transfromY.current = -transform.y / transform.k - (visibleCanvas.current.height / 2);
                 trasnformZoom.current = transform.k;
                 updateDraw();
                 drawer.current.draw(

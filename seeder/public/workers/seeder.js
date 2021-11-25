@@ -40,11 +40,11 @@ class Seeder {
         seed = BigInt(seed);
         const res = this.WASMgenerateArea(mcVersion, seed, x, z, areaWidth, areaHeight, dimension, yHeight);
         const biomes = this.module.HEAP32.subarray(res >> 2, (res >> 2) + (areaWidth * areaHeight));
-        const colors = [];
+        const colors = Array(areaWidth * areaHeight);
         for (let j = 0; j < areaWidth; j++) {
             for (let i = 0; i < areaHeight; i++) {
                 const biomeId = biomes[(i * areaWidth) + j];
-                colors.push(this.COLORS[biomeId]);
+                colors[(j * areaHeight) + i] = this.COLORS[biomeId];
             }
         }
         this.WASMfreeMemory();

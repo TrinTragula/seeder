@@ -182,14 +182,18 @@ export class DrawSeed {
 
     drawText(text, x, z) {
         if (this.showStructureCoords) {
-            this.ctx.font = "bold 10px Minecraft";
-            this.ctx.textAlign = "center";
-            this.ctx.fillStyle = "#ffffffbb";
-            const textWidth = this.ctx.measureText(text).width;
-            this.ctx.fillRect(x - textWidth / 2 - 1, z + 20, textWidth + 1, 12);
+            this.ctx.fillStyle = 'black';
+            this.ctx.strokeStyle = 'white';
+            this.ctx.lineWidth = 3;
 
-            this.ctx.fillStyle = "black";
+            this.ctx.font = '10pt Verdana';
+            this.ctx.textAlign = "center";
+
+            this.ctx.strokeText(text, x, z + 30);
             this.ctx.fillText(text, x, z + 30);
+
+            this.ctx.fill();
+            this.ctx.stroke();
         }
     }
 

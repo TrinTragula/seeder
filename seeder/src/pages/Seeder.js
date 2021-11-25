@@ -5,6 +5,7 @@ import Select, { createFilter } from 'react-select'
 import './Seeder.css';
 import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS } from '../util/constants';
 import { debounce, copyToClipboard, setUrl } from '../util/functions';
+import * as d3 from 'd3';
 
 const isNumeric = (str) => {
     if (typeof str != "string") return false;
@@ -26,7 +27,8 @@ export default function Seeder() {
     const urlVersion = params?.version;
 
     const getRandomSeed = () => "" + Math.floor(-4_294_967_296 + Math.random() * 8_589_934_593);
-    const canvas = useRef();
+    const visibleCanvas = useRef();
+    const hiddenCanvas = useRef();
     const drawer = useRef();
     const [mcVersion, setMcVersion] = useState(isNumeric(urlVersion) ? Number.parseInt(urlVersion) : VERSIONS["1.18"]);
     const [seed, setSeed] = useState(
@@ -63,16 +65,23 @@ export default function Seeder() {
 
     const [isRandomSeedButtonDisabled, setIsRandomSeedButtonDisabled] = useState(false);
 
+    const transfromX = useRef(0);
+    const transfromY = useRef(0);
+    const trasnformZoom = useRef(1);
+    const d3Item = useRef();
+    const hiddenCanvasDimensions = 10000;
+
     const drawSeed = (forced = false) => {
+        transfromX.current = -visibleCanvas.current.width / 2;
+        transfromY.current = -visibleCanvas.current.height / 2;
+        trasnformZoom.current = 1;
         setIsRandomSeedButtonDisabled(true);
         if (!drawer?.current) {
-            canvas.current.width = canvas.current.offsetWidth;
-            canvas.current.height = canvas.current.offsetHeight - 15;
-            drawer.current = new DrawSeed(mcVersion, queueManager, canvas.current, null, (x, z, biome) => {
+            drawer.current = new DrawSeed(mcVersion, queueManager, hiddenCanvas.current, hiddenCanvasDimensions, null, (x, z, biome) => {
                 setX(x);
                 setZ(z);
                 setBiome(biome);
-            }, 75, 1);
+            }, 100);
         }
         if (forced) {
             drawer.current.clear();
@@ -84,73 +93,78 @@ export default function Seeder() {
         drawer.current.setYHeight(yHeight);
         drawer.current.setStructuresShown(structuresToShow);
         setUrl(seed, mcVersion, setButtonText);
-        drawer.current.draw(() => {
-            if (forced) {
-                drawer.current.findSpawn((spawnSeed,) => {
-                    setIsRandomSeedButtonDisabled(false);
-                    if (seed === spawnSeed) {
-                        drawer.current.drawStructures();
-                    }
-                });
-                drawer.current.findStrongholds((strongholdSeed,) => {
-                    if (seed === strongholdSeed) {
-                        drawer.current.drawStructures()
-                    }
-                });
-                for (const structure of structuresToShow) {
-                    drawer.current.findStructure(structure, (structureSeed,) => {
-                        if (seed === structureSeed) {
-                            drawer.current.drawStructures();
-                        }
-                    });
-                }
-            } else {
-                setIsRandomSeedButtonDisabled(false);
+        drawer.current.findSpawn((spawnSeed,) => {
+            if (seed === spawnSeed) {
                 drawer.current.drawStructures();
+                setTimeout(updateDraw, 150);
             }
+        });
+        drawer.current.findStrongholds((strongholdSeed,) => {
+            if (seed === strongholdSeed) {
+                drawer.current.drawStructures();
+                setTimeout(updateDraw, 150);
+            }
+        });
+        for (const structure of structuresToShow) {
+            drawer.current.findStructure(structure, (structureSeed,) => {
+                if (seed === structureSeed) {
+                    drawer.current.drawStructures();
+                    setTimeout(updateDraw, 150);
+                }
+            });
+        }
+        drawer.current.draw(-transfromX.current, -transfromY.current, visibleCanvas.current.width, visibleCanvas.current.height, (x, y) => {
+            setIsRandomSeedButtonDisabled(false);
+            updateDraw();
         });
     }
 
-    const setOnKeyDownCallback = () => {
-        const move = (e) => {
-            if (e.keyCode === 38) {
-                drawer.current.up();
-            }
-            else if (e.keyCode === 40) {
-                drawer.current.down();
-            }
-            else if (e.keyCode === 37) {
-                drawer.current.left();
-            }
-            else if (e.keyCode === 39) {
-                drawer.current.right();
-            }
-        };
-        const checkKey = (e) => {
-            e = e || window.event;
-            move(e);
-        };
-        document.onkeydown = debounce((e) => checkKey(e), 1);
+    const updateDraw = () => {
+        const ctx = visibleCanvas.current.getContext("2d");
+        requestAnimationFrame(() => {
+            // console.log(trasnformZoom.current)
+            ctx.clearRect(0, 0, visibleCanvas.current.width, visibleCanvas.current.height);
+            ctx.drawImage(
+                hiddenCanvas.current,
+                hiddenCanvasDimensions / 2 + transfromX.current, hiddenCanvasDimensions / 2 + transfromY.current,
+                visibleCanvas.current.width / trasnformZoom.current, visibleCanvas.current.height / trasnformZoom.current,
+                0, 0,
+                visibleCanvas.current.width, visibleCanvas.current.height);
+        });
     }
 
     const onResize = () => {
-        if (canvas?.current) {
-            canvas.current.width = canvas.current.offsetWidth;
-            canvas.current.height = canvas.current.offsetHeight - 15;
-            drawer.current.draw();
+        if (visibleCanvas?.current) {
+            // var rect = visibleCanvas.current.getBoundingClientRect();
+            visibleCanvas.current.width = visibleCanvas.current.offsetWidth;
+            visibleCanvas.current.height = visibleCanvas.current.offsetHeight - 15;
         }
     }
 
     useEffect(() => {
-        setOnKeyDownCallback();
+        onResize();
         window.addEventListener('resize', debounce(() => onResize(), 333));
+
+        d3Item.current = d3.select(visibleCanvas.current).call(d3.zoom()
+            .scaleExtent([0.75, 1.5])
+            .on("zoom", ({ transform }) => {
+                transfromX.current = -transform.x - visibleCanvas.current.width / 2;
+                transfromY.current = -transform.y - visibleCanvas.current.height / 2;
+                trasnformZoom.current = transform.k;
+                updateDraw();
+                drawer.current.draw(
+                    -transfromX.current, -transfromY.current,
+                    visibleCanvas.current.width / trasnformZoom.current, visibleCanvas.current.height / trasnformZoom.current, updateDraw);
+            }))
+            .style("cursor", "crosshair");
         // eslint-disable-next-line
     }, []);
 
     useEffect(() => {
         drawSeed(true);
         // eslint-disable-next-line
-    }, [mcVersion, seed, dimension, yHeight, queueManager, structuresToShow, showStructureCoords]);
+    }, [seed]);
+    // }, [mcVersion, seed, dimension, yHeight, queueManager, structuresToShow, showStructureCoords]);
 
     const setRandomSeed = () => {
         const rendomSeed = getRandomSeed();
@@ -334,16 +348,13 @@ export default function Seeder() {
                     <button className="stop-button padding-3" onClick={() => restartAll()}>STOP</button>
                 </div>
             }
+            <canvas ref={hiddenCanvas} style={{ background: "#111111", position: "absolute", display: "none" }} width={hiddenCanvasDimensions} height={hiddenCanvasDimensions}></canvas>
             <div className="map-container flex-5 flex-row">
-                <canvas ref={canvas} style={{ background: "#333333" }}></canvas>
+                <canvas ref={visibleCanvas} style={{ background: "#333333" }}></canvas>
                 <img alt="seed menu toggle"
                     className="menu-toggle"
                     onClick={() => setMenuToggled(!menuToggled)} src="/svg/menu.svg">
                 </img>
-                <img alt="arrow up" className="arrow arrow-up" onClick={() => drawer.current.up()} src="/svg/arrow.svg"></img>
-                <img alt="arrow left" className="arrow arrow-left" onClick={() => drawer.current.left()} src="/svg/arrow.svg"></img>
-                <img alt="arrow down" className="arrow arrow-down" onClick={() => drawer.current.down()} src="/svg/arrow.svg"></img>
-                <img alt="arrow right" className="arrow arrow-right" onClick={() => drawer.current.right()} src="/svg/arrow.svg"></img>
                 <div className="coords">
                     <div>
                         <b className="hide-mobile">X:</b> {x ?? 0}, <b className="hide-mobile">Z:</b> {z ?? 0}

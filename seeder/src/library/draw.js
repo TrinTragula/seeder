@@ -8,6 +8,7 @@ export class DrawSeed {
         this.queue = queue;
         this.canvas = canvas;
         this.hiddenCanvasDimensions = hiddenCanvasDimensions;
+        this.halfHiddenDim = Math.floor(hiddenCanvasDimensions / 2);
         this.biomesDict = {};
         this.ctx = this.canvas.getContext("2d");
         this.drawDim = drawDim ?? 50;
@@ -182,7 +183,7 @@ export class DrawSeed {
 
     drawText(text, x, z) {
         if (this.showStructureCoords) {
-            this.ctx.fillStyle = 'black';
+            this.ctx.fillStyle = '#333333';
             this.ctx.strokeStyle = 'white';
             this.ctx.lineWidth = 3;
 
@@ -199,8 +200,8 @@ export class DrawSeed {
 
     drawStructures() {
         if (this.spawnShown && this.dimension === 0 && this.spawnX != null && this.spawnZ != null) {
-            let drawX = this.hiddenCanvasDimensions / 2 + Math.floor(this.spawnX / 4);
-            let drawZ = this.hiddenCanvasDimensions / 2 + Math.floor(this.spawnZ / 4);
+            let drawX = Math.floor(this.halfHiddenDim + this.spawnX / 4);
+            let drawZ = Math.floor(this.halfHiddenDim + this.spawnZ / 4);
             if (drawX > 0 && drawZ > 0 && drawX < this.hiddenCanvasDimensions && drawZ < this.hiddenCanvasDimensions) {
                 const image = new Image(32, 30);
                 image.src = this.spawnImage;
@@ -217,8 +218,8 @@ export class DrawSeed {
 
         if (this.strongholdsShown && this.dimension === 0 && this.strongholds && this.strongholds.length > 0) {
             for (const stronghold of this.strongholds) {
-                let drawX = this.hiddenCanvasDimensions / 2 + Math.floor(stronghold[0] / 4);
-                let drawZ = this.hiddenCanvasDimensions / 2 + Math.floor(stronghold[1] / 4);
+                let drawX = Math.floor(this.halfHiddenDim + stronghold[0] / 4);
+                let drawZ = Math.floor(this.halfHiddenDim + stronghold[1] / 4);
                 if (drawX > 0 && drawZ > 0 && drawX < this.hiddenCanvasDimensions && drawZ < this.hiddenCanvasDimensions) {
                     const image = new Image(30, 30);
                     image.src = this.eyeImage;
@@ -238,8 +239,8 @@ export class DrawSeed {
             for (let structureKey of Object.keys(this.structuresShown)) {
                 if (this.structures[structureKey]) {
                     for (const structure of this.structures[structureKey]) {
-                        let drawX = this.hiddenCanvasDimensions / 2 + Math.floor(structure[0] / 4);
-                        let drawZ = this.hiddenCanvasDimensions / 2 + Math.floor(structure[1] / 4);
+                        let drawX = Math.floor(this.halfHiddenDim + structure[0] / 4);
+                        let drawZ = Math.floor(this.halfHiddenDim + structure[1] / 4);
                         if (drawX > 0 && drawZ > 0 && drawX < this.hiddenCanvasDimensions && drawZ < this.hiddenCanvasDimensions) {
                             const image = new Image(30, 30);
                             image.src = this.images[structureKey];
@@ -261,6 +262,7 @@ export class DrawSeed {
     _drawLoop(colors, startX, startY, widthX, widthY) {
         startX = Math.floor(startX);
         startY = Math.floor(startY);
+        
         const pixels = new Array(widthY * widthX);
         for (let jj = 0; jj < (widthY); jj++) {
             const realjj = Math.floor(jj);
@@ -276,7 +278,7 @@ export class DrawSeed {
         }
         const arr = Uint8ClampedArray.from(pixels.flat());
         const imageData = new ImageData(arr, widthX, widthY);
-        this.ctx.putImageData(imageData, this.hiddenCanvasDimensions / 2 + startX, this.hiddenCanvasDimensions / 2 + startY);
+        this.ctx.putImageData(imageData, this.halfHiddenDim + startX, this.halfHiddenDim + startY);
     }
 
     getBiomeAndPos(e) {

@@ -115,22 +115,19 @@ export default function Seeder() {
         }
         drawer.current.draw(-transfromX.current, -transfromY.current, visibleCanvas.current.width, visibleCanvas.current.height, (x, y) => {
             setIsRandomSeedButtonDisabled(false);
-            updateDraw();
+            setTimeout(updateDraw, 0);
         });
     }
 
     const updateDraw = () => {
         const ctx = visibleCanvas.current.getContext("2d");
-        requestAnimationFrame(() => {
-            // console.log(trasnformZoom.current)
-            ctx.clearRect(0, 0, visibleCanvas.current.width, visibleCanvas.current.height);
-            ctx.drawImage(
-                hiddenCanvas.current,
-                hiddenCanvasDimensions / 2 + transfromX.current, hiddenCanvasDimensions / 2 + transfromY.current,
-                visibleCanvas.current.width / trasnformZoom.current, visibleCanvas.current.height / trasnformZoom.current,
-                0, 0,
-                visibleCanvas.current.width, visibleCanvas.current.height);
-        });
+        ctx.clearRect(0, 0, visibleCanvas.current.width, visibleCanvas.current.height);
+        ctx.drawImage(
+            hiddenCanvas.current,
+            hiddenCanvasDimensions / 2 + transfromX.current, hiddenCanvasDimensions / 2 + transfromY.current,
+            visibleCanvas.current.width / trasnformZoom.current, visibleCanvas.current.height / trasnformZoom.current,
+            0, 0,
+            visibleCanvas.current.width, visibleCanvas.current.height);
     }
 
     const onResize = () => {
@@ -152,9 +149,9 @@ export default function Seeder() {
                 transfromY.current = -transform.y / transform.k - (visibleCanvas.current.height / 2);
                 trasnformZoom.current = transform.k;
                 updateDraw();
-                drawer.current.draw(
+                setTimeout(() => drawer.current.draw(
                     -transfromX.current, -transfromY.current,
-                    visibleCanvas.current.width / trasnformZoom.current, visibleCanvas.current.height / trasnformZoom.current, updateDraw);
+                    visibleCanvas.current.width / trasnformZoom.current, visibleCanvas.current.height / trasnformZoom.current, updateDraw), 0);
             }))
             .style("cursor", "crosshair");
         // eslint-disable-next-line
@@ -348,7 +345,7 @@ export default function Seeder() {
                     <button className="stop-button padding-3" onClick={() => restartAll()}>STOP</button>
                 </div>
             }
-            <canvas ref={hiddenCanvas} style={{ background: "#111111", position: "absolute", display: "none" }} width={hiddenCanvasDimensions} height={hiddenCanvasDimensions}></canvas>
+            <canvas ref={hiddenCanvas} style={{ background: "#333333", position: "absolute", display: "none" }} width={hiddenCanvasDimensions} height={hiddenCanvasDimensions}></canvas>
             <div className="map-container flex-5 flex-row">
                 <canvas ref={visibleCanvas} style={{ background: "#333333" }}></canvas>
                 <img alt="seed menu toggle"

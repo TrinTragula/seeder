@@ -142,7 +142,7 @@ int64_t find_structures(int mcVersion, int structType, int x, int z, int range, 
             tot++;
             int64_t seed = lower48 | (upper16 << 48);
             applySeed(&g, dimension, seed);
-            if (isViableStructurePos(structType, &g, p.x, p.z))
+            if (isViableStructurePos(structType, &g, p.x, p.z, 0))
             {
                 return seed;
             }
@@ -193,7 +193,7 @@ int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], 
             tot++;
             int64_t seed = lower48 | (upper16 << 48);
             applySeed(&g, dimension, seed);
-            if (isViableStructurePos(structType, &g, p.x, p.z))
+            if (isViableStructurePos(structType, &g, p.x, p.z, 0))
             {
                 if (checkForBiomes(&g, biomeIds, r, dimension, seed, filter, 1, NULL) > 0)
                 {
@@ -221,7 +221,7 @@ Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int r
         {
             Pos p;
             getStructurePos(structType, mcVersion, seed, regionX, regionY, &p);
-            if (!isViableStructurePos(structType, &g, p.x, p.z))
+            if (!isViableStructurePos(structType, &g, p.x, p.z, 0))
             {
                 p.x = -1;
                 p.z = -1;

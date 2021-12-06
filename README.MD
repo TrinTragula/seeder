@@ -22,7 +22,7 @@ can look up your seeds/find your perfect ones whitout installing or configuring 
 - [x] Find a seed containing a strcuture AND a list of biomes in a given range
 - [x] Works with different MC versions up to 1.18
 - [x] Finding rare seeds may slow down you PC while the search is running (seed finding is a very CPU intensive job)
-- [x] Suppor fot the Nether and End
+- [x] Support for the Nether and End
 
 ## Coming features:
 - [ ] Less CPU hunger

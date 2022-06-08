@@ -86,6 +86,8 @@ export const BIOMES = [
     { value: 180, label: "Jagged Peaks" },
     { value: 181, label: "Frozen Peaks" },
     { value: 182, label: "Stony Peaks" },
+    { value: 183, label: "Deep Dark" },
+    { value: 184, label: "Mangrove Swamp" },
 ];
 
 export const VERSIONS = {
@@ -108,6 +110,7 @@ export const VERSIONS = {
     "1.16": 16,
     "1.17": 17,
     "1.18": 18,
+    "1.19": 19,
 };
 
 export const VERSIONS_OPTIONS = Object.keys(VERSIONS).map(v => ({ label: v, value: VERSIONS[v] }));
@@ -125,12 +128,13 @@ export const STRUCTURES_OPTIONS = [
     { value: 10, pureText: "Outpost", label: <div className="flex-row flex-align-center"><img alt="Outpost" src="/img/outpost.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Outpost</div> },
     { value: 11, pureText: "Ruined Portal", label: <div className="flex-row flex-align-center"><img alt="Ruined Portal" src="/img/portal.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Ruined Portal</div> },
     // 12 Ruined_Portal_N,
-    // 13 Treasure,
-    // 14 Mineshaft,
-    { value: 15, pureText: "Fortress", label: <div className="flex-row flex-align-center"><img alt="Fortress" src="/img/fortress.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Fortress</div> },
-    { value: 16, pureText: "Bastion", label: <div className="flex-row flex-align-center"><img alt="Bastion" src="/img/bastion.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Bastion</div> },
-    { value: 17, pureText: "End City", label: <div className="flex-row flex-align-center"><img alt="End City" src="/img/end_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End City</div> },
-    { value: 18, pureText: "End Gateway", label: <div className="flex-row flex-align-center"><img alt="End Gateway" src="/img/end_gateway.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End Gateway</div> },
+    { value: 13, pureText: "Ancient City", label: <div className="flex-row flex-align-center"><img alt="Ancient City" src="/img/ancient_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Ancient City</div> },
+    // 14 Treasure,
+    // 15 Mineshaft,
+    { value: 16, pureText: "Fortress", label: <div className="flex-row flex-align-center"><img alt="Fortress" src="/img/fortress.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Fortress</div> },
+    { value: 17, pureText: "Bastion", label: <div className="flex-row flex-align-center"><img alt="Bastion" src="/img/bastion.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Bastion</div> },
+    { value: 18, pureText: "End City", label: <div className="flex-row flex-align-center"><img alt="End City" src="/img/end_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End City</div> },
+    { value: 19, pureText: "End Gateway", label: <div className="flex-row flex-align-center"><img alt="End Gateway" src="/img/end_gateway.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End Gateway</div> },
 ];
 
 export const DIMENSIONS_OPTIONS = [

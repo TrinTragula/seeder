@@ -510,11 +510,12 @@ export class DrawSeed {
         /*  Outpost */          10: '/img/outpost.png',
         /*  Ruined_Portal */    11: '/img/portal.png',
         // 12 Ruined_Portal_N,
-        /*  Treasure */         13: '/img/treasure.png',
-        // 14 Mineshaft,
-        /*  Fortress */         15: '/img/fortress.png',
-        /*  Bastion */          16: '/img/bastion.png',
-        /*  End_City */         17: '/img/end_city.png',
-        /*  End_Gateway */      18: '/img/end_gateway.png',
+        /*  Ancient City */     13: '/img/ancient_city.png',
+        /*  Treasure */         14: '/img/treasure.png',
+        // 15 Mineshaft,
+        /*  Fortress */         16: '/img/fortress.png',
+        /*  Bastion */          17: '/img/bastion.png',
+        /*  End_City */         18: '/img/end_city.png',
+        /*  End_Gateway */      19: '/img/end_gateway.png',
     }
 }

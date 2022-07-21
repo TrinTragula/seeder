@@ -349,7 +349,7 @@ export default function Seeder() {
                         <b className="hide-mobile">X:</b> {x ?? 0}, <b className="hide-mobile">Z:</b> {z ?? 0}
                     </div>
                     <div className="biome-info">
-                        {biome ?? 'Unkown'}
+                        {biome ?? 'Unknown'}
                     </div>
                 </div>
             </div>

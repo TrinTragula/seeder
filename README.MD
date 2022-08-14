@@ -1,4 +1,4 @@
-# Seeder v0.4.0
+# Seeder v0.4.1
 
 Find, show, share and admire Minecraft seeds (Java edition only).
 

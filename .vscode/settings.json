@@ -6,6 +6,7 @@
         "optional": "c",
         "functional": "c",
         "iosfwd": "c",
-        "stdexcept": "c"
+        "stdexcept": "c",
+        "algorithm": "c"
     }
 }

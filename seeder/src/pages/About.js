@@ -7,7 +7,7 @@ export default function About() {
             <div className="about-container">
                 <div className="flex-row flex-align-center">
                     <h1>Seeder</h1>
-                    <small className="margin-left-15">(0.4.1)</small>
+                    <small className="margin-left-15">(0.4.2)</small>
                 </div>
                 <h3>Who</h3>
                 <div className="paragraph">

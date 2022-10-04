@@ -47,7 +47,7 @@ int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w,
     setupGenerator(&g, mcVersion, 0);
     BiomeFilter filter;
     int *excluded;
-    filter = setupBiomeFilter(wanted, count, NULL, 0);
+    setupBiomeFilter(&filter, mcVersion, 0, wanted, count, 0, 0, 0, 0);
     Range r = {4, x, z, w, h, yHeight / 4, 1};
     biomeIds = allocCache(&g, r);
 
@@ -58,7 +58,7 @@ int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w,
         {
             call_seed_update();
         }
-        if (checkForBiomes(&g, biomeIds, r, dimension, seed, filter, 1, NULL))
+        if (checkForBiomes(&g, biomeIds, r, dimension, seed, &filter, 1))
             break;
     }
     return seed;
@@ -158,7 +158,8 @@ int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], 
 
     BiomeFilter filter;
     int *excluded;
-    filter = setupBiomeFilter(wanted, count, NULL, 0);
+    setupBiomeFilter(&filter, mcVersion, 0, wanted, count, 0, 0, 0, 0);
+
 
     int64_t seed;
     int64_t lower48;
@@ -195,7 +196,7 @@ int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], 
             applySeed(&g, dimension, seed);
             if (isViableStructurePos(structType, &g, p.x, p.z, 0))
             {
-                if (checkForBiomes(&g, biomeIds, r, dimension, seed, filter, 1, NULL) > 0)
+                if (checkForBiomes(&g, biomeIds, r, dimension, seed, &filter, 1) > 0)
                 {
                     return seed;
                 }

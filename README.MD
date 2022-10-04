@@ -1,4 +1,4 @@
-# Seeder v0.4.1
+# Seeder v0.4.2
 
 Find, show, share and admire Minecraft seeds (Java edition only).
 
@@ -10,7 +10,7 @@ This is a webapp based upon a library ([cubiomes](https://github.com/Cubitect/cu
 written by cubitect in C and compiled in webassembly by me.
 Go and give him love.
 
-It's a React app taht uses a WASM build of cubiomes to run the code in your browser, so that you
+It's a React app that uses a WASM build of cubiomes to run the code in your browser, so that you
 can look up your seeds/find your perfect ones whitout installing or configuring anything.
 
 ## Features

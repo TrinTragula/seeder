@@ -2,6 +2,11 @@ canvas {
     flex: 1;
 }
 
+hr {
+    margin-left: 0;
+    margin-right: 0;
+}
+
 .map-container {
     border-right: 3px solid black;
     position: relative;
@@ -26,7 +31,8 @@ button {
 
 .panel-container {
     overflow-y: scroll;
-    padding: 15px;
+    overflow-x: hidden;
+    padding: 5px 10px 0px 15px;
 }
 
 .arrow {

@@ -7,7 +7,7 @@ export default function About() {
             <div className="about-container">
                 <div className="flex-row flex-align-center">
                     <h1>Seeder</h1>
-                    <small className="margin-left-15">(0.4.2)</small>
+                    <small className="margin-left-15">(0.4.3)</small>
                 </div>
                 <h3>Who</h3>
                 <div className="paragraph">
@@ -18,6 +18,13 @@ export default function About() {
                 </div>
                 <h3>Can I help?</h3>
                 <div className="paragraph">
+                    <div className="flex-row flex-align-center">
+                        <div className="flex-row">
+                            <a href="https://www.minecraft-hosting.pro/?affiliate=772333" target="_blank">
+                                <img width="100%" alt="Minecraft Hosting .pro affiliate link" src="/img/mc_hosting.webp"></img>
+                            </a>
+                        </div>
+                    </div>
                     <div className="flex-row flex-align-center">
                         <div className="margin-3">Buy me a coffee!</div>
                         <form className="margin-3" action="https://www.paypal.com/donate" method="post" target="_top">

@@ -57,7 +57,7 @@ export default function Seeder() {
     const [buttonText, setButtonText] = useState('COPY');
 
     const [optionsRendered, setOptionsRendered] = useState(true);
-    const [finderRendered, setFinderRendered] = useState(false);
+    const [finderRendered, setFinderRendered] = useState(true);
 
     const [showLegend, setShowLegend] = useState(false);
 
@@ -353,7 +353,7 @@ export default function Seeder() {
                     </div>
                 </div>
             </div>
-            <div className={`panel-container flex-2 overflow-auto ${menuToggled ? 'menu-toggled' : ''}`}>
+            <div className={`flex-column panel-container flex-2 overflow-auto ${menuToggled ? 'menu-toggled' : ''}`}>
                 <div className="margin-3"><h3>Seed</h3></div>
                 <div className="flex-row margin-3">
                     <input className="flex-3" value={inputSeed} onChange={(e) => setInputSeed(e?.target?.value)}
@@ -426,7 +426,7 @@ export default function Seeder() {
                 </div>
 
                 <hr />
-                
+
                 <div className="flex-row margin-3">
                     <div className="flex-row">
                         <div className="margin-3">Buy me a coffee!</div>
@@ -435,6 +435,12 @@ export default function Seeder() {
                             <input style={{ verticalAlign: "bottom", border: "0px" }} type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
                         </form>
                     </div>
+                </div>
+
+                <div className="flex-row" style={{ marginTop: '15px', flexGrow: 1, alignItems: 'end' }}>
+                    <a href="https://www.minecraft-hosting.pro/?affiliate=772333" target="_blank">
+                        <img style={{ verticalAlign: "bottom" }} width="100%" alt="Minecraft Hosting .pro affiliate link" src="/img/mc_hosting.webp"></img>
+                    </a>
                 </div>
             </div>
             {renderLegend()}

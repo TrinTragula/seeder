@@ -20,6 +20,7 @@ export default function About() {
                 <div className="paragraph">
                     <div className="flex-row flex-align-center">
                         <div className="flex-row">
+                            {/* Safe link to referral website *//* eslint-disable-next-line react/jsx-no-target-blank */}
                             <a href="https://www.minecraft-hosting.pro/?affiliate=772333" target="_blank">
                                 <img width="100%" alt="Minecraft Hosting .pro affiliate link" src="/img/mc_hosting.webp"></img>
                             </a>

@@ -22,8 +22,11 @@ function App() {
             </h3>
           </div>
           <div className="flex-row">
-            <a className="header-link" href="https://twitter.com/McSeeder" target="_blank" rel="noreferrer">
-              @McSeeder
+            <a className="header-link" href="https://github.com/TrinTragula/seeder" target="_blank" rel="noreferrer">
+              Github
+            </a>
+            <a className="margin-left-15 header-link" href="https://twitter.com/McSeeder" target="_blank" rel="noreferrer">
+              Twitter
             </a>
             <Link className="margin-left-15 header-link" to="/about">
               About

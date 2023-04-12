@@ -7,7 +7,7 @@ export default function About() {
             <div className="about-container">
                 <div className="flex-row flex-align-center">
                     <h1>Seeder</h1>
-                    <small className="margin-left-15">(0.4.3)</small>
+                    <small className="margin-left-15">(0.4.4)</small>
                 </div>
                 <h3>Who</h3>
                 <div className="paragraph">
@@ -22,7 +22,7 @@ export default function About() {
                         <div className="flex-row">
                             {/* Safe link to referral website *//* eslint-disable-next-line react/jsx-no-target-blank */}
                             <a href="https://www.minecraft-hosting.pro/?affiliate=772333" target="_blank">
-                                <img width="100%" alt="Minecraft Hosting .pro affiliate link" src="/img/mc_hosting.webp"></img>
+                                <img width="50%" alt="Minecraft Hosting .pro affiliate link" src="/img/mc_hosting.webp"></img>
                             </a>
                         </div>
                     </div>

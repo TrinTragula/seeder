@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 
 export const debounce = (func, wait = 25) => {
     let timeout;
@@ -40,4 +41,42 @@ export const setUrl = (seed, mcVersion, setButtonText) => {
         window.history.pushState({ path: newUrl }, '', newUrl);
         setButtonText('COPY');
     }
+}
+
+// useDebounce hook (taken from https://usehooks.com/useDebounce/)
+export function useDebounce(value, delay) {
+    // State and setters for debounced value
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    useEffect(
+        () => {
+            // Update debounced value after delay
+            const handler = setTimeout(() => {
+                setDebouncedValue(value);
+            }, delay);
+            // Cancel the timeout if value changes (also on delay change or unmount)
+            // This is how we prevent debounced value from updating if value is changed ...
+            // .. within the delay period. Timeout gets cleared and restarted.
+            return () => {
+                clearTimeout(handler);
+            };
+        },
+        [value, delay] // Only re-call effect if value or delay changes
+    );
+    return debouncedValue;
+}
+
+export const toHHMMSS = function (milliseconds) {
+    const sec_num = parseInt(milliseconds / 1000, 10);
+    let hours = Math.floor(sec_num / 3600);
+    let minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+    let seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+    let response = "";
+    if (hours > 0) {
+        response += hours + 'h ';
+    }
+    if (hours > 0 || minutes > 0) {
+        response += minutes + 'm ';
+    }
+    return response + seconds + "s";
 }

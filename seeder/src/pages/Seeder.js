@@ -3,8 +3,8 @@ import { QueueManager } from '../library/queue';
 import { DrawSeed } from '../library/draw';
 import Select, { createFilter } from 'react-select'
 import './Seeder.css';
-import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS } from '../util/constants';
-import { debounce, copyToClipboard, setUrl } from '../util/functions';
+import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS, OLD_VERSIONS } from '../util/constants';
+import { debounce, copyToClipboard, setUrl, useDebounce, toHHMMSS } from '../util/functions';
 
 const isNumeric = (str) => {
     if (typeof str != "string") return false;
@@ -23,12 +23,15 @@ export default function Seeder() {
     const urlSearchParams = new URLSearchParams(window.location.search);
     const params = Object.fromEntries(urlSearchParams.entries());
     const urlSeed = params?.seed;
-    const urlVersion = params?.version;
-
+    let urlVersion = params?.version;
+    // Fix old links to the correct version
+    if (isNumeric(urlVersion)) {
+        urlVersion = OLD_VERSIONS[Number.parseInt(urlVersion)];
+    }
     const getRandomSeed = () => "" + Math.floor(-4_294_967_296 + Math.random() * 8_589_934_593);
     const canvas = useRef();
     const drawer = useRef();
-    const [mcVersion, setMcVersion] = useState(isNumeric(urlVersion) ? Number.parseInt(urlVersion) : VERSIONS["1.19"]);
+    const [mcVersion, setMcVersion] = useState(urlVersion && VERSIONS[urlVersion] ? VERSIONS[urlVersion] : VERSIONS["1.19.4"]);
     const [seed, setSeed] = useState(
         Number.isInteger(Number.parseInt(urlSeed))
             ? urlSeed + ""
@@ -39,7 +42,8 @@ export default function Seeder() {
     const [biome, setBiome] = useState(null);
     const [inputSeed, setInputSeed] = useState(seed);
     const [dimension, setDimension] = useState(0); // Overworld
-    const [yHeight, setYHeight] = useState(320); // Top of the world
+    const [yHeight, setYHeight] = useState(256); // Mountain tops
+    const debouncedYHeight = useDebounce(yHeight, 500);
     const [queueManager] = useState(() => new QueueManager("/workers/worker.js"));
 
     const [biomesToFind, setBiomesToFind] = useState(null);
@@ -49,6 +53,8 @@ export default function Seeder() {
     const [structuresToShow, setStructuresToShow] = useState([]);
 
     const [isFindingSeed, setIsFindingSeed] = useState(false);
+    const [findingSeedStartTime, setFindingSeedStartTime] = useState(null);
+    const [findingSeedDuration, setFindingSeedDuration] = useState(null);
     const [seedFindingSpeed, setSeedFindingSpeed] = useState(false);
     const [lastFoundSeed, setLastFoundSeed] = useState(0);
     const [menuToggled, setMenuToggled] = useState(false);
@@ -62,6 +68,20 @@ export default function Seeder() {
     const [showLegend, setShowLegend] = useState(false);
 
     const [isRandomSeedButtonDisabled, setIsRandomSeedButtonDisabled] = useState(false);
+
+    const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState(false);
+
+    // Update the finding seed timer displayed when searching seeds
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            if (findingSeedStartTime) {
+                setFindingSeedDuration(new Date() - findingSeedStartTime)
+            }
+        }, 1000);
+        return () => {
+            clearInterval(intervalId)
+        }
+    });
 
     const drawSeed = (forced = false) => {
         setIsRandomSeedButtonDisabled(true);
@@ -83,7 +103,7 @@ export default function Seeder() {
         drawer.current.setDimension(dimension);
         drawer.current.setYHeight(yHeight);
         drawer.current.setStructuresShown(structuresToShow);
-        setUrl(seed, mcVersion, setButtonText);
+        setUrl(seed, Object.keys(VERSIONS).find(v => VERSIONS[v] === mcVersion), setButtonText);
         drawer.current.draw(() => {
             if (forced) {
                 drawer.current.findSpawn((spawnSeed,) => {
@@ -150,7 +170,7 @@ export default function Seeder() {
     useEffect(() => {
         drawSeed(true);
         // eslint-disable-next-line
-    }, [mcVersion, seed, dimension, yHeight, queueManager, structuresToShow, showStructureCoords]);
+    }, [mcVersion, seed, dimension, debouncedYHeight, queueManager, structuresToShow, showStructureCoords]);
 
     const setRandomSeed = () => {
         const rendomSeed = getRandomSeed();
@@ -179,11 +199,13 @@ export default function Seeder() {
     const restartAll = () => {
         queueManager.restartAll();
         setIsFindingSeed(false);
+        setFindingSeedStartTime(null);
     }
 
     const findSeed = () => {
         if (range > 0) {
             setIsFindingSeed(true);
+            setFindingSeedStartTime(new Date());
             setSeedFindingSpeed(0);
             const start = new Date();
             let events = 0;
@@ -200,6 +222,7 @@ export default function Seeder() {
                 setInputSeed(foundSeed);
                 setLastFoundSeed(parseInt(foundSeed));
                 setIsFindingSeed(false);
+                setFindingSeedStartTime(null);
             }
 
             if (biomesToFind?.length > 0 && structureToFind) {
@@ -260,7 +283,7 @@ export default function Seeder() {
                     <Select options={BIOMES} isClearable={true} isMulti onChange={(val) => {
                         setLastFoundSeed(0);
                         setBiomesToFind([...val?.map(x => x?.value)])
-                    }} />
+                    }} placeholder="Select biomes..." />
                     <div className="margin-3">Select the structure you want</div>
                     <Select options={STRUCTURES_OPTIONS} isClearable={true} onChange={(val) => {
                         setLastFoundSeed(0);
@@ -268,19 +291,38 @@ export default function Seeder() {
                         if (val?.value && !structuresToShow?.includes(val?.value)) {
                             setStructuresToShow([val?.value, ...structuresToShow]);
                         }
-                    }} filterOption={createFilter(filterConfig)} />
-                    <div className="margin-3">Select the range from (0, 0)</div>
-                    <Select options={[
-                        { value: parseInt(100 / 4), label: "<100 blocks" },
-                        { value: parseInt(300 / 4), label: "<300 blocks" },
-                        { value: parseInt(500 / 4), label: "<500 blocks" },
-                        { value: parseInt(750 / 4), label: "<750 blocks" },
-                        { value: parseInt(1000 / 4), label: "<1k blocks" }
-                    ]} onChange={(val) => {
-                        setLastFoundSeed(0);
-                        setRange(val?.value);
-                    }} />
-                </div>
+                    }} filterOption={createFilter(filterConfig)} placeholder="Select structures..." />
+                    {!isAdvancedModeEnabled &&
+                        <>
+                            <div className="margin-3">Select the range from (0, 0)</div>
+                            <Select options={[
+                                { value: parseInt(100 / 4), label: "<100 blocks" },
+                                { value: parseInt(300 / 4), label: "<300 blocks" },
+                                { value: parseInt(500 / 4), label: "<500 blocks" },
+                                { value: parseInt(750 / 4), label: "<750 blocks" },
+                                { value: parseInt(1000 / 4), label: "<1k blocks" },
+                                { value: parseInt(2000 / 4), label: "<2k blocks (SLOW!)" }
+                            ]} onChange={(val) => {
+                                setLastFoundSeed(0);
+                                setRange(val?.value);
+                            }} placeholder="Select range..." />
+                        </>
+                    }
+                    <div className="margin-3 margin-v-10">
+                        <label htmlFor="advanced-mode" className="pointer">Avanced mode</label>
+                        <input id="advanced-mode" name="advanced-mode" defaultChecked={false} className="margin-3 pointer margin-left-10" type="checkbox" value={isAdvancedModeEnabled}
+                            onClick={() => setIsAdvancedModeEnabled(!isAdvancedModeEnabled)} />
+                    </div>
+                    {isAdvancedModeEnabled && <div className="margin-v-10 margin-3">
+                        <div className="margin-3">Starting seed for search</div>
+                        <input type="number" className="padding-3" value={lastFoundSeed ?? ''} onChange={(e) => e?.target?.value ? setLastFoundSeed(parseInt(e?.target?.value)) : undefined} />
+                        <div className="margin-3">Range from (0, 0)</div>
+                        <input type="number" className="padding-3" value={range ? range * 4 : ''} onChange={(e) => e?.target?.value ? setRange(e?.target?.value / 4) : setRange(null)} />
+                        <div className="margin-3">Biome height</div>
+                        <input type="number" className="padding-3" value={yHeight ?? ''} onChange={(e) => e?.target?.value ? setYHeight(parseInt(e?.target?.value)) : setYHeight(null)} />
+                    </div>
+                    }
+                </div >
                 <div className="margin-3">
                     <button className="full-button" onClick={() => findSeed()} disabled={isRandomSeedButtonDisabled || !(range > 0 && (biomesToFind?.length > 0 || structureToFind))}>
                         {lastFoundSeed > 0 ? 'Find another' : 'Find'}
@@ -328,9 +370,10 @@ export default function Seeder() {
                 <div className="loading flex-column">
                     <h1>Finding seed...</h1>
                     <div className="loader"></div>
-                    <h3 className="margin-bottom-25">
+                    <h3>
                         {seedFindingSpeed ? seedFindingSpeed + " seed/s" : "Calculating speed..."}
                     </h3>
+                    <div className="margin-bottom-25">You have been searching for {toHHMMSS(findingSeedDuration)}...</div>
                     <button className="stop-button padding-3" onClick={() => restartAll()}>STOP</button>
                 </div>
             }
@@ -376,9 +419,9 @@ export default function Seeder() {
                     }} value={VERSIONS_OPTIONS.find(v => v.value === mcVersion)} />
                 </div>
                 {
-                    mcVersion >= VERSIONS["1.19"] &&
+                    mcVersion > VERSIONS["1.18"] &&
                     <div className="margin-3 width-total">
-                        <div className="margin-3">Biome layer</div>
+                        <div className="margin-3">Biome height</div>
                         <Select options={HEIGHT_OPTIONS} onChange={(val) => {
                             setYHeight(val?.value);
                         }} value={HEIGHT_OPTIONS.find(v => v.value === yHeight)} />
@@ -448,5 +491,3 @@ export default function Seeder() {
         </>
     );
 }
-
-

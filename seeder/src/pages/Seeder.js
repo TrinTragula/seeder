@@ -25,13 +25,13 @@ export default function Seeder() {
     const urlSeed = params?.seed;
     let urlVersion = params?.version;
     // Fix old links to the correct version
-    if (isNumeric(urlVersion)) {
+    if (isNumeric(urlVersion) && !urlVersion.includes(".")) {
         urlVersion = OLD_VERSIONS[Number.parseInt(urlVersion)];
     }
     const getRandomSeed = () => "" + Math.floor(-4_294_967_296 + Math.random() * 8_589_934_593);
     const canvas = useRef();
     const drawer = useRef();
-    const [mcVersion, setMcVersion] = useState(urlVersion && VERSIONS[urlVersion] ? VERSIONS[urlVersion] : VERSIONS["1.19.4"]);
+    const [mcVersion, setMcVersion] = useState(urlVersion && VERSIONS[urlVersion] ? VERSIONS[urlVersion] : VERSIONS["1.20"]);
     const [seed, setSeed] = useState(
         Number.isInteger(Number.parseInt(urlSeed))
             ? urlSeed + ""

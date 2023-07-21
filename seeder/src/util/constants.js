@@ -163,10 +163,13 @@ export const STRUCTURES_OPTIONS = [
     { value: 13, pureText: "Ancient City", label: <div className="flex-row flex-align-center"><img alt="Ancient City" src="/img/ancient_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Ancient City</div> },
     // 14 Treasure,
     // 15 Mineshaft,
-    { value: 16, pureText: "Fortress", label: <div className="flex-row flex-align-center"><img alt="Fortress" src="/img/fortress.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Fortress</div> },
-    { value: 17, pureText: "Bastion", label: <div className="flex-row flex-align-center"><img alt="Bastion" src="/img/bastion.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Bastion</div> },
-    { value: 18, pureText: "End City", label: <div className="flex-row flex-align-center"><img alt="End City" src="/img/end_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End City</div> },
-    { value: 19, pureText: "End Gateway", label: <div className="flex-row flex-align-center"><img alt="End Gateway" src="/img/end_gateway.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End Gateway</div> },
+    // 16 Desert Well,
+    // 17 Geode,
+    { value: 18, pureText: "Fortress", label: <div className="flex-row flex-align-center"><img alt="Fortress" src="/img/fortress.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Fortress</div> },
+    { value: 19, pureText: "Bastion", label: <div className="flex-row flex-align-center"><img alt="Bastion" src="/img/bastion.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Bastion</div> },
+    { value: 20, pureText: "End City", label: <div className="flex-row flex-align-center"><img alt="End City" src="/img/end_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End City</div> },
+    { value: 21, pureText: "End Gateway", label: <div className="flex-row flex-align-center"><img alt="End Gateway" src="/img/end_gateway.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End Gateway</div> },
+    { value: 22, pureText: "Trail Ruin", label: <div className="flex-row flex-align-center"><img alt="Trail Ruin" src="/img/ruin.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trail Ruin</div> },
 ];
 
 export const DIMENSIONS_OPTIONS = [

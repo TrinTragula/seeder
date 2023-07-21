@@ -513,9 +513,12 @@ export class DrawSeed {
         /*  Ancient City */     13: '/img/ancient_city.png',
         /*  Treasure */         14: '/img/treasure.png',
         // 15 Mineshaft,
-        /*  Fortress */         16: '/img/fortress.png',
-        /*  Bastion */          17: '/img/bastion.png',
-        /*  End_City */         18: '/img/end_city.png',
-        /*  End_Gateway */      19: '/img/end_gateway.png',
+        // 16 Desert well,
+        // 17 Geode,
+        /*  Fortress */         18: '/img/fortress.png',
+        /*  Bastion */          19: '/img/bastion.png',
+        /*  End_City */         20: '/img/end_city.png',
+        /*  End_Gateway */      21: '/img/end_gateway.png',
+        /*  Trail Ruin */       22: '/img/ruin.png',
     }
 }

@@ -206,6 +206,7 @@ export default function Seeder() {
         if (range > 0) {
             setIsFindingSeed(true);
             setFindingSeedStartTime(new Date());
+            setFindingSeedDuration(0);
             setSeedFindingSpeed(0);
             const start = new Date();
             let events = 0;

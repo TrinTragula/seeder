@@ -1,5 +1,7 @@
 # Seeder v0.4.5
 
+`Fixed by @lgrachov to fix the "Avanced" word.`
+
 Find, show, share and admire Minecraft seeds (Java edition only).
 
 Works up to **1.20**!

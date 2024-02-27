@@ -309,7 +309,7 @@ export default function Seeder() {
                         </>
                     }
                     <div className="margin-3 margin-v-10">
-                        <label htmlFor="advanced-mode" className="pointer">Avanced mode</label>
+                        <label htmlFor="advanced-mode" className="pointer">Advanced mode</label>
                         <input id="advanced-mode" name="advanced-mode" defaultChecked={false} className="margin-3 pointer margin-left-10" type="checkbox" value={isAdvancedModeEnabled}
                             onClick={() => setIsAdvancedModeEnabled(!isAdvancedModeEnabled)} />
                     </div>

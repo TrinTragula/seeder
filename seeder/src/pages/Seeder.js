@@ -31,6 +31,7 @@ export default function Seeder() {
     const getRandomSeed = () => "" + Math.floor(-4_294_967_296 + Math.random() * 8_589_934_593);
     const canvas = useRef();
     const drawer = useRef();
+    const mapContainer = useRef();
     const [mcVersion, setMcVersion] = useState(urlVersion && VERSIONS[urlVersion] ? VERSIONS[urlVersion] : VERSIONS["1.20"]);
     const [seed, setSeed] = useState(
         Number.isInteger(Number.parseInt(urlSeed))
@@ -86,8 +87,8 @@ export default function Seeder() {
     const drawSeed = (forced = false) => {
         setIsRandomSeedButtonDisabled(true);
         if (!drawer?.current) {
-            canvas.current.width = canvas.current.offsetWidth;
-            canvas.current.height = canvas.current.offsetHeight - 15;
+            canvas.current.width = mapContainer.current.offsetWidth;
+            canvas.current.height = mapContainer.current.offsetHeight - 15;
             drawer.current = new DrawSeed(mcVersion, queueManager, canvas.current, null, (x, z, biome) => {
                 setX(x);
                 setZ(z);
@@ -154,9 +155,9 @@ export default function Seeder() {
     }
 
     const onResize = () => {
-        if (canvas?.current) {
-            canvas.current.width = canvas.current.offsetWidth;
-            canvas.current.height = canvas.current.offsetHeight - 15;
+        if (mapContainer?.current && canvas?.current) {
+            canvas.current.width = mapContainer.current.offsetWidth;
+            canvas.current.height = mapContainer.current.offsetHeight - 15;
             drawer.current.draw();
         }
     }
@@ -377,7 +378,7 @@ export default function Seeder() {
                     <button className="stop-button padding-3" onClick={() => restartAll()}>STOP</button>
                 </div>
             }
-            <div className="map-container flex-5 flex-row">
+            <div className="map-container flex-5 flex-row" ref={mapContainer}>
                 <canvas ref={canvas} style={{ background: "#333333" }}></canvas>
                 <img alt="seed menu toggle"
                     className="menu-toggle"

@@ -1,8 +1,8 @@
-# Seeder v0.4.5
+# Seeder v0.4.6
 
 Find, show, share and admire Minecraft seeds (Java edition only).
 
-Works up to **1.20**!
+Works up to **1.21**!
 
 ![Seeder demo gif](https://i.ibb.co/KxW0Fm4/seeder1-18-dim.gif)
 

@@ -519,6 +519,8 @@ export class DrawSeed {
         /*  Bastion */          19: '/img/bastion.png',
         /*  End_City */         20: '/img/end_city.png',
         /*  End_Gateway */      21: '/img/end_gateway.png',
-        /*  Trail Ruin */       22: '/img/ruin.png',
+        /*  22 End Island */
+        /*  Trail Ruin */       23: '/img/ruin.png',
+        /*  Trial Chamber */    24: '/img/chamber.png',
     }
 }

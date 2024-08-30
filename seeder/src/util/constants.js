@@ -143,6 +143,7 @@ export const VERSIONS = {
     "1.19.2": 23,
     "1.19.4": 24,
     "1.20": 25,
+    "1.21": 26,
 };
 
 export const VERSIONS_OPTIONS = Object.keys(VERSIONS).map(v => ({ label: v, value: VERSIONS[v] }));
@@ -169,7 +170,9 @@ export const STRUCTURES_OPTIONS = [
     { value: 19, pureText: "Bastion", label: <div className="flex-row flex-align-center"><img alt="Bastion" src="/img/bastion.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Bastion</div> },
     { value: 20, pureText: "End City", label: <div className="flex-row flex-align-center"><img alt="End City" src="/img/end_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End City</div> },
     { value: 21, pureText: "End Gateway", label: <div className="flex-row flex-align-center"><img alt="End Gateway" src="/img/end_gateway.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End Gateway</div> },
-    { value: 22, pureText: "Trail Ruin", label: <div className="flex-row flex-align-center"><img alt="Trail Ruin" src="/img/ruin.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trail Ruin</div> },
+    // 22 End Island,
+    { value: 23, pureText: "Trail Ruin", label: <div className="flex-row flex-align-center"><img alt="Trail Ruin" src="/img/ruin.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trail Ruin</div> },
+    { value: 24, pureText: "Trial Chamber", label: <div className="flex-row flex-align-center"><img alt="Trial Chamber" src="/img/chamber.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trial Chamber</div> },
 ];
 
 export const DIMENSIONS_OPTIONS = [

@@ -32,7 +32,7 @@ export default function Seeder() {
     const canvas = useRef();
     const drawer = useRef();
     const mapContainer = useRef();
-    const [mcVersion, setMcVersion] = useState(urlVersion && VERSIONS[urlVersion] ? VERSIONS[urlVersion] : VERSIONS["1.21"]);
+    const [mcVersion, setMcVersion] = useState(urlVersion && VERSIONS[urlVersion] ? VERSIONS[urlVersion] : VERSIONS["1.21.4"]);
     const [seed, setSeed] = useState(
         Number.isInteger(Number.parseInt(urlSeed))
             ? urlSeed + ""

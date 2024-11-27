@@ -92,6 +92,7 @@ export const BIOMES = [
     { value: 183, label: "Deep Dark" },
     { value: 184, label: "Mangrove Swamp" },
     { value: 185, label: "Cherry Grove" },
+    { value: 186, label: "Pale Garden" },
 ];
 
 export const OLD_VERSIONS = {
@@ -143,7 +144,9 @@ export const VERSIONS = {
     "1.19.2": 23,
     "1.19.4": 24,
     "1.20": 25,
-    "1.21": 26,
+    "1.21.1": 26,
+    "1.21.3": 27,
+    "1.21.4": 28,
 };
 
 export const VERSIONS_OPTIONS = Object.keys(VERSIONS).map(v => ({ label: v, value: VERSIONS[v] }));

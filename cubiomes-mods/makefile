@@ -19,7 +19,7 @@ native: CFLAGS += -O3 -march=native -ffast-math
 native: libcubiomes
 release: CFLAGS += -fPIC
 
-libcubiomes: noise.o layers.o biometree.o biomenoise.o generator.o finders.o util.o quadbase.o
+libcubiomes: noise.o biomes.o layers.o biomenoise.o generator.o finders.o util.o quadbase.o
 	$(AR) $(ARFLAGS) libcubiomes.a $^
 
 finders.o: ../cubiomes/finders.c ../cubiomes/finders.h
@@ -35,6 +35,9 @@ biometree.o: ../cubiomes/biometree.c
 	$(CC) -c $(CFLAGS) $<
 
 layers.o: ../cubiomes/layers.c ../cubiomes/layers.h
+	$(CC) -c $(CFLAGS) $<
+
+biomes.o: ../cubiomes/biomes.c ../cubiomes/biomes.h
 	$(CC) -c $(CFLAGS) $<
 
 noise.o: ../cubiomes/noise.c ../cubiomes/noise.h

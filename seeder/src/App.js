@@ -2,7 +2,7 @@ import React from 'react';
 import './App.css';
 import {
   BrowserRouter as Router,
-  Switch,
+  Routes,
   Route,
   Link
 } from "react-router-dom";
@@ -34,14 +34,10 @@ function App() {
           </div>
         </div>
         <div className="flex-row flex-grow-1 overflow-auto">
-          <Switch>
-            <Route path="/about">
-              <About />
-            </Route>
-            <Route path="/">
-              <Seeder />
-            </Route>
-          </Switch>
+          <Routes>
+            <Route path="/about" element={<About />} />
+            <Route path="/" element={<Seeder />} />
+          </Routes>
         </div>
       </div>
     </Router>

@@ -146,7 +146,7 @@ export const VERSIONS = {
     "1.20": 25,
     "1.21.1": 26,
     "1.21.3": 27,
-    "1.21.4": 28,
+    "1.21.11": 28
 };
 
 export const VERSIONS_OPTIONS = Object.keys(VERSIONS).map(v => ({ label: v, value: VERSIONS[v] }));

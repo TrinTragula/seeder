@@ -2,7 +2,7 @@
 
 Find, show, share and admire Minecraft seeds (Java edition only).
 
-Works up to **1.21.4**!
+Works up to **1.21.11**!
 
 ![Seeder demo gif](https://i.ibb.co/KxW0Fm4/seeder1-18-dim.gif)
 

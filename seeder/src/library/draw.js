@@ -136,7 +136,7 @@ export class DrawSeed {
         const baseY = Math.ceil(yDim / 2) - 1;
         for (let i = 0; i < Math.pow(Math.max(xDim, yDim), 2); i++) {
             if ((-(xDim / 2) < x && x <= (xDim / 2)) && (-(yDim / 2) < y && y <= (yDim / 2))) {
-                var shouldStop = callback(baseX + x, baseY + y);
+                const shouldStop = callback(baseX + x, baseY + y);
                 if (shouldStop) return;
             }
             if ((x === y) || (x < 0 && x === -y) || (x > 0 && x === (1 - y))) {
@@ -150,15 +150,15 @@ export class DrawSeed {
         return;
     }
 
-    currenTicket = null;
+    currentTicket = null;
     draw(callback = null) {
         const ticket = this.mcVersion + "-" + this.seed + "-" + this.offsetX + "-" + this.offsetZ + "-" + this.drawDim + "-" + this.pixDim + "-" + this.dimension + "-" + this.yHeight;
-        this.currenTicket = ticket;
-        console.time("Drawing seed");
+        this.currentTicket = ticket;
         if (this.toDraw > 0) {
             setTimeout(() => this.draw(), 10);
         }
         else {
+            console.time("Drawing seed");
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.biomesDict = {};
             const xSize = Math.ceil(this.canvas.width / (this.drawDim * this.pixDim));
@@ -171,12 +171,12 @@ export class DrawSeed {
                 let startY = Math.floor(this.drawDim * (j - (this.offsetZ / this.pixDim)));
                 let drawStartX = (this.drawDim * this.pixDim) * i;
                 let drawStartY = (this.drawDim * this.pixDim) * j;
-                if (this.currenTicket !== ticket) {
+                if (this.currentTicket !== ticket) {
                     this.toDraw -= xSize * ySize;
                     return true;
                 }
                 this.queue.draw(this.mcVersion, this.seed, startX, startY, widthX, widthY, this.dimension, this.yHeight, (colors) => {
-                    if (this.currenTicket !== ticket) {
+                    if (this.currentTicket !== ticket) {
                         this.toDraw -= xSize * ySize;
                         return true;
                     }

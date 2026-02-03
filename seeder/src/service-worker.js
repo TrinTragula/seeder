@@ -92,5 +92,5 @@ self.addEventListener('message', (event) => {
 });
 
 // Any other custom service worker logic can go here.
-const VERSION = "0.4.7";
+const VERSION = "0.4.8";
 console.log(`Seeder v.${VERSION}`);

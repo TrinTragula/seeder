@@ -5,6 +5,7 @@ import Select, { createFilter } from 'react-select'
 import './Seeder.css';
 import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS, OLD_VERSIONS } from '../util/constants';
 import { debounce, copyToClipboard, setUrl, useDebounce, toHHMMSS } from '../util/functions';
+import GoogleAd from '../components/GoogleAd';
 
 const isNumeric = (str) => {
     if (typeof str !== "string") return false;
@@ -507,6 +508,7 @@ export default function Seeder() {
                 <div className="margin-3">
                     <button disabled={isRandomSeedButtonDisabled} className="full-button" onClick={setRandomSeed}>Random seed</button>
                 </div>
+                <GoogleAd adSlot="4456541019" style={{ margin: '6px 3px' }} />
                 <div className="margin-3 width-total">
                     <div className="margin-3">Dimension</div>
                     <Select

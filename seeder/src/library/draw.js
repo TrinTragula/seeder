@@ -190,7 +190,7 @@ export class DrawSeed {
                     }
                     this.toDraw--;
                 });
-                return false; // countinue, don't stop iterating
+                return false; // continue, don't stop iterating
             });
         }
     }

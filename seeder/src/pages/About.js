@@ -45,7 +45,7 @@ export default function About() {
                 </div>
                 <div className="paragraph">
                     It uses fancy new technology to run the same code in your browser, so that you
-                    can look up your seeds/find your perfect ones whitout installing or configuring anything.
+                    can look up your seeds/find your perfect ones without installing or configuring anything.
                 </div>
                 <h3>Where's the code?</h3>
                 <div className="paragraph">
@@ -58,10 +58,10 @@ export default function About() {
                     <li>Generates biomes for a given seed</li>
                     <li>Find the spawn point</li>
                     <li>Find a seed containing a list of biomes in a given range</li>
-                    <li>Find a seed containing a strcuture in a given range</li>
-                    <li>Find a seed containing a strcuture AND a list of biomes in a given range</li>
+                    <li>Find a seed containing a structure in a given range</li>
+                    <li>Find a seed containing a structure AND a list of biomes in a given range</li>
                     <li>Works with different MC versions</li>
-                    <li>Finding rare seeds may slow down you PC while the search is running (seed finding is a very CPU intensive job)</li>
+                    <li>Finding rare seeds may slow down your PC while the search is running (seed finding is a very CPU intensive job)</li>
                     <li>Support for the Nether and End</li>
                 </ul>
                 <h3>

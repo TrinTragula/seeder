@@ -18,7 +18,7 @@ release: libcubiomes
 native: CFLAGS += -O3 -march=native -ffast-math
 native: libcubiomes
 
-libcubiomes: noise.o biomes.o layers.o biomenoise.o generator.o finders.o util.o quadbase.o
+libcubiomes: noise.o biomes.o layers.o biomenoise.o generator.o finders.o util.o quadbase.o stronghold.o
 	$(AR) $(ARFLAGS) libcubiomes.a $^
 
 finders.o: ../cubiomes/finders.c ../cubiomes/finders.h
@@ -28,9 +28,6 @@ generator.o: ../cubiomes/generator.c ../cubiomes/generator.h
 	$(CC) -c $(CFLAGS) $<
 
 biomenoise.o: ../cubiomes/biomenoise.c
-	$(CC) -c $(CFLAGS) $<
-
-biometree.o: ../cubiomes/biometree.c
 	$(CC) -c $(CFLAGS) $<
 
 layers.o: ../cubiomes/layers.c ../cubiomes/layers.h
@@ -48,6 +45,9 @@ util.o: ../cubiomes/util.c ../cubiomes/util.h
 quadbase.o: ../cubiomes/quadbase.c ../cubiomes/quadbase.h
 	$(CC) -c $(CFLAGS) $<
 
+stronghold.o: ../cubiomes/features/stronghold.c ../cubiomes/features/stronghold.h
+	$(CC) -c $(CFLAGS) $<
+
 clean:
-	$(RM) ../cubiomes/*.o ../cubiomes/*.a
+	$(RM) *.o *.a ../cubiomes/*.o ../cubiomes/*.a
 

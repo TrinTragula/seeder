@@ -1,14 +1,15 @@
-# Seeder v0.4.8
+# Seeder v0.5.0
 
 Find, show, share and admire Minecraft seeds (Java edition only).
 
-Works up to **1.21.11**!
+Works up to **26.2**!
 
 ![Seeder demo gif](https://i.ibb.co/KxW0Fm4/seeder1-18-dim.gif)
 
 This is a webapp based upon a library ([cubiomes](https://github.com/Cubitect/cubiomes))
 written by cubitect in C and compiled in webassembly by me.
-Go and give him love.
+Go and give him love. Since the original library is no longer maintained, this app now
+builds against the actively maintained [xpple/cubiomes fork](https://github.com/xpple/cubiomes).
 
 It's a React app that uses a WASM build of cubiomes to run the code in your browser, so that you
 can look up your seeds/find your perfect ones whitout installing or configuring anything.
@@ -20,7 +21,7 @@ can look up your seeds/find your perfect ones whitout installing or configuring 
 - [x] Find a seed containing a list of biomes in a given range
 - [x] Find a seed containing a strcuture in a given range
 - [x] Find a seed containing a strcuture AND a list of biomes in a given range
-- [x] Works with different MC versions up to 1.20
+- [x] Works with different MC versions up to 26.2
 - [x] Finding rare seeds may slow down you PC while the search is running (seed finding is a very CPU intensive job)
 - [x] Support for the Nether and End
 

@@ -1,5 +1,10 @@
-importScripts('api.js');
-importScripts('seeder.js');
+// Cache-bust the whole worker chain from the ?v= this worker was loaded with:
+// a query on api.js alone would not propagate to the loader's api.wasm fetch.
+const CACHE_BUST = new URLSearchParams(self.location.search).get('v');
+const withV = (path) => CACHE_BUST ? path + '?v=' + CACHE_BUST : path;
+self.Module = { locateFile: withV };
+importScripts(withV('api.js'));
+importScripts(withV('seeder.js'));
 
 Module['onRuntimeInitialized'] = loadDone;
 

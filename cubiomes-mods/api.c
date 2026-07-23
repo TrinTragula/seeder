@@ -4,8 +4,13 @@
 #include "../cubiomes/generator.h"
 #include "../cubiomes/util.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int *biomeIds;
+
+// single-threaded worker: shared Generator kept off the wasm stack
+// (sizeof(Generator) ~27KB, default emscripten stack is only 64KB)
+Generator g;
 
 int main()
 {
@@ -15,9 +20,9 @@ int main()
 EMSCRIPTEN_KEEPALIVE
 int *generate_area(int mcVersion, int64_t seed, int areaX, int areaZ, int areaWidth, int areaHeight, int dimension, int yHeight)
 {
-    Generator g;
     setupGenerator(&g, mcVersion, 0);
     Range r = {4, areaX, areaZ, areaWidth, areaHeight, yHeight / 4, 1};
+    free(biomeIds);
     biomeIds = allocCache(&g, r);
     applySeed(&g, dimension, seed); // 0 = overworld, 1 = end, 2 = nether
     genBiomes(&g, biomeIds, r);
@@ -28,12 +33,13 @@ EMSCRIPTEN_KEEPALIVE
 void free_memory()
 {
     free(biomeIds);
+    biomeIds = NULL;
 }
 
 EMSCRIPTEN_KEEPALIVE
 unsigned char *get_colors()
 {
-    unsigned char biomeColors[256][3];
+    static unsigned char biomeColors[256][3];
     initBiomeColors(biomeColors);
     return &(biomeColors[0][0]);
 }
@@ -43,12 +49,11 @@ EM_JS(void, call_seed_update, (), {self.postMessage({kind : "SEED_UPDATE"})});
 EMSCRIPTEN_KEEPALIVE
 int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w, int h, int starting_seed, int dimension, int yHeight)
 {
-    Generator g;
     setupGenerator(&g, mcVersion, 0);
     BiomeFilter filter;
-    int *excluded;
     setupBiomeFilter(&filter, mcVersion, 0, wanted, count, 0, 0, 0, 0);
     Range r = {4, x, z, w, h, yHeight / 4, 1};
+    free(biomeIds);
     biomeIds = allocCache(&g, r);
 
     int64_t seed;
@@ -58,7 +63,7 @@ int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w,
         {
             call_seed_update();
         }
-        if (checkForBiomes(&g, biomeIds, r, dimension, seed, &filter, 1))
+        if (checkForBiomes(&g, biomeIds, r, dimension, seed, &filter, NULL))
             break;
     }
     return seed;
@@ -67,24 +72,25 @@ int64_t find_biomes(int mcVersion, int wanted[], int count, int x, int z, int w,
 EMSCRIPTEN_KEEPALIVE
 Pos *find_spawn(int mcVersion, int64_t seed)
 {
-    Generator g;
     setupGenerator(&g, mcVersion, 0);
     applySeed(&g, 0, seed); // 0 = overworld
-    Pos pos = getSpawn(&g);
+    static Pos pos;
+    pos = getSpawn(&g);
     return &pos;
 }
 
 EMSCRIPTEN_KEEPALIVE
 Pos *find_strongholds(int mcVersion, int64_t seed, int howMany)
 {
-    Generator g;
     StrongholdIter sh;
     Pos pos = initFirstStronghold(&sh, mcVersion, seed);
     setupGenerator(&g, mcVersion, 0);
     applySeed(&g, 0, seed);
 
     int i, N = howMany;
-    Pos coords[howMany];
+    static Pos *coords = NULL;
+    free(coords);
+    coords = malloc(sizeof(Pos) * howMany);
     for (i = 0; i < N; i++)
     {
         if (nextStronghold(&sh, &g) <= 0)
@@ -112,7 +118,6 @@ Pos *find_strongholds(int mcVersion, int64_t seed, int howMany)
 EMSCRIPTEN_KEEPALIVE
 int64_t find_structures(int mcVersion, int structType, int x, int z, int range, int starting_seed, int dimension)
 {
-    Generator g;
     setupGenerator(&g, mcVersion, 0);
 
     int64_t lower48;
@@ -153,13 +158,10 @@ int64_t find_structures(int mcVersion, int structType, int x, int z, int range, 
 EMSCRIPTEN_KEEPALIVE
 int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], int count, int x, int z, int range, int starting_seed, int dimension, int yHeight)
 {
-    Generator g;
     setupGenerator(&g, mcVersion, 0);
 
     BiomeFilter filter;
-    int *excluded;
     setupBiomeFilter(&filter, mcVersion, 0, wanted, count, 0, 0, 0, 0);
-
 
     int64_t seed;
     int64_t lower48;
@@ -167,6 +169,7 @@ int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], 
     int64_t tot = 0;
 
     Range r = {4, x - range_fourth, z - range_fourth, range_fourth * 2, range_fourth * 2, yHeight / 4, 1};
+    free(biomeIds);
     biomeIds = allocCache(&g, r);
 
     for (lower48 = starting_seed;; lower48++)
@@ -196,7 +199,7 @@ int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], 
             applySeed(&g, dimension, seed);
             if (isViableStructurePos(structType, &g, p.x, p.z, 0))
             {
-                if (checkForBiomes(&g, biomeIds, r, dimension, seed, &filter, 1) > 0)
+                if (checkForBiomes(&g, biomeIds, r, dimension, seed, &filter, NULL) > 0)
                 {
                     return seed;
                 }
@@ -208,14 +211,15 @@ int64_t find_biomes_with_structure(int mcVersion, int structType, int wanted[], 
 EMSCRIPTEN_KEEPALIVE
 Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int range, int dimension)
 {
-    Generator g;
     setupGenerator(&g, mcVersion, 0);
     applySeed(&g, dimension, seed);
 
     int regionX;
     int regionY;
-    int i;
-    Pos coords[4 * range * range];
+    int i = 0;
+    static Pos *coords = NULL;
+    free(coords);
+    coords = malloc(sizeof(Pos) * 4 * range * range);
     for (regionX = -range; regionX < range; regionX++)
     {
         for (regionY = -range; regionY < range; regionY++)

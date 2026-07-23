@@ -1,3 +1,5 @@
 *.a
 *.o
 **/emsdk
+*.MD
+!README.MD

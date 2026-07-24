@@ -35,20 +35,30 @@ class Seeder {
         }
     }
 
-    // Get the colors array
-    getAreaColors(mcVersion, seed, x, z, areaWidth, areaHeight, dimension, yHeight) {
+    // Generate an area and return transferable, row-major buffers:
+    //   rgba: Uint8ClampedArray(w*h*4) ready to wrap in an ImageData
+    //   ids:  Int32Array(w*h) of raw biome ids for O(1) hover lookups
+    // The WASM biome buffer is already row-major ([row*width + col]), so it is
+    // consumed directly (no transpose).
+    getArea(mcVersion, seed, x, z, areaWidth, areaHeight, dimension, yHeight) {
         seed = BigInt(seed);
         const res = this.WASMgenerateArea(mcVersion, seed, x, z, areaWidth, areaHeight, dimension, yHeight);
-        const biomes = this.module.HEAP32.subarray(res >> 2, (res >> 2) + (areaWidth * areaHeight));
-        const colors = [];
-        for (let j = 0; j < areaWidth; j++) {
-            for (let i = 0; i < areaHeight; i++) {
-                const biomeId = biomes[(i * areaWidth) + j];
-                colors.push(this.COLORS[biomeId]);
-            }
+        const count = areaWidth * areaHeight;
+        const biomes = this.module.HEAP32.subarray(res >> 2, (res >> 2) + count);
+        const rgba = new Uint8ClampedArray(count * 4);
+        const ids = new Int32Array(count);
+        for (let idx = 0; idx < count; idx++) {
+            const biomeId = biomes[idx];
+            ids[idx] = biomeId;
+            const c = this.COLORS[biomeId];
+            const o = idx * 4;
+            rgba[o] = c[0];
+            rgba[o + 1] = c[1];
+            rgba[o + 2] = c[2];
+            rgba[o + 3] = c[3];
         }
         this.WASMfreeMemory();
-        return colors;
+        return { rgba, ids };
     }
 
     findBiomes(mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight) {

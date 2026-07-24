@@ -2,11 +2,28 @@
 // a query on api.js alone would not propagate to the loader's api.wasm fetch.
 const CACHE_BUST = new URLSearchParams(self.location.search).get('v');
 const withV = (path) => CACHE_BUST ? path + '?v=' + CACHE_BUST : path;
-self.Module = { locateFile: withV };
-importScripts(withV('api.js'));
-importScripts(withV('seeder.js'));
 
-Module['onRuntimeInitialized'] = loadDone;
+// Boot is deferred until the pool sends an INIT message. INIT may carry a
+// precompiled WebAssembly.Module shared across the whole pool, so the ~800KB
+// module is compiled ONCE (on the main thread) instead of once per worker —
+// a big cold-start win. If no module is supplied, we fall back to letting
+// Emscripten fetch + compile api.wasm itself (via locateFile).
+self.addEventListener('message', bootListener);
+
+function bootListener(e) {
+    if (!e.data || e.data.kind !== 'INIT') return;
+    self.removeEventListener('message', bootListener);
+    self.Module = { locateFile: withV };
+    if (e.data.module) {
+        self.Module.instantiateWasm = (imports, receiveInstance) => {
+            WebAssembly.instantiate(e.data.module, imports).then((instance) => receiveInstance(instance));
+            return {}; // async path: exports delivered via the callback
+        };
+    }
+    importScripts(withV('api.js'));
+    importScripts(withV('seeder.js'));
+    Module['onRuntimeInitialized'] = loadDone;
+}
 
 function loadDone() {
     self.seeder = new Seeder(Module);
@@ -19,13 +36,14 @@ function loadDone() {
 function listener(e) {
     if (e.data.kind == "GET_AREA") {
         var { mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight } = e.data.data;
+        const { rgba, ids } = self.seeder.getArea(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight);
         self.postMessage({
             kind: "DONE_GET_AREA",
             data: {
                 mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight,
-                colors: self.seeder.getAreaColors(mcVersion, seed, startX, startY, widthX, widthY, dimension, yHeight)
+                rgba, ids
             }
-        });
+        }, [rgba.buffer, ids.buffer]);
     }
     else if (e.data.kind == "GET_BIOMES") {
         var { mcVersion, biomes, x, z, widthX, widthZ, startingSeed, dimension, yHeight } = e.data.data;

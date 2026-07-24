@@ -70,7 +70,7 @@ export default function Seeder() {
     const [dimension, setDimension] = useState(0);
     const [yHeight, setYHeight] = useState(256);
     const debouncedYHeight = useDebounce(yHeight, 500);
-    const [queueManager] = useState(() => new QueueManager("/workers/worker.js?v=0.5.0"));
+    const [queueManager] = useState(() => new QueueManager("/workers/worker.js?v=0.6.1"));
 
     const [biomesToFind, setBiomesToFind] = useState(null);
     const [range, setRange] = useState(null);

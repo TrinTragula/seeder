@@ -1,4 +1,4 @@
-# Seeder v0.5.0
+# Seeder v0.6.1
 
 Find, show, share and admire Minecraft seeds (Java edition only).
 
@@ -24,9 +24,9 @@ can look up your seeds/find your perfect ones without installing or configuring 
 - [x] Works with different MC versions up to 26.2
 - [x] Finding rare seeds may slow down your PC while the search is running (seed finding is a very CPU intensive job)
 - [x] Support for the Nether and End
+- [x] Move the map using your mouse (drag to pan, mouse wheel to zoom)
 
 ## Coming features:
 - [ ] Less CPU hunger
 - [ ] Find a list of structures, not just one
-- [ ] Move the map using your mouse (for now you can use your keyboard)
 - [ ] Better zoom

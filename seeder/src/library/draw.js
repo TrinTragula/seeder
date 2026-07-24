@@ -95,6 +95,12 @@ export class DrawSeed {
         this.glideRaf = null;
         this.lastPointer = null;   // last hover position, canvas-relative { x, y }
 
+        // Multi-touch / pinch state.
+        this.activePointers = new Map();   // pointerId -> { x, y } in client coords
+        this.pinching = false;
+        this.pinchLastDist = 0;            // px between the two fingers, last sample
+        this.pinchLastMid = null;          // { x, y } canvas-relative midpoint, last sample
+
         this.onclick = onclick;
         this.onmousemove = onmousemove;
 
@@ -536,23 +542,51 @@ export class DrawSeed {
         this.canvas.removeEventListener('wheel', this._onWheel);
     }
 
-    _onPointerDown(e) {
+    // Begin a single-finger drag from a pointer's current client position and the
+    // current pan (no jump). Reused both on first-finger-down and when a pinch ends
+    // with one finger still on the map.
+    _beginDragFrom(id, clientPos, t) {
         this._stopGlide();
         this.dragging = true;
         this.moved = false;
-        this.pointerId = e.pointerId;
-        this.dragStartClientX = e.clientX;
-        this.dragStartClientY = e.clientY;
+        this.pointerId = id;
+        this.dragStartClientX = clientPos.x;
+        this.dragStartClientY = clientPos.y;
         this.dragStartPanX = this.panX;
         this.dragStartPanZ = this.panZ;
-        this.velSamples = [{ t: e.timeStamp, x: e.clientX, y: e.clientY }];
-        try { this.canvas.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+        this.velSamples = [{ t, x: clientPos.x, y: clientPos.y }];
         this.canvas.style.cursor = 'grabbing';
     }
 
+    _onPointerDown(e) {
+        this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { this.canvas.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+
+        if (this.activePointers.size === 1) {
+            this._beginDragFrom(e.pointerId, { x: e.clientX, y: e.clientY }, e.timeStamp);
+        } else {
+            // Second (or more) finger down -> pinch. Abort any single-finger drag
+            // without flicking or clicking, and let the next move seed the baseline.
+            this._stopGlide();
+            this.dragging = false;
+            this.moved = false;
+            this.pinching = true;
+            this.pinchLastMid = null;
+            this.pinchLastDist = 0;
+        }
+    }
+
     _onPointerMove(e) {
+        if (this.activePointers.has(e.pointerId)) {
+            this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        }
         const rect = this.canvas.getBoundingClientRect();
         this.lastPointer = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+
+        if (this.pinching) {
+            this._pinchMove(rect);
+            return; // no hover / single-finger pan while pinching
+        }
 
         if (this.dragging) {
             const dx = e.clientX - this.dragStartClientX;
@@ -569,10 +603,73 @@ export class DrawSeed {
         this._emitHover();
     }
 
+    // Two-finger pinch: zoom about the finger midpoint (fractional scale) while also
+    // panning by however the midpoint itself moves. Anchored so the world cell under
+    // the midpoint stays put.
+    _pinchMove(rect) {
+        const it = this.activePointers.values();
+        const a = it.next().value;
+        const b = it.next().value;
+        if (!a || !b) return;
+        const ax = a.x - rect.left, ay = a.y - rect.top;
+        const bx = b.x - rect.left, by = b.y - rect.top;
+        const dist = Math.hypot(bx - ax, by - ay);
+        const mid = { x: (ax + bx) / 2, y: (ay + by) / 2 };
+
+        if (!this.pinchLastMid || this.pinchLastDist <= 0) {
+            this.pinchLastMid = mid;
+            this.pinchLastDist = dist;
+            return;
+        }
+
+        // Pan by midpoint movement.
+        this.panX += mid.x - this.pinchLastMid.x;
+        this.panZ += mid.y - this.pinchLastMid.y;
+        // Zoom about the midpoint, fractional, clamped to the existing 1..5 range.
+        const newPix = Math.max(1, Math.min(5, this.pixDim * (dist / this.pinchLastDist)));
+        const cellX = (mid.x - this.panX) / this.pixDim; // OLD pixDim
+        const cellZ = (mid.y - this.panZ) / this.pixDim;
+        this.pixDim = newPix;
+        this.panX = mid.x - cellX * newPix;
+        this.panZ = mid.y - cellZ * newPix;
+
+        this.pinchLastDist = dist;
+        this.pinchLastMid = mid;
+        this._markDirty();
+    }
+
     _onPointerUp(e) {
+        this.activePointers.delete(e.pointerId);
+        try { this.canvas.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
+
+        if (this.pinching) {
+            // Still two+ fingers down: reseed the baseline from the remaining pair.
+            if (this.activePointers.size >= 2) {
+                this.pinchLastMid = null;
+                this.pinchLastDist = 0;
+                return;
+            }
+            // Dropping below two fingers -> leave pinch. Snap to the nearest whole
+            // zoom level, re-anchored at the last midpoint, so the map rests crisp.
+            this.pinching = false;
+            if (this.pinchLastMid) {
+                this._setZoom(Math.round(this.pixDim), this.pinchLastMid.x, this.pinchLastMid.y);
+            }
+            if (this.activePointers.size === 1) {
+                // Hand off to a single-finger drag so continued panning is smooth and
+                // the eventual lift is treated as a drag, not a stray biome click.
+                const [id, p] = this.activePointers.entries().next().value;
+                this._beginDragFrom(id, p, e.timeStamp);
+                this.moved = true;
+            } else {
+                this.dragging = false;
+                this.canvas.style.cursor = 'grab';
+            }
+            return;
+        }
+
         if (!this.dragging) return;
         this.dragging = false;
-        try { this.canvas.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
         this.canvas.style.cursor = 'grab';
 
         if (this.moved) {

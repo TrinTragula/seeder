@@ -37,11 +37,12 @@ const STRUCTURE_ICONS = {
     // 17 Geode,
     /*  Fortress */         18: '/img/fortress.png',
     /*  Bastion */          19: '/img/bastion.png',
-    /*  End_City */         20: '/img/end_city.png',
-    /*  End_Gateway */      21: '/img/end_gateway.png',
-    /*  22 End Island */
-    /*  Trail Ruin */       23: '/img/ruin.png',
-    /*  Trial Chamber */    24: '/img/chamber.png',
+    // 20 Nether Fossil,
+    /*  End_City */         21: '/img/end_city.png',
+    /*  End_Gateway */      22: '/img/end_gateway.png',
+    /*  23 End Island */
+    /*  Trail Ruin */       24: '/img/ruin.png',
+    /*  Trial Chamber */    25: '/img/chamber.png',
 };
 
 export class DrawSeed {

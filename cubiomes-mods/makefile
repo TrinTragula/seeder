@@ -18,10 +18,16 @@ release: libcubiomes
 native: CFLAGS += -O3 -march=native -ffast-math
 native: libcubiomes
 
-libcubiomes: noise.o biomes.o layers.o biomenoise.o generator.o finders.o util.o quadbase.o stronghold.o
+libcubiomes: noise.o biomes.o layers.o biomenoise.o terrainnoise.o generator.o finders.o carver.o util.o quadbase.o stronghold.o end_city.o fortress.o ore.o
 	$(AR) $(ARFLAGS) libcubiomes.a $^
 
 finders.o: ../cubiomes/finders.c ../cubiomes/finders.h
+	$(CC) -c $(CFLAGS) $<
+
+carver.o: ../cubiomes/carver.c ../cubiomes/carver.h
+	$(CC) -c $(CFLAGS) $<
+
+terrainnoise.o: ../cubiomes/terrainnoise.c ../cubiomes/terrainnoise.h
 	$(CC) -c $(CFLAGS) $<
 
 generator.o: ../cubiomes/generator.c ../cubiomes/generator.h
@@ -46,6 +52,15 @@ quadbase.o: ../cubiomes/quadbase.c ../cubiomes/quadbase.h
 	$(CC) -c $(CFLAGS) $<
 
 stronghold.o: ../cubiomes/features/stronghold.c ../cubiomes/features/stronghold.h
+	$(CC) -c $(CFLAGS) $<
+
+end_city.o: ../cubiomes/features/end_city.c ../cubiomes/features/end_city.h
+	$(CC) -c $(CFLAGS) $<
+
+fortress.o: ../cubiomes/features/fortress.c ../cubiomes/features/fortress.h
+	$(CC) -c $(CFLAGS) $<
+
+ore.o: ../cubiomes/features/ore.c ../cubiomes/features/ore.h
 	$(CC) -c $(CFLAGS) $<
 
 clean:

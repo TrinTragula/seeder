@@ -178,12 +178,13 @@ export const STRUCTURES_OPTIONS = [
     // 17 Geode,
     { value: 18, pureText: "Fortress", label: <div className="flex-row flex-align-center"><img alt="Fortress" src="/img/fortress.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Fortress</div> },
     { value: 19, pureText: "Bastion", label: <div className="flex-row flex-align-center"><img alt="Bastion" src="/img/bastion.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Bastion</div> },
-    { value: 20, pureText: "End City", label: <div className="flex-row flex-align-center"><img alt="End City" src="/img/end_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End City</div> },
-    { value: 21, pureText: "End Gateway", label: <div className="flex-row flex-align-center"><img alt="End Gateway" src="/img/end_gateway.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End Gateway</div> },
-    // 22 End Island,
-    { value: 23, pureText: "Trail Ruin", label: <div className="flex-row flex-align-center"><img alt="Trail Ruin" src="/img/ruin.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trail Ruin</div> },
-    { value: 24, pureText: "Trial Chamber", label: <div className="flex-row flex-align-center"><img alt="Trial Chamber" src="/img/chamber.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trial Chamber</div> },
-    // 25 Stronghold (rendered via the stronghold iterator, not structure search)
+    // 20 Nether Fossil (too common to be useful on the map),
+    { value: 21, pureText: "End City", label: <div className="flex-row flex-align-center"><img alt="End City" src="/img/end_city.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End City</div> },
+    { value: 22, pureText: "End Gateway", label: <div className="flex-row flex-align-center"><img alt="End Gateway" src="/img/end_gateway.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />End Gateway</div> },
+    // 23 End Island,
+    { value: 24, pureText: "Trail Ruin", label: <div className="flex-row flex-align-center"><img alt="Trail Ruin" src="/img/ruin.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trail Ruin</div> },
+    { value: 25, pureText: "Trial Chamber", label: <div className="flex-row flex-align-center"><img alt="Trial Chamber" src="/img/chamber.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trial Chamber</div> },
+    // 26 Stronghold (rendered via the stronghold iterator, not structure search)
 ];
 
 export const DIMENSIONS_OPTIONS = [

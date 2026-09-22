@@ -22,3 +22,8 @@ bench/node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# tests
+/test-results
+/playwright-report
+/playwright/.cache

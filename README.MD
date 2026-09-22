@@ -30,3 +30,18 @@ can look up your seeds/find your perfect ones without installing or configuring 
 - [ ] Less CPU hunger
 - [ ] Find a list of structures, not just one
 - [ ] Better zoom
+
+## Development
+
+```sh
+cd seeder
+npm install
+npm run dev          # http://localhost:3000
+npm run build        # static site in seeder/build/
+npm test             # unit + component + engine tests (Vitest)
+npm run test:e2e     # browser tests against a production build (Playwright)
+```
+
+The Minecraft world generation runs as WebAssembly inside Web Workers; the compiled
+engine is committed under `seeder/public/workers/`, so no C toolchain is needed to
+work on the app. The engine tests load that same WASM headlessly in Node.

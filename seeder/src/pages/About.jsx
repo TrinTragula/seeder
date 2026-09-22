@@ -1,5 +1,6 @@
 import React from 'react';
 import './About.css';
+import { APP_VERSION } from '../util/site';
 
 export default function About() {
     return (
@@ -7,7 +8,7 @@ export default function About() {
             <div className="about-container">
                 <div className="flex-row flex-align-center">
                     <h1>Seeder</h1>
-                    <small className="margin-left-15">(0.4.8)</small>
+                    <small className="margin-left-15">({APP_VERSION})</small>
                 </div>
                 <h3>Who</h3>
                 <div className="paragraph">

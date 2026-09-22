@@ -17,7 +17,7 @@ const ARROW_IMPULSE = 14;
 // to wander several screens and return without regenerating.
 const MAX_TILES = 1500;
 
-const STRUCTURE_ICONS = {
+export const STRUCTURE_ICONS = {
     /*  Desert_Pyramid */   1: '/img/temple.png',
     /*  Jungle_Pyramid */   2: '/img/jungle.png',
     /*  Swamp_Hut */        3: '/img/hut.png',

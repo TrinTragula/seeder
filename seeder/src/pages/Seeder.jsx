@@ -3,14 +3,11 @@ import { QueueManager } from '../library/queue';
 import { DrawSeed } from '../library/draw';
 import Select, { createFilter } from 'react-select'
 import './Seeder.css';
-import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS, OLD_VERSIONS } from '../util/constants';
+import { VERSIONS, VERSIONS_OPTIONS, BIOMES, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS } from '../util/constants';
 import { debounce, copyToClipboard, setUrl, useDebounce, toHHMMSS } from '../util/functions';
+import { isNumeric, getRandomSeed, seedFromString, getInitialSeed, getInitialVersion, RANGE_OPTIONS } from '../util/seed';
+import { WORKER_PATH } from '../util/site';
 import GoogleAd from '../components/GoogleAd';
-
-const isNumeric = (str) => {
-    if (typeof str !== "string") return false;
-    return !isNaN(str) && !isNaN(parseFloat(str));
-};
 
 const filterConfig = {
     ignoreCase: true,
@@ -18,37 +15,6 @@ const filterConfig = {
     trim: true,
     matchFrom: 'any',
     stringify: option => option.data.pureText,
-};
-
-const RANGE_OPTIONS = [
-    { value: Math.floor(100 / 4), label: "<100 blocks" },
-    { value: Math.floor(300 / 4), label: "<300 blocks" },
-    { value: Math.floor(500 / 4), label: "<500 blocks" },
-    { value: Math.floor(750 / 4), label: "<750 blocks" },
-    { value: Math.floor(1000 / 4), label: "<1k blocks" },
-    { value: Math.floor(2000 / 4), label: "<2k blocks (SLOW!)" }
-];
-
-const getRandomSeed = () => "" + Math.floor(-4_294_967_296 + Math.random() * 8_589_934_593);
-
-const seedFromString = (s) => {
-    let h = 0;
-    for (let i = 0; i < s.length; i++) {
-        h = Math.imul(31, h) + s.charCodeAt(i) | 0;
-    }
-    return h;
-};
-
-const getInitialSeed = (urlSeed) => {
-    return Number.isInteger(Number.parseInt(urlSeed)) ? urlSeed + "" : getRandomSeed();
-};
-
-const getInitialVersion = (urlVersion) => {
-    let version = urlVersion;
-    if (isNumeric(version) && !version.includes(".")) {
-        version = OLD_VERSIONS[Number.parseInt(version)];
-    }
-    return version && VERSIONS[version] ? VERSIONS[version] : VERSIONS["26.3"];
 };
 
 export default function Seeder() {
@@ -70,7 +36,7 @@ export default function Seeder() {
     const [dimension, setDimension] = useState(0);
     const [yHeight, setYHeight] = useState(256);
     const debouncedYHeight = useDebounce(yHeight, 500);
-    const [queueManager] = useState(() => new QueueManager("/workers/worker.js?v=0.7.0"));
+    const [queueManager] = useState(() => new QueueManager(WORKER_PATH));
 
     const [biomesToFind, setBiomesToFind] = useState(null);
     const [range, setRange] = useState(null);
@@ -334,6 +300,7 @@ export default function Seeder() {
                 <div className="margin-3 width-total">
                     <div className="margin-3">Structures to show</div>
                     <Select
+                        aria-label="Structures to show"
                         options={STRUCTURES_OPTIONS}
                         isClearable
                         isMulti
@@ -354,6 +321,7 @@ export default function Seeder() {
                 <div className="margin-3">
                     <div className="margin-3">Select the biomes you want</div>
                     <Select
+                        aria-label="Biomes to find"
                         options={BIOMES}
                         isClearable
                         isMulti
@@ -362,6 +330,7 @@ export default function Seeder() {
                     />
                     <div className="margin-3">Select the structure you want</div>
                     <Select
+                        aria-label="Structure to find"
                         options={STRUCTURES_OPTIONS}
                         isClearable
                         onChange={handleStructureToFindChange}
@@ -372,6 +341,7 @@ export default function Seeder() {
                         <>
                             <div className="margin-3">Select the range from (0, 0)</div>
                             <Select
+                                aria-label="Range"
                                 options={RANGE_OPTIONS}
                                 onChange={handleRangeChange}
                                 placeholder="Select range..."
@@ -393,6 +363,7 @@ export default function Seeder() {
                         <div className="margin-v-10 margin-3">
                             <div className="margin-3">Starting seed for search</div>
                             <input
+                                aria-label="Starting seed"
                                 type="number"
                                 className="padding-3"
                                 value={lastFoundSeed}
@@ -400,6 +371,7 @@ export default function Seeder() {
                             />
                             <div className="margin-3">Range from (0, 0)</div>
                             <input
+                                aria-label="Range in blocks"
                                 type="number"
                                 className="padding-3"
                                 value={range ? range * 4 : ''}
@@ -407,6 +379,7 @@ export default function Seeder() {
                             />
                             <div className="margin-3">Biome height</div>
                             <input
+                                aria-label="Biome height in blocks"
                                 type="number"
                                 className="padding-3"
                                 value={yHeight ?? ''}
@@ -477,6 +450,8 @@ export default function Seeder() {
                 <canvas ref={canvas} style={{ background: "#333333" }} />
                 <img
                     alt="seed menu toggle"
+                    role="button"
+                    aria-expanded={menuToggled}
                     className="menu-toggle"
                     onClick={() => setMenuToggled(prev => !prev)}
                     src="/svg/menu.svg"
@@ -498,6 +473,7 @@ export default function Seeder() {
                 <div className="margin-3"><h3>Seed</h3></div>
                 <div className="flex-row margin-3">
                     <input
+                        aria-label="Seed"
                         className="flex-3"
                         value={inputSeed}
                         onChange={(e) => setInputSeed(e.target.value)}
@@ -512,6 +488,7 @@ export default function Seeder() {
                 <div className="margin-3 width-total">
                     <div className="margin-3">Dimension</div>
                     <Select
+                        aria-label="Dimension"
                         options={DIMENSIONS_OPTIONS}
                         onChange={(val) => setDimension(val?.value)}
                         value={selectedDimensionValue}
@@ -520,6 +497,7 @@ export default function Seeder() {
                 <div className="margin-3 width-total">
                     <div className="margin-3">Select MC version</div>
                     <Select
+                        aria-label="Minecraft version"
                         options={VERSIONS_OPTIONS}
                         onChange={(val) => setMcVersion(val?.value)}
                         value={selectedVersionValue}
@@ -529,6 +507,7 @@ export default function Seeder() {
                     <div className="margin-3 width-total">
                         <div className="margin-3">Biome height</div>
                         <Select
+                            aria-label="Biome height"
                             options={HEIGHT_OPTIONS}
                             onChange={(val) => setYHeight(val?.value)}
                             value={selectedHeightValue}
@@ -583,7 +562,7 @@ export default function Seeder() {
                     <h3>Share your seed:</h3>
                 </div>
                 <div className="flex-row margin-3" style={{ marginBottom: '33px' }}>
-                    <input style={{ background: 'white' }} className="flex-3" value={window.location.href} disabled />
+                    <input aria-label="Share URL" style={{ background: 'white' }} className="flex-3" value={window.location.href} disabled />
                     <button
                         style={{ borderLeft: '0px' }}
                         className="flex-1"

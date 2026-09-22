@@ -114,10 +114,10 @@ export const OLD_VERSIONS = {
     13: "1.13",
     14: "1.14",
     15: "1.15",
-    16: "1.16",
+    16: "1.16.5",   // MC_1_16 = MC_1_16_5 in cubiomes
     17: "1.17",
     18: "1.18",
-    19: "1.19",
+    19: "1.19.4",   // MC_1_19 = MC_1_19_4 in cubiomes
 };
 
 export const VERSIONS = {

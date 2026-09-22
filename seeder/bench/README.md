@@ -23,14 +23,14 @@ before/after, apples to apples.
 evicted and regenerated.
 
 **`coldFirstPaintMs` depends heavily on the environment.** The dev server
-(`npm start`) is unminified and never caches the WASM, so it is roughly ~2×
+(`npm run dev`) is unminified and never caches the WASM, so it is roughly ~2×
 slower than a production build. To measure what users actually get, benchmark a
 production build:
 
 ```sh
 npm run build
-npx --yes http-server build -p 5055 -c-1   # or any static server with SPA fallback + wasm MIME
-SEEDER_BENCH_URL=http://localhost:5055 node bench.mjs prod
+npm run preview                             # serves build/ on :4173 with SPA fallback + wasm MIME
+SEEDER_BENCH_URL=http://localhost:4173 node bench.mjs prod
 ```
 
 ## How it works
@@ -47,7 +47,7 @@ SEEDER_BENCH_URL=http://localhost:5055 node bench.mjs prod
 
 ```sh
 # 1. Start the app (from seeder/)
-npm start
+npm run dev
 
 # 2. One-time: install the driver (not an app dependency)
 cd bench && npm install puppeteer-core

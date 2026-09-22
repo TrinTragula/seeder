@@ -43,6 +43,7 @@ const STRUCTURE_ICONS = {
     /*  23 End Island */
     /*  Trail Ruin */       24: '/img/ruin.png',
     /*  Trial Chamber */    25: '/img/chamber.png',
+    /*  Abandoned Camp */   26: '/img/camp.png',
 };
 
 export class DrawSeed {

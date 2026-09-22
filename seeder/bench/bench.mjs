@@ -47,7 +47,7 @@ function findBrowser() {
   return hit;
 }
 
-const withSeed = (seed) => `${URL_BASE}/?version=26.2&seed=${seed}`;
+const withSeed = (seed) => `${URL_BASE}/?version=26.3&seed=${seed}`;
 
 const browser = await puppeteer.launch({
   executablePath: findBrowser(),

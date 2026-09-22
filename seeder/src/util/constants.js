@@ -94,6 +94,7 @@ export const BIOMES = [
     { value: 185, label: "Cherry Grove" },
     { value: 186, label: "Pale Garden" },
     { value: 187, label: "Sulfur Caves" },
+    { value: 188, label: "Dappled Forest" },
 ];
 
 export const OLD_VERSIONS = {
@@ -153,7 +154,8 @@ export const VERSIONS = {
     "1.21.9": 31,
     "1.21.11": 32,
     "26.1": 33,
-    "26.2": 34
+    "26.2": 34,
+    "26.3": 35
 };
 
 export const VERSIONS_OPTIONS = Object.keys(VERSIONS).map(v => ({ label: v, value: VERSIONS[v] }));
@@ -184,7 +186,8 @@ export const STRUCTURES_OPTIONS = [
     // 23 End Island,
     { value: 24, pureText: "Trail Ruin", label: <div className="flex-row flex-align-center"><img alt="Trail Ruin" src="/img/ruin.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trail Ruin</div> },
     { value: 25, pureText: "Trial Chamber", label: <div className="flex-row flex-align-center"><img alt="Trial Chamber" src="/img/chamber.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Trial Chamber</div> },
-    // 26 Stronghold (rendered via the stronghold iterator, not structure search)
+    { value: 26, pureText: "Abandoned Camp", label: <div className="flex-row flex-align-center"><img alt="Abandoned Camp" src="/img/camp.png" style={{ paddingRight: '15px' }} height="30px" width="30px" />Abandoned Camp</div> },
+    // 27 Stronghold (rendered via the stronghold iterator, not structure search)
 ];
 
 export const DIMENSIONS_OPTIONS = [

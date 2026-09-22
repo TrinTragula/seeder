@@ -48,7 +48,7 @@ const getInitialVersion = (urlVersion) => {
     if (isNumeric(version) && !version.includes(".")) {
         version = OLD_VERSIONS[Number.parseInt(version)];
     }
-    return version && VERSIONS[version] ? VERSIONS[version] : VERSIONS["26.2"];
+    return version && VERSIONS[version] ? VERSIONS[version] : VERSIONS["26.3"];
 };
 
 export default function Seeder() {
@@ -70,7 +70,7 @@ export default function Seeder() {
     const [dimension, setDimension] = useState(0);
     const [yHeight, setYHeight] = useState(256);
     const debouncedYHeight = useDebounce(yHeight, 500);
-    const [queueManager] = useState(() => new QueueManager("/workers/worker.js?v=0.6.2"));
+    const [queueManager] = useState(() => new QueueManager("/workers/worker.js?v=0.7.0"));
 
     const [biomesToFind, setBiomesToFind] = useState(null);
     const [range, setRange] = useState(null);

@@ -18,7 +18,7 @@ release: libcubiomes
 native: CFLAGS += -O3 -march=native -ffast-math
 native: libcubiomes
 
-libcubiomes: noise.o biomes.o layers.o biomenoise.o terrainnoise.o generator.o finders.o carver.o util.o quadbase.o stronghold.o end_city.o fortress.o ore.o
+libcubiomes: noise.o biomes.o layers.o biomenoise.o terrainnoise.o generator.o finders.o carver.o util.o quadbase.o stronghold.o end_city.o fortress.o ore.o abandoned_camp.o
 	$(AR) $(ARFLAGS) libcubiomes.a $^
 
 finders.o: ../cubiomes/finders.c ../cubiomes/finders.h
@@ -61,6 +61,9 @@ fortress.o: ../cubiomes/features/fortress.c ../cubiomes/features/fortress.h
 	$(CC) -c $(CFLAGS) $<
 
 ore.o: ../cubiomes/features/ore.c ../cubiomes/features/ore.h
+	$(CC) -c $(CFLAGS) $<
+
+abandoned_camp.o: ../cubiomes/features/abandoned_camp.c ../cubiomes/features/abandoned_camp.h
 	$(CC) -c $(CFLAGS) $<
 
 clean:

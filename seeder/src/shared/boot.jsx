@@ -1,5 +1,7 @@
 import { createRoot, hydrateRoot } from 'react-dom/client';
 import Root from './Root';
+import FramedNotice from './FramedNotice';
+import { isFramedElsewhere } from './framed';
 import '../index.css';
 
 // A mismatch React recovered from (it re-rendered on the client). Still an error in
@@ -22,9 +24,16 @@ export function reportHydrationError(error) {
  * `hydrate` is for the pages whose whole tree is prerendered (landing, About): React
  * takes over the markup already there. The seed page and the finder prerender only an
  * intro, which the app replaces.
+ *
+ * Inside a frame on another site (someone embedding the app in their page) only a notice
+ * with a link to the real site renders: no Root, so no workers, ads or analytics.
  */
 export function mountPage(element, { hydrate = false } = {}) {
     const container = document.getElementById('root');
+    if (isFramedElsewhere()) {
+        createRoot(container).render(<FramedNotice />);
+        return;
+    }
     const tree = <Root>{element}</Root>;
     if (hydrate) hydrateRoot(container, tree, { onRecoverableError: reportHydrationError });
     else createRoot(container).render(tree);

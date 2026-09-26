@@ -5,10 +5,16 @@
      invisible until the app replaces them, so a visitor sees the header (the same in both) and then
      the app; they fade in after 3s only if the app never arrived. Inline, so it holds before any
      stylesheet has loaded (the dev server injects styles from JS). -->
-<script>document.documentElement.classList.add('js')</script>
+<script>
+    document.documentElement.classList.add('js');
+    // Another site showing this page in a frame gets only FramedNotice (mountPage, shared/framed.js).
+    try { window.__framed = window.top !== window.self && window.top.location.origin !== location.origin; } catch (e) { window.__framed = true; }
+    if (window.__framed) document.documentElement.classList.add('framed');
+</script>
 <style>
     .js .static-intro, .js main:has(> .static-intro) ~ .site-footer { animation: static-fallback 220ms ease-out 3s both }
     @keyframes static-fallback { from { opacity: 0 } }
+    .framed #root > :not(.framed-notice) { display: none }
     @media (prefers-reduced-motion: reduce) { .js .static-intro, .js main:has(> .static-intro) ~ .site-footer { animation-duration: 0ms } }
 </style>
 <meta name="theme-color" content="#8FCA5C" />
@@ -44,7 +50,8 @@
         ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted',
     });
     gtag('js', new Date());
-    // A legacy /?seed= hit is about to be replaced by /seed/, where the view is counted.
-    if (!window.__legacyRedirect) gtag('config', 'G-CLDNC49SNT', { 'anonymize_ip': true });
+    // A legacy /?seed= hit is about to be replaced by /seed/, where the view is counted. A page
+    // framed by another site is not our visitor.
+    if (!window.__legacyRedirect && !window.__framed) gtag('config', 'G-CLDNC49SNT', { 'anonymize_ip': true });
 </script>
 <!-- The AdSense loader is not here: src/shared/ads.js adds it once the page has mounted (loadAds). -->

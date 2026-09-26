@@ -5,3 +5,6 @@
 !README.MD
 # The repo docs are tracked; docs/ (working notes) stays local.
 docs/
+
+# npm run seed-pages: search results cache (scripts/seed-pages)
+seeder/.cache

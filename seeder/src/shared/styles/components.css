@@ -452,3 +452,39 @@
     }
 }
 
+
+/* --- framed notice (another site embeds a page: FramedNotice.jsx) --------- */
+
+.framed-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    min-height: 100vh;
+    padding: var(--space-6) var(--space-4);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    text-align: center;
+}
+
+.framed-notice h1 {
+    margin: 0;
+    font-family: var(--font-display);
+}
+
+.framed-notice p {
+    max-width: 36em;
+    margin: 0;
+}
+
+.framed-notice__logo {
+    image-rendering: pixelated;
+}
+
+.framed-notice__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--space-4);
+    text-decoration: none;
+}

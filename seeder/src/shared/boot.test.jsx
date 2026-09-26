@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useEffect } from 'react';
-import { act } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { mountPage } from './boot';
 import Root from './Root';
@@ -118,5 +118,50 @@ describe('mountPage - prerendered markup', () => {
         expect(root.querySelector('.static-intro')).toBeNull();
         expect(root.querySelectorAll('h1')).toHaveLength(1);
         expect(root.querySelector('h1')).toHaveTextContent('The map');
+    });
+});
+
+describe('mountPage - framed by another site', () => {
+    const frameElsewhere = () => vi.spyOn(window, 'top', 'get').mockReturnValue({
+        get location() { throw new DOMException('Blocked a frame', 'SecurityError'); },
+    });
+
+    it('renders only the notice, with a link that opens this page as the whole tab', async () => {
+        frameElsewhere();
+        root.innerHTML = '<main><h1>Prerendered landing</h1></main>';
+        await mount(<main><h1>Hello page</h1></main>);
+        expect(screen.getByRole('heading', { name: 'Open Seeder on its own site' })).toBeInTheDocument();
+        const link = screen.getByRole('link', { name: 'Open mcseeder.com' });
+        expect(link).toHaveAttribute('href', window.location.href);
+        expect(link).toHaveAttribute('target', '_top');
+        expect(root).not.toHaveTextContent('Hello page');
+        expect(root).not.toHaveTextContent('Prerendered landing');
+    });
+
+    it('the link drops the transient from= marker', async () => {
+        frameElsewhere();
+        window.history.replaceState(null, '', '/seed/?seed=42&version=1.21.4&from=legacy');
+        try {
+            await mount();
+            expect(screen.getByRole('link', { name: 'Open mcseeder.com' }))
+                .toHaveAttribute('href', `${window.location.origin}/seed/?seed=42&version=1.21.4`);
+        } finally {
+            window.history.replaceState(null, '', '/');
+        }
+    });
+
+    it('mounts no Root: no AdSense loader', async () => {
+        frameElsewhere();
+        await mount();
+        expect(adScripts()).toHaveLength(0);
+    });
+
+    it('hydrate: still replaces the prerendered page with the notice, without an error', async () => {
+        const error = vi.spyOn(console, 'error');
+        frameElsewhere();
+        root.innerHTML = renderToString(<Root><main><h1>Hello page</h1></main></Root>);
+        await act(async () => { mountPage(<main><h1>Hello page</h1></main>, { hydrate: true }); });
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Open Seeder on its own site');
+        expect(error).not.toHaveBeenCalled();
     });
 });

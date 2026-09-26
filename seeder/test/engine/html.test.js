@@ -80,7 +80,7 @@ describe('HTML entries', () => {
             expect(consent, name).toBeLessThan(html.indexOf("gtag('js'"));
             expect(html, name).toMatch(/analytics_storage: 'denied'[\s\S]*region: \['AT'[\s\S]*'DE'[\s\S]*'GB', 'CH'\]/);
             // A legacy redirect must not be counted as a page view.
-            expect(html, name).toMatch(/if \(!window\.__legacyRedirect\) gtag\('config'/);
+            expect(html, name).toMatch(/if \(!window\.__legacyRedirect && !window\.__framed\) gtag\('config'/);
             expect(count(html, /<link rel="manifest" href="\/manifest\.json\?v=__APP_VERSION__"/g), name).toBe(1);
             expect(html, name).toContain('<meta property="og:site_name" content="Seeder"');
         }
@@ -124,11 +124,31 @@ describe('HTML entries', () => {
 
     it('marks html.js and holds the prerendered intro back before the first paint, from the partial', () => {
         const partial = read('src/shared/html/head-common.html');
-        expect(count(partial, /<script>document\.documentElement\.classList\.add\('js'\)<\/script>/g)).toBe(1);
+        expect(count(partial, /<script>\s*document\.documentElement\.classList\.add\('js'\)/g)).toBe(1);
         expect(partial).toMatch(/\.js \.static-intro, \.js main:has\(> \.static-intro\) ~ \.site-footer \{ animation: static-fallback 220ms ease-out 3s both \}/);
         // Before any stylesheet: the rule must hold while the page's CSS is still loading.
         expect(partial.indexOf("classList.add('js')")).toBeLessThan(partial.indexOf('<link'));
         for (const { name } of PAGES) expect(count(expanded[name], /classList\.add\('js'\)/g), name).toBe(1);
+    });
+
+    it('the partial flags a page framed by another site, and hides everything but the notice', () => {
+        const partial = read('src/shared/html/head-common.html');
+        const code = partial.match(/<script>(\s*document\.documentElement\.classList\.add\('js'\);[^<]*)<\/script>/)[1];
+        const run = (top) => {
+            const classes = new Set();
+            const window = { top };
+            window.self = window;
+            if (!top) window.top = window;
+            const document = { documentElement: { classList: { add: (c) => classes.add(c) } } };
+            new Function('window', 'document', 'location', code)(window, document, { origin: 'https://mcseeder.com' });
+            expect(classes.has('framed')).toBe(window.__framed);
+            return window.__framed;
+        };
+        expect(run()).toBe(false);
+        expect(run({ location: { origin: 'https://mcseeder.com' } })).toBe(false);
+        expect(run({ location: { origin: 'https://msseedmap.us' } })).toBe(true);
+        expect(run({ get location() { throw new Error('SecurityError'); } })).toBe(true);
+        expect(partial).toContain('.framed #root > :not(.framed-notice) { display: none }');
     });
 
     it('the inline script flags only a decimal seed, the ones legacy.js redirects', () => {

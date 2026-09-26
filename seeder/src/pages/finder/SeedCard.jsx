@@ -12,6 +12,7 @@ import { rangeLabel } from './criteria';
 import { previewTarget } from './hitModel';
 import PreviewMap from './PreviewMap';
 import { buildShareCard, shareOrDownloadCard } from './sharecard';
+import { engineVersion } from '../../util/seed';
 
 // Gap between the top of the screen and an opened row's top edge (--space-4).
 export const OPEN_SCROLL_GAP = 16;
@@ -30,8 +31,10 @@ export const MAX_VARIANT_ROWS = 3;
 // the dimension asked about, whatever the search's dimension.
 function SpawnBiome({ view }) {
     const { COLORS } = useQueueManager();
-    const { mcVersion, seed, yHeight, spawn } = view;
-    const { data, loading } = useSeedQuery('BIOME_AT', { mcVersion, seed, dimension: 0, x: spawn.x, y: yHeight, z: spawn.z });
+    const { mcVersion, largeBiomes, seed, yHeight, spawn } = view;
+    const { data, loading } = useSeedQuery('BIOME_AT', {
+        mcVersion: engineVersion(mcVersion, largeBiomes), seed, dimension: 0, x: spawn.x, y: yHeight, z: spawn.z,
+    });
     if (loading) return <span className="badge-skeleton" aria-hidden="true" />;
     if (data?.biome == null) return null;
     return (
@@ -43,9 +46,11 @@ function SpawnBiome({ view }) {
 }
 
 function VariantBadges({ view, row }) {
-    const { mcVersion, seed, dimension } = view;
+    const { mcVersion, largeBiomes, seed, dimension } = view;
     const { type, x, z } = row;
-    const { data, loading } = useSeedQuery('STRUCTURE_VARIANT', { mcVersion, seed, dimension, type, x, z });
+    const { data, loading } = useSeedQuery('STRUCTURE_VARIANT', {
+        mcVersion: engineVersion(mcVersion, largeBiomes, dimension), seed, dimension, type, x, z,
+    });
     if (loading) return <span className="badge-skeleton" aria-hidden="true" />;
     const badges = badgesFor(type, data?.variant);
     if (badges.length === 0) return null;
@@ -90,7 +95,7 @@ function Thumbnail({ canvas }) {
 // of the screen. A box without a layout (hidden, jsdom) asks for nothing.
 function useThumbnail(thumbnails, view, box, open, target, eager) {
     const [canvas, setCanvas] = useState(null);
-    const { mcVersion, seed, dimension, yHeight, found, spawn } = view;
+    const { mcVersion, largeBiomes, seed, dimension, yHeight, found, spawn } = view;
     const near = useInView(box, { rootMargin: THUMB_LOOKAHEAD });
     const wanted = eager || near;
     useLayoutEffect(() => {
@@ -103,8 +108,9 @@ function useThumbnail(thumbnails, view, box, open, target, eager) {
         // Markers only where the engine found a structure (a shared row's unverified ones have no place).
         const markers = found.map(({ type, x, z }) => ({ type, x, z }));
         // The spawn is the Overworld's: marked on Overworld rows only, as the opened map does.
+        // The packed version keys the thumbnail cache too: Default and Large never share one.
         thumbnails.request({
-            mcVersion, seed, dimension, yHeight, markers, spawn: dimension === 0 ? spawn : null,
+            mcVersion: engineVersion(mcVersion, largeBiomes, dimension), seed, dimension, yHeight, markers, spawn: dimension === 0 ? spawn : null,
             widthCells, heightCells, centreX: target.x, centreZ: target.z,
         }, (ready) => {
             if (live) setCanvas(ready.canvas);
@@ -249,7 +255,7 @@ export default function SeedCard({ view, thumbnails = null, eager = false, open 
             )}
             <footer className="seed-card__actions">
                 {/* A new tab: the finder's results survive opening a seed. */}
-                <a className="btn btn--primary" href={buildSeedUrl({ seed, mcVersion, dimension })} target="_blank" rel="noopener">Open seed</a>
+                <a className="btn btn--primary" href={buildSeedUrl({ seed, mcVersion, dimension, largeBiomes: view.largeBiomes })} target="_blank" rel="noopener">Open seed</a>
                 <button type="button" className="btn" onClick={() => onSave?.(view)} disabled={saved}>
                     {saved ? 'Saved ✓' : 'Save world'}
                 </button>

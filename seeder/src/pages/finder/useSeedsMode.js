@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { versionLabelOf } from '../../shared/seedUrl';
 import { toHitView } from './hitModel';
+import { engineVersion } from '../../util/seed';
 
 /*
  * Seeds mode: a "Share these results" URL lists seeds that a search already
@@ -33,6 +34,7 @@ export function useSeedsMode(queue, { seeds, criteria }) {
     const [state, setState] = useState(IDLE);
     const key = seeds?.length ? seeds.join(',') : '';
     const { mcVersion, dimension, yHeight, rangeBlocks } = criteria;
+    const largeBiomes = !!criteria.largeBiomes;
     const structuresKey = criteria.structures.join(',');
     // The effect keys on the values; the lists themselves are read from here.
     const latest = useRef({ seeds, criteria });
@@ -45,21 +47,21 @@ export function useSeedsMode(queue, { seeds, criteria }) {
         }
         const list = latest.current.seeds;
         const { structures } = latest.current.criteria;
-        const world = { mcVersion, dimension, yHeight, structures, rangeBlocks };
+        const world = { mcVersion, largeBiomes, dimension, yHeight, structures, rangeBlocks };
         const token = Symbol('seeds-mode');
         let live = true;
         const opts = { priority: 'low', token };
         setState({ status: 'loading', views: [], progress: { done: 0, total: list.length, failed: 0 } });
 
         const describe = async (seed, index) => {
-            const summary = await queue.request('SEED_SUMMARY', { mcVersion, seed, dimension: 0, yHeight }, opts);
+            const summary = await queue.request('SEED_SUMMARY', { mcVersion: engineVersion(mcVersion, largeBiomes), seed, dimension: 0, yHeight }, opts);
             if (summary.error) {
                 return { failed: true, view: { ...toHitView({ seed, spawnX: 0, spawnZ: 0, structures: [], index }, world), warning: seedWarning(mcVersion) } };
             }
             const hit = { seed, spawnX: summary.spawnX, spawnZ: summary.spawnZ, structures: [], index };
             if (structures.length > 0) {
                 const near = await queue.request('NEAREST_STRUCTURES', {
-                    mcVersion, seed, dimension, x: 0, z: 0, types: structures, maxRadiusBlocks: nearestRadiusFor(rangeBlocks),
+                    mcVersion: engineVersion(mcVersion, largeBiomes, dimension), seed, dimension, x: 0, z: 0, types: structures, maxRadiusBlocks: nearestRadiusFor(rangeBlocks),
                 }, opts);
                 if (near.error) return { failed: false, view: { ...toHitView(hit, world), warning: seedWarning(mcVersion) } };
                 hit.structures = structures.map((type) => {
@@ -96,7 +98,7 @@ export function useSeedsMode(queue, { seeds, criteria }) {
             live = false;
             queue.cancelToken(token);
         };
-    }, [queue, key, mcVersion, dimension, yHeight, rangeBlocks, structuresKey]);
+    }, [queue, key, mcVersion, largeBiomes, dimension, yHeight, rangeBlocks, structuresKey]);
 
     return state;
 }

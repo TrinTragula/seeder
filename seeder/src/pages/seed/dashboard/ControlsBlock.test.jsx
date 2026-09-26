@@ -12,7 +12,7 @@ const WORLD = { seed: '8091867987493326313', mcVersion: 35, dimension: 0, yHeigh
 
 function Harness({
     world, showSection, showChunkGrid = false, setShowChunkGrid = vi.fn(),
-    structuresToShow = [], setStructuresToShow = vi.fn(), availableStructures = null,
+    structuresToShow = [], setStructuresToShow = vi.fn(), availableStructures = null, setLargeBiomes = vi.fn(),
 }) {
     const worlds = useWorlds();
     const value = { world, mapApi: { current: null }, sheetApi: { current: null }, structuresToShow: [], setStructuresToShow: () => { }, worlds, showSection };
@@ -24,6 +24,7 @@ function Harness({
                 setYHeight={vi.fn()}
                 setMcVersion={vi.fn()}
                 setDimension={vi.fn()}
+                setLargeBiomes={setLargeBiomes}
                 structuresToShow={structuresToShow}
                 setStructuresToShow={setStructuresToShow}
                 availableStructures={availableStructures}
@@ -155,5 +156,49 @@ describe('ControlsBlock: structures to show', () => {
         expect(setStructuresToShow).toHaveBeenLastCalledWith([T.Village, T.Fortress, T.Bastion]);
         fireEvent.keyDown(screen.getByLabelText('Structures to show'), { key: 'Backspace', code: 'Backspace' });
         expect(setStructuresToShow).toHaveBeenLastCalledWith([T.Village]);
+    });
+});
+
+describe('ControlsBlock: World type', () => {
+    const worldType = () => screen.getByLabelText('World type');
+
+    it('offers Default / Large Biomes after the version and reports the pick', () => {
+        const setLargeBiomes = vi.fn();
+        render(<Harness world={WORLD} showSection={vi.fn()} setLargeBiomes={setLargeBiomes} />);
+        expect(worldType()).not.toBeDisabled();
+        expect(screen.getByText('Default')).toBeInTheDocument();
+        const version = screen.getByLabelText('Minecraft version');
+        expect(version.compareDocumentPosition(worldType()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        fireEvent.keyDown(worldType(), { key: 'ArrowDown', code: 'ArrowDown' });
+        fireEvent.click(screen.getByRole('option', { name: 'Large Biomes' }));
+        expect(setLargeBiomes).toHaveBeenCalledWith(true);
+    });
+
+    it('is disabled on Beta, saying why', () => {
+        render(<Harness world={{ ...WORLD, mcVersion: 1, versionLabel: 'Beta 1.7' }} showSection={vi.fn()} />);
+        expect(worldType()).toBeDisabled();
+        expect(screen.getByText('Large Biomes starts in 1.3.')).toBeInTheDocument();
+    });
+
+    it('is disabled in the Nether and in the End, showing the kept choice', () => {
+        const { unmount } = render(<Harness world={{ ...WORLD, dimension: -1, largeBiomes: true }} showSection={vi.fn()} />);
+        expect(worldType()).toBeDisabled();
+        expect(screen.getByText('Large Biomes')).toBeInTheDocument();
+        expect(screen.getByText('No effect in the Nether.')).toBeInTheDocument();
+        unmount();
+        render(<Harness world={{ ...WORLD, dimension: 1 }} showSection={vi.fn()} />);
+        expect(worldType()).toBeDisabled();
+        expect(screen.getByText('No effect in the End.')).toBeInTheDocument();
+    });
+
+    it('Save this world saves the world type; the other type of the same seed is not saved', async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<Harness world={{ ...WORLD, largeBiomes: true }} showSection={vi.fn()} />);
+        await user.click(screen.getByRole('button', { name: 'Save this world' }));
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+        expect(loadWorlds()[0]).toMatchObject({ seed: WORLD.seed, largeBiomes: true });
+        expect(screen.getByText('Saved ✓')).toBeInTheDocument();
+        rerender(<Harness world={{ ...WORLD, largeBiomes: false }} showSection={vi.fn()} />);
+        expect(screen.getByRole('button', { name: 'Save this world' })).toBeInTheDocument();
     });
 });

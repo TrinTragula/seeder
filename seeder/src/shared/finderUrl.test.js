@@ -13,7 +13,7 @@ describe('parseFinderUrl', () => {
         const { criteria, seeds, start } = parseFinderUrl(
             `?version=1.21.11&dim=-1&biomes=185,132&any=12,140&exclude=0,24&structures=5,11&range=750&y=62&count=25&start=${BIG}&seeds=1,-2,${BIG}`);
         expect(criteria).toEqual({
-            mcVersion: VERSIONS['1.21.11'], dimension: -1, yHeight: 62, biomes: [185, 132], anyBiomes: [12, 140], excludeBiomes: [0, 24], structures: [5, 11],
+            mcVersion: VERSIONS['1.21.11'], dimension: -1, largeBiomes: false, yHeight: 62, biomes: [185, 132], anyBiomes: [12, 140], excludeBiomes: [0, 24], structures: [5, 11],
             rangeBlocks: 750, count: 25, startingSeed: BigInt(BIG),
         });
         expect(start).toBe(BigInt(BIG));
@@ -130,6 +130,18 @@ describe('buildFinderUrl', () => {
         expect(buildFinderUrl({ ...DEFAULT_CRITERIA, excludeBiomes: [0] })).toBe('/finder/?version=26.3&dim=0&range=300&y=256&count=10&start=0&exclude=0');
     });
 
+    it('writes world=large right after dim, only for a Large Biomes search from 1.3', () => {
+        const large = { ...DEFAULT_CRITERIA, mcVersion: VERSIONS['1.21.1'], largeBiomes: true };
+        expect(buildFinderUrl(large)).toBe('/finder/?version=1.21.1&dim=0&world=large&range=300&y=256&count=10&start=0');
+        expect(buildFinderUrl({ ...large, largeBiomes: false })).toBe('/finder/?version=1.21.1&dim=0&range=300&y=256&count=10&start=0');
+        expect(buildFinderUrl({ ...large, mcVersion: VERSIONS['1.2'] })).not.toContain('world=');
+        expect(parseFinderUrl('?version=1.21.1&world=large').criteria.largeBiomes).toBe(true);
+        expect(parseFinderUrl('?version=1.2&world=large').criteria.largeBiomes).toBe(false);
+        expect(parseFinderUrl('?version=1.21.1&world=default').criteria.largeBiomes).toBe(false);
+        // Links from before world types: Default.
+        expect(parseFinderUrl('?version=1.21.1&dim=0&range=300').criteria.largeBiomes).toBe(false);
+    });
+
     it('writes an unsigned start back as its signed seed after a parse', () => {
         const { criteria } = parseFinderUrl('?start=18446744073709551615&dim=-1');
         expect(buildFinderUrl(criteria)).toBe('/finder/?version=26.3&dim=-1&range=300&y=256&count=10&start=-1');
@@ -139,12 +151,16 @@ describe('buildFinderUrl', () => {
         const states = [
             { criteria: DEFAULT_CRITERIA, seeds: null, start: 0n },
             {
-                criteria: { mcVersion: VERSIONS['Beta 1.7'], dimension: 1, yHeight: -70, biomes: [9], anyBiomes: [40, 42], excludeBiomes: [41], structures: [21, 22], rangeBlocks: 2048, count: 50, startingSeed: -(2n ** 63n) },
+                criteria: { mcVersion: VERSIONS['Beta 1.7'], dimension: 1, largeBiomes: false, yHeight: -70, biomes: [9], anyBiomes: [40, 42], excludeBiomes: [41], structures: [21, 22], rangeBlocks: 2048, count: 50, startingSeed: -(2n ** 63n) },
                 seeds: [BIG, '-1'], start: -(2n ** 63n),
             },
             {
                 criteria: { ...DEFAULT_CRITERIA, mcVersion: VERSIONS['1.16.5'], dimension: -1, structures: [18, 19], rangeBlocks: 1, startingSeed: 2n ** 60n },
                 seeds: null, start: 2n ** 60n,
+            },
+            {
+                criteria: { ...DEFAULT_CRITERIA, mcVersion: VERSIONS['1.12'], largeBiomes: true, biomes: [21] },
+                seeds: null, start: 0n,
             },
         ];
         for (const x of states) {

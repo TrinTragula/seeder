@@ -3,6 +3,7 @@ import { VERSIONS } from '../../../util/constants';
 import CopyButton from '../../../shared/CopyButton';
 import HelpTip from '../../../shared/HelpTip';
 import { HELP } from '../../../shared/help';
+import { engineVersion } from '../../../util/seed';
 import { useSeedQuery } from '../../../shared/hooks/useSeedQuery';
 import { distanceBlocks, formatCoords, formatDistance } from '../../../shared/format';
 import { useDashboard } from './DashboardContext';
@@ -70,21 +71,23 @@ export default function StrongholdsSection() {
     const { world } = useDashboard();
     // Another seed or version is another list: "Show all", the page size and every open
     // analysis start over. A dimension change keeps them (same strongholds).
-    return <StrongholdsList key={`${world.mcVersion}:${world.seed}`} />;
+    return <StrongholdsList key={`${world.mcVersion}:${world.largeBiomes}:${world.seed}`} />;
 }
 
 function StrongholdsList() {
     const { world, mapApi, sheetApi } = useDashboard();
-    const { seed, mcVersion, dimension, yHeight } = world;
+    const { seed, mcVersion, dimension, yHeight, largeBiomes } = world;
+    // Strongholds are the Overworld's, wherever the page is.
+    const overworldVersion = engineVersion(mcVersion, largeBiomes);
     const [showAll, setShowAll] = useState(false);
     const [visible, setVisible] = useState(COLLAPSED);
     const approx = mcVersion > VERSIONS['1.19.2'];
 
     // The same params as the Spawn section: one cached answer for both.
-    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion, seed, dimension, yHeight });
-    const list = useSeedQuery('STRONGHOLDS_LIST', { mcVersion, seed, howMany: FIRST });
+    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion: engineVersion(mcVersion, largeBiomes, dimension), seed, dimension, yHeight });
+    const list = useSeedQuery('STRONGHOLDS_LIST', { mcVersion: overworldVersion, seed, howMany: FIRST });
     // ~1.3 s for 128 exact: keeps the default low priority so the map's tiles keep a worker.
-    const all = useSeedQuery('STRONGHOLDS_LIST', { mcVersion, seed, howMany: ALL, approx }, { enabled: showAll });
+    const all = useSeedQuery('STRONGHOLDS_LIST', { mcVersion: overworldVersion, seed, howMany: ALL, approx }, { enabled: showAll });
 
     const overworld = dimension === 0;
     const error = list.error ?? (overworld ? summary.error : null);

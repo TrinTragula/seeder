@@ -37,7 +37,7 @@ const crit = (patch = {}) => ({ ...DEFAULT_CRITERIA, ...patch });
 describe('defaults and options', () => {
     it('defaults to 26.3, the Overworld, Y 256, 300 blocks, 10 results from seed 0', () => {
         expect(DEFAULT_CRITERIA).toEqual({
-            mcVersion: VERSIONS['26.3'], dimension: 0, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [],
+            mcVersion: VERSIONS['26.3'], dimension: 0, largeBiomes: false, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [],
             rangeBlocks: 300, count: 10, startingSeed: 0n,
         });
         expect(typeof DEFAULT_CRITERIA.startingSeed).toBe('bigint');

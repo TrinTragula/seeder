@@ -9,7 +9,7 @@ import { clearSeedQueryCache } from '../../../shared/hooks/useSeedQuery';
 
 vi.mock('../../../library/queue', async () => ({ QueueManager: (await import('../../../test/fakes')).FakeQueueManager }));
 
-const WORLD = { seed: '8091867987493326313', mcVersion: 35, dimension: -1, yHeight: 62, versionLabel: '26.3' };
+const WORLD = { seed: '8091867987493326313', mcVersion: 35, dimension: -1, yHeight: 62, versionLabel: '26.3', largeBiomes: false };
 
 // Stands in for ControlsBlock, and proves the context reaches what the panel renders.
 let seen = null;

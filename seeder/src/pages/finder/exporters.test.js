@@ -94,15 +94,23 @@ describe('toJson', () => {
         expect(data.excludeBiomes).toEqual([biome('Ocean'), biome('Deep Ocean')]);
     });
 
+    it('carries the world type: largeBiomes true, and the CSV criteria name it', () => {
+        const big = { ...criteria, largeBiomes: true };
+        expect(JSON.parse(toJson(big, views)).largeBiomes).toBe(true);
+        expect(toCsv(big, views)).toContain('Large Biomes');
+        expect(toCsv(criteria, views)).not.toContain('Large Biomes');
+    });
+
     it('has exactly the documented keys, in order, with string seeds and start', () => {
         const json = toJson(criteria, views, { start: 2n ** 63n + 5n });
         const data = JSON.parse(json);
         expect(Object.keys(data)).toEqual([
-            'version', 'mcVersion', 'dimension', 'rangeBlocks', 'yHeight', 'biomes', 'anyBiomes', 'excludeBiomes', 'structures', 'count', 'start', 'generatedWith', 'hits',
+            'version', 'mcVersion', 'largeBiomes', 'dimension', 'rangeBlocks', 'yHeight', 'biomes', 'anyBiomes', 'excludeBiomes', 'structures', 'count', 'start', 'generatedWith', 'hits',
         ]);
         expect(data).toEqual({
             version: '26.3',
             mcVersion: VERSIONS['26.3'],
+            largeBiomes: false,
             dimension: 0,
             rangeBlocks: 300,
             yHeight: 64,

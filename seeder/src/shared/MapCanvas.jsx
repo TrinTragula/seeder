@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { DrawSeed } from '../library/draw';
+import { engineVersion } from '../util/seed';
 import { useQueueManager } from './hooks/useQueueManager';
 import MapTip from './MapTip';
 import './MapCanvas.css';
@@ -33,9 +34,12 @@ const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 
  * until the world changes, setOverlay(name, on), getDrawer). `overlays` = { slime,
  * chunkGrid } (bools) survive world changes. `exposeGlobal` publishes the renderer
  * as window.__seederDrawer for the bench and the e2e tests (main map only).
+ * `largeBiomes` is the world type: the renderer is handed the engine's packed version
+ * (engineVersion), so every tile, spawn and structure it asks for, and every cache key
+ * built from them, is the Large Biomes world's.
  */
 export default function MapCanvas({
-    mcVersion, seed, dimension = 0, yHeight = 256,
+    mcVersion, seed, dimension = 0, yHeight = 256, largeBiomes = false,
     structuresToShow = NONE, showStructureCoords = true, overlays = NO_OVERLAYS,
     onHover, onBusy, onSpawn, onStrongholds,
     apiRef, exposeGlobal = false, className = '',
@@ -47,6 +51,7 @@ export default function MapCanvas({
     // DrawSeed's { hover, pin }; and whether the user has moved the map yet (the hint's end).
     const [tip, setTip] = useState({ hover: null, pin: null });
     const [moved, setMoved] = useState(false);
+    const worldVersion = engineVersion(mcVersion, largeBiomes, dimension);
 
     // The callbacks are usually inline arrows (a new function every render); a ref keeps
     // the effects below keyed on data only, like useSearchParamsState does.
@@ -75,7 +80,7 @@ export default function MapCanvas({
             return true;
         };
         fit();   // before construction: DrawSeed centres world (0,0) from canvas.width/height
-        const drawer = new DrawSeed(mcVersion, queue, canvas, null, (next) => {
+        const drawer = new DrawSeed(worldVersion, queue, canvas, null, (next) => {
             setTip(next);
             if (next.hover) callbacks.current.onHover?.(next.hover.x, next.hover.z, next.hover.biome);
         }, TILE, PIX_DIM, { exposeGlobal, onUserMove: () => setMoved(true) });
@@ -117,7 +122,7 @@ export default function MapCanvas({
         const current = () => mine === generation.current;
         drawer.clear();
         drawer.setSeed(seed);
-        drawer.setMcVersion(mcVersion);
+        drawer.setMcVersion(worldVersion);
         drawer.setDimension(dimension);
         drawer.setYHeight(yHeight);
         drawer.setStructuresShown(structuresToShow);
@@ -141,7 +146,7 @@ export default function MapCanvas({
         });
         // yHeight, structuresToShow and showStructureCoords are read as this render's
         // values; their own changes are handled below without a clear().
-    }, [seed, mcVersion, dimension]);
+    }, [seed, worldVersion, dimension]);
 
     // Height only: tiles are keyed by height, so a repaint fetches the new layer while
     // the pan and the overlays stay where they are.

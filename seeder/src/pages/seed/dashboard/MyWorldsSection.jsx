@@ -10,7 +10,8 @@ import { DIMENSION_LABELS, relativeTime } from './format';
 
 const isShown = (saved, world) => saved.seed === world.seed
     && saved.version === world.versionLabel
-    && saved.dimension === world.dimension;
+    && saved.dimension === world.dimension
+    && !!saved.largeBiomes === !!world.largeBiomes;
 
 // The name cell: the name, or an inline form while it is being renamed.
 function NameCell({ saved, renaming, onRename, onDone }) {
@@ -56,6 +57,7 @@ function WorldRow({ saved, current, store }) {
             seed: saved.seed,
             mcVersion: VERSIONS[saved.version] ?? VERSIONS[DEFAULT_VERSION],
             dimension: saved.dimension,
+            largeBiomes: saved.largeBiomes,
         }));
     };
     return (
@@ -67,7 +69,7 @@ function WorldRow({ saved, current, store }) {
                 onDone={() => setMode(null)}
             />
             <td data-label="Seed"><code>{saved.seed}</code></td>
-            <td data-label="Version">{saved.version}</td>
+            <td data-label="Version">{saved.version}{saved.largeBiomes && ' (Large Biomes)'}</td>
             <td data-label="Dimension">{DIMENSION_LABELS[saved.dimension]}</td>
             <td data-label="Last opened">{relativeTime(saved.lastOpenedAt)}</td>
             <td data-label="Actions">

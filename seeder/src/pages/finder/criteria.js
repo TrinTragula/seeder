@@ -20,6 +20,7 @@ export const HEIGHT_FROM = VERSIONS['1.18'];
 export const DEFAULT_CRITERIA = {
     mcVersion: VERSIONS[DEFAULT_VERSION],
     dimension: 0,
+    largeBiomes: false, // the world type: Large Biomes (1.3+) instead of Default
     yHeight: 256,
     biomes: [],         // all of these
     anyBiomes: [],      // at least one of these

@@ -98,6 +98,15 @@ describe('previewTarget', () => {
 });
 
 describe('summaryOf', () => {
+    it('names Large Biomes after the version, only when set; the view carries the type', () => {
+        const base = { ...criteria, structures: [VILLAGE], biomes: [], rangeBlocks: 300 };
+        expect(summaryOf({ ...base, largeBiomes: true })).toBe(summaryOf(base).replace(' · Overworld', ' · Large Biomes · Overworld'));
+        expect(summaryOf({ ...base, largeBiomes: false })).toBe(summaryOf(base));
+        expect(summaryOf(base)).not.toContain('Large');
+        expect(toHitView({ seed: 1n, spawnX: 0, spawnZ: 0, structures: [] }, { ...base, largeBiomes: true }).largeBiomes).toBe(true);
+        expect(toHitView({ seed: 1n, spawnX: 0, spawnZ: 0, structures: [] }, base).largeBiomes).toBe(false);
+    });
+
     it('structures, biomes, range, version, dimension', () => {
         expect(summaryOf({ ...criteria, structures: [VILLAGE], biomes: [biome('Cherry Grove')], rangeBlocks: 300 }))
             .toBe('Village · Cherry Grove · 300 blocks · 26.3 · Overworld');

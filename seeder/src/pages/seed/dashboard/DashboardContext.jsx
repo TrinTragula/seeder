@@ -5,7 +5,10 @@ const DashboardContext = createContext(null);
 /*
  * What every dashboard section needs, without prop threading. SeedPanel
  * provides:
- *   world               { seed: "decimal", mcVersion: <int>, dimension: 0|-1|1, yHeight, versionLabel }
+ *   world               { seed: "decimal", mcVersion: <int>, dimension: 0|-1|1, yHeight, versionLabel,
+ *                       largeBiomes: bool }. mcVersion is the plain VERSIONS int (version checks,
+ *                       GET_VERSION_SUPPORT); every other engine request sends
+ *                       engineVersion(mcVersion, largeBiomes, <the request's dimension>).
  *   mapApi              ref to MapCanvas' api (zoom, dezoom, the pans, panTo, setHighlight, setOverlay, getDrawer)
  *   sheetApi            ref to the bottom sheet's { open(snap), close(), getSnap() }; .current is null on desktop
  *   structuresToShow    StructureType ints drawn on the map, and setStructuresToShow

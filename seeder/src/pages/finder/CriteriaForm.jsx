@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import Select, { createFilter } from 'react-select';
 import { BIOMES, STRUCTURES_OPTIONS, VERSIONS_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS } from '../../util/constants';
+import { WORLD_TYPE_OPTIONS, supportsLargeBiomes, worldTypeHint } from '../../util/seed';
 import { parseSeed64 } from '../../shared/finderUrl';
 import HelpTip from '../../shared/HelpTip';
 import { HELP } from '../../shared/help';
@@ -74,8 +75,12 @@ function useDraft(value, format = String) {
  */
 export default function CriteriaForm({ criteria, onChange, onSearch, support, disabled = false }) {
     const id = useId();
-    const { mcVersion, dimension, biomes, anyBiomes = [], excludeBiomes = [], structures, rangeBlocks, yHeight, count, startingSeed } = criteria;
+    const { mcVersion, dimension, largeBiomes = false, biomes, anyBiomes = [], excludeBiomes = [], structures, rangeBlocks, yHeight, count, startingSeed } = criteria;
     const [advancedOpen, setAdvancedOpen] = useState(false);
+    // The World type sits in Advanced (owner, 2026-09-26); like the biome lists below, a
+    // Large Biomes search keeps it open, so the criterion is never hidden.
+    const advancedShown = advancedOpen || largeBiomes;
+    const worldTypeNote = worldTypeHint(mcVersion, dimension);
     // "Any of" / "Avoid" sit behind a disclosure so Search stays above the fold at 1280×800
     // (owner, 2026-09-26). Lists with biomes (a preset, a link) keep it open: a criterion is
     // never hidden.
@@ -244,7 +249,8 @@ export default function CriteriaForm({ criteria, onChange, onSearch, support, di
                     options={VERSIONS_OPTIONS}
                     isDisabled={disabled}
                     value={VERSIONS_OPTIONS.find((o) => o.value === mcVersion)}
-                    onChange={(option) => change({ mcVersion: option.value })}
+                    // A version without Large Biomes (before 1.3) searches Default worlds.
+                    onChange={(option) => change({ mcVersion: option.value, largeBiomes: largeBiomes && supportsLargeBiomes(option.value) })}
                     {...menuProps}
                 />
             </div>
@@ -298,14 +304,26 @@ export default function CriteriaForm({ criteria, onChange, onSearch, support, di
                 <button
                     type="button"
                     className="btn btn--full criteria-form__advanced-toggle"
-                    aria-expanded={advancedOpen}
+                    aria-expanded={advancedShown}
                     aria-controls={`${id}-advanced`}
-                    disabled={disabled}
+                    disabled={disabled || largeBiomes}
                     onClick={() => setAdvancedOpen((open) => !open)}
                 >
                     Advanced
                 </button>
-                <div id={`${id}-advanced`} className="criteria-form__advanced" hidden={!advancedOpen}>
+                <div id={`${id}-advanced`} className="criteria-form__advanced" hidden={!advancedShown}>
+                    <label htmlFor={`${id}-world-type`}>World type</label>
+                    <Select
+                        inputId={`${id}-world-type`}
+                        options={WORLD_TYPE_OPTIONS}
+                        isDisabled={disabled || worldTypeNote !== null}
+                        isSearchable={false}
+                        value={WORLD_TYPE_OPTIONS.find((o) => o.value === largeBiomes)}
+                        onChange={(option) => change({ largeBiomes: !!option?.value })}
+                        {...menuProps}
+                    />
+                    {worldTypeNote && <p className="criteria-form__hint">{worldTypeNote}</p>}
+
                     <label htmlFor={`${id}-start`}>Start seed</label>
                     <input
                         id={`${id}-start`}

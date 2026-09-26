@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { defaultStorage, readJson, useLocalStorage, writeJson } from './hooks/useLocalStorage';
-import { canonicalSeed } from '../util/seed';
+import { VERSIONS } from '../util/constants';
+import { canonicalSeed, supportsLargeBiomes } from '../util/seed';
 
 // Versioned keys: the shape below is v1, so a future change can be migrated
 // instead of silently misreading what is already in people's browsers.
@@ -16,7 +17,9 @@ const DIMENSIONS = [0, -1, 1];
 /*
  * A saved world:
  *   { id, name, seed: "decimal", version: "<label>", dimension: 0 | -1 | 1,
- *     createdAt: ISO, lastOpenedAt: ISO }
+ *     largeBiomes?: boolean, createdAt: ISO, lastOpenedAt: ISO }
+ * `largeBiomes` is the world type (true: Large Biomes). Worlds saved before it existed
+ * have no such field and are Default worlds, so the shape stays v1.
  * The list is most-recently-opened first and holds at most MAX_WORLDS entries.
  * The seed is a string because it is 64-bit and must never go through Number.
  */
@@ -27,6 +30,7 @@ export const isWorld = (world) =>
     && typeof world.seed === 'string' && DECIMAL.test(world.seed)
     && typeof world.version === 'string' && world.version !== ''
     && DIMENSIONS.includes(world.dimension)
+    && (world.largeBiomes === undefined || typeof world.largeBiomes === 'boolean')
     && typeof world.createdAt === 'string' && typeof world.lastOpenedAt === 'string';
 
 // Anything stored by an older build, a broken write or a hand-edited devtools
@@ -44,16 +48,19 @@ const defaultName = (seed) => `Seed ${seed}`;
 const newId = (now) => globalThis.crypto?.randomUUID?.() ?? `${now}-${Math.random().toString(36).slice(2)}`;
 
 // The identity of a world is what it opens, not what it is called: the same seed
-// on the same version in the same dimension is one entry however often it is saved.
-const keyOf = ({ seed, version, dimension }) => `${seed}|${version}|${dimension ?? 0}`;
+// on the same version in the same dimension and world type is one entry however often
+// it is saved. A Default world's key is the one it had before world types existed.
+const keyOf = ({ seed, version, dimension, largeBiomes }) => `${seed}|${version}|${dimension ?? 0}${largeBiomes ? '|large' : ''}`;
 
 // The seed is stored as the one it opens, parsed like the seed box parses it:
 // "007" and "7" are one world, and text is hashed. A missing or blank seed stays
-// empty, which no world accepts.
-const normalise = ({ seed, version, dimension }) => ({
+// empty, which no world accepts. Large Biomes needs a version that has it (1.3+), and
+// is written only when set: a Default world is stored exactly as before world types.
+const normalise = ({ seed, version, dimension, largeBiomes }) => ({
     seed: String(seed ?? '').trim() === '' ? '' : canonicalSeed(seed),
     version: String(version),
     dimension: DIMENSIONS.includes(Number(dimension)) ? Number(dimension) : 0,
+    ...(largeBiomes === true && supportsLargeBiomes(VERSIONS[String(version)] ?? 0) ? { largeBiomes: true } : {}),
 });
 
 export function loadWorlds(storage = defaultStorage()) {
@@ -76,9 +83,9 @@ export function findWorld(list, target) {
  * job). Over MAX_WORLDS the least recently opened entries make room. A world
  * with no seed or no version is not saved: the list comes back unchanged.
  */
-export function addWorld(list, { name, seed, version, dimension } = {}, now = Date.now()) {
+export function addWorld(list, { name, seed, version, dimension, largeBiomes } = {}, now = Date.now()) {
     const worlds = sanitizeWorlds(list);
-    const target = normalise({ seed, version, dimension });
+    const target = normalise({ seed, version, dimension, largeBiomes });
     const at = new Date(now).toISOString();
     if (target.seed === '' || target.version === '' || version == null) return worlds;
 
@@ -138,8 +145,8 @@ export function loadLastSeed(storage = defaultStorage()) {
     return { ...normalise(last) };
 }
 
-export function saveLastSeed({ seed, version, dimension } = {}, storage = defaultStorage()) {
-    return writeJson(storage, LAST_SEED_KEY, normalise({ seed, version, dimension }));
+export function saveLastSeed({ seed, version, dimension, largeBiomes } = {}, storage = defaultStorage()) {
+    return writeJson(storage, LAST_SEED_KEY, normalise({ seed, version, dimension, largeBiomes }));
 }
 
 // The saved worlds as React state: write-through to localStorage, and refreshed
@@ -154,8 +161,8 @@ export function useWorlds(storage = defaultStorage()) {
     const rename = useCallback((id, name) => setStored((list) => renameWorld(list, id, name)), [setStored]);
     const touch = useCallback((id, now = Date.now()) =>
         setStored((list) => touchWorld(list, id, now)), [setStored]);
-    const isSaved = useCallback((seed, version, dimension) =>
-        !!findWorld(worlds, { seed, version, dimension }), [worlds]);
+    const isSaved = useCallback((seed, version, dimension, largeBiomes = false) =>
+        !!findWorld(worlds, { seed, version, dimension, largeBiomes }), [worlds]);
 
     return { worlds, add, remove, rename, touch, isSaved };
 }

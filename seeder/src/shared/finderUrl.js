@@ -1,13 +1,15 @@
-import { BIOMES, STRUCTURES_OPTIONS } from '../util/constants';
-import { getInitialVersion } from '../util/seed';
+import { BIOMES, STRUCTURES_OPTIONS, VERSIONS } from '../util/constants';
+import { getInitialVersion, supportsLargeBiomes } from '../util/seed';
 import { SITE_URL, versionLabelOf } from './seedUrl';
 import { COUNT_OPTIONS, DEFAULT_CRITERIA, MAX_RANGE_BLOCKS, MIN_RANGE_BLOCKS } from '../pages/finder/criteria';
 
 // The finder's stable URL contract:
-//     /finder/?version=<label>&dim=<n>&range=<blocks>&y=<n>&count=<n>&start=<decimal>
+//     /finder/?version=<label>&dim=<n>[&world=large]&range=<blocks>&y=<n>&count=<n>&start=<decimal>
 //              [&biomes=185,132][&any=12,140][&exclude=0,24][&structures=5,11][&seeds=<decimal>,…]
 // biomes: all required; any: at least one of them; exclude: none of them. Lists
 // missing from a URL are empty, so links made before any/exclude existed still parse.
+// world: `large` searches Large Biomes worlds (1.3+); absent (or an older version) is
+// Default, so links made before world types existed still read as they did.
 // A criteria URL never starts a search by itself; `seeds` switches the page to
 // render-only mode.
 export const FINDER_PATH = '/finder/';
@@ -68,9 +70,11 @@ export function parseFinderUrl(search) {
     const start = parseSeed64(params.get('start')) ?? 0n;
     const seeds = (params.get('seeds') ?? '').split(',')
         .map(parseSeed64).filter((n) => n !== null).map(String);
+    const mcVersion = getInitialVersion(params.get('version') ?? undefined);
     const criteria = {
-        mcVersion: getInitialVersion(params.get('version') ?? undefined),
+        mcVersion,
         dimension: ['-1', '0', '1'].includes(dim) ? Number(dim) : 0,
+        largeBiomes: params.get('world') === 'large' && supportsLargeBiomes(mcVersion),
         yHeight: intIn(params.get('y'), Y_MIN, Y_MAX, DEFAULT_CRITERIA.yHeight),
         biomes: idList(params.get('biomes'), BIOME_IDS),
         anyBiomes: idList(params.get('any'), BIOME_IDS),
@@ -85,7 +89,8 @@ export function parseFinderUrl(search) {
 
 /*
  * The URL for a finder state. Every parameter is written, in a fixed order, so a
- * pasted link is unambiguous; only empty biome lists / structures / seeds are left out.
+ * pasted link is unambiguous; only empty biome lists / structures / seeds and the
+ * Default world type are left out.
  * `start` defaults to the criteria's own starting seed. Lists keep literal commas
  * (URLSearchParams would write %2C), which is what the contract shows.
  */
@@ -94,6 +99,7 @@ export function buildFinderUrl(criteria, { seeds = null, start = criteria.starti
     const parts = [
         `version=${encodeURIComponent(version)}`,
         `dim=${criteria.dimension ?? 0}`,
+        ...(criteria.largeBiomes && supportsLargeBiomes(VERSIONS[version] ?? 0) ? ['world=large'] : []),
         `range=${criteria.rangeBlocks}`,
         `y=${criteria.yHeight}`,
         `count=${criteria.count}`,

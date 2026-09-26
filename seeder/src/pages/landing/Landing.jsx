@@ -21,10 +21,11 @@ const MAX_WORLD_LINKS = 3;
 
 // Stored worlds carry a version label; one this build no longer knows opens on the
 // default version, the way the seed page itself treats an unknown ?version=.
-const seedUrlOf = ({ seed, version, dimension }) =>
-    buildSeedUrl({ seed, mcVersion: VERSIONS[version] ?? VERSIONS[DEFAULT_VERSION], dimension });
+const seedUrlOf = ({ seed, version, dimension, largeBiomes }) =>
+    buildSeedUrl({ seed, mcVersion: VERSIONS[version] ?? VERSIONS[DEFAULT_VERSION], dimension, largeBiomes });
 
-const sameWorld = (a, b) => a.seed === b.seed && a.version === b.version && a.dimension === b.dimension;
+const sameWorld = (a, b) => a.seed === b.seed && a.version === b.version && a.dimension === b.dimension
+    && !!a.largeBiomes === !!b.largeBiomes;
 
 // What this browser remembers, read once: the landing never writes storage.
 const NOTHING_REMEMBERED = { last: null, worlds: [] };

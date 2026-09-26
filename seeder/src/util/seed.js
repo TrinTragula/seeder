@@ -32,6 +32,35 @@ export const canonicalSeed = (text) => {
     return String(seedFromString(trimmed));
 };
 
+// The Large Biomes world type exists from 1.3 and changes only the Overworld (cubiomes
+// ignores it in Beta, before 1.3, in the Nether and in the End).
+export const LARGE_BIOMES_FROM = VERSIONS['1.3'];
+export const supportsLargeBiomes = (mcVersion, dimension = 0) => mcVersion >= LARGE_BIOMES_FROM && dimension === 0;
+
+// The version int the engine takes for a world: the plain MCVersion for a Default world,
+// MCVersion | 1 << 16 for a Large Biomes one (cubiomes-mods/api.c unpacks it). It exists
+// only on the way to the engine: URLs, storage and VERSIONS hold the plain version and a
+// boolean, and the version probes (GET_VERSION_SUPPORT) take the plain version. Pass the
+// request's dimension where one applies, so the Nether and End keep one cache key; leave
+// it out for find_seeds, whose hits in every dimension carry the Overworld spawn.
+export const LARGE_BIOMES_FLAG = 1 << 16;
+
+// The World type control (seed page and finder): value = largeBiomes.
+export const WORLD_TYPE_OPTIONS = [
+    { value: false, label: 'Default' },
+    { value: true, label: 'Large Biomes' },
+];
+// Why the control is disabled, or null when it is not. In the Nether and the End the
+// choice is kept (it is still that world), before 1.3 the world is Default.
+export const worldTypeHint = (mcVersion, dimension = 0) => {
+    if (mcVersion < LARGE_BIOMES_FROM) return 'Large Biomes starts in 1.3.';
+    if (dimension === -1) return 'No effect in the Nether.';
+    if (dimension === 1) return 'No effect in the End.';
+    return null;
+};
+export const engineVersion = (mcVersion, largeBiomes, dimension = 0) =>
+    (largeBiomes && supportsLargeBiomes(mcVersion, dimension) ? mcVersion | LARGE_BIOMES_FLAG : mcVersion);
+
 // Old share URLs carried the numeric index of OLD_VERSIONS; newer ones carry the label.
 export const getInitialVersion = (urlVersion) => {
     let version = urlVersion;

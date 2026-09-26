@@ -1,4 +1,5 @@
 import CopyButton from '../../../shared/CopyButton';
+import { engineVersion } from '../../../util/seed';
 import { useSeedQuery } from '../../../shared/hooks/useSeedQuery';
 import { formatCoords, formatDistance } from '../../../shared/format';
 import { STRUCTURES_OPTIONS } from '../../../util/constants';
@@ -21,9 +22,9 @@ export const noneWithin = (type, radiusBlocks = 4096) => (type === END_GATEWAY
  * skeleton until it lands. Spans only: the badges sit inside the row's <button>.
  */
 function VariantBadges({ world, row, enabled }) {
-    const { mcVersion, seed, dimension } = world;
+    const { mcVersion, seed, dimension, largeBiomes } = world;
     const { type, x, z } = row;
-    const { data, loading } = useSeedQuery('STRUCTURE_VARIANT', { mcVersion, seed, dimension, type, x, z }, { enabled });
+    const { data, loading } = useSeedQuery('STRUCTURE_VARIANT', { mcVersion: engineVersion(mcVersion, largeBiomes, dimension), seed, dimension, type, x, z }, { enabled });
     if (!enabled) return null;
     if (loading) return <span className="badge-skeleton" aria-hidden="true" />;
     const badges = badgesFor(type, data?.variant);

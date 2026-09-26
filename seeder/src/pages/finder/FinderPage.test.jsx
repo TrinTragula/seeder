@@ -124,7 +124,7 @@ describe('FinderPage', () => {
         expect(qm().findSeeds).toHaveBeenCalledTimes(1);
         const [sent] = qm().findSeeds.mock.calls[0];
         expect(sent).toEqual({
-            mcVersion: VERSIONS['26.3'], dimension: 0, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [VILLAGE], rangeBlocks: 300,
+            mcVersion: VERSIONS['26.3'], largeBiomes: false, dimension: 0, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [VILLAGE], rangeBlocks: 300,
             startingSeed: 9007199254740993n, count: 25, maxSeedsToScan: maxSeedsToScanFor({ structures: [VILLAGE] }),
         });
         expect(results().getByRole('status')).toHaveTextContent('Searching…');
@@ -221,6 +221,30 @@ describe('FinderPage', () => {
         const [world] = JSON.parse(window.localStorage.getItem(WORLDS_KEY));
         expect(world).toMatchObject({ name: 'Seed 3774', seed: '3774', version: '1.21.11', dimension: 0 });
         expect(screen.getByRole('button', { name: 'Saved ✓' })).toBeDisabled();
+    });
+
+    it('a Large Biomes search: the URL, the coordinator, the row\'s links and the saved world all keep the type', async () => {
+        setBox();
+        await renderAt('/finder/?version=1.16.5&world=large&structures=5');
+        expect(search().get('world')).toBe('large');
+        await clickSearch();
+        expect(qm().findSeeds.mock.calls[0][0]).toMatchObject({ mcVersion: VERSIONS['1.16.5'], largeBiomes: true });
+        await emit(hit(3774n));
+        expect(screen.getByRole('link', { name: 'Open seed' })).toHaveAttribute('href', '/seed/?seed=3774&version=1.16.5&world=large');
+        // The row's own engine questions and its thumbnail are about the Large Biomes world.
+        for (const [kind, data] of qm().request.mock.calls) {
+            if (kind === 'GET_VERSION_SUPPORT') expect(data.mcVersion).toBe(VERSIONS['1.16.5']);
+            else if ('mcVersion' in data) expect(data.mcVersion, kind).toBe(VERSIONS['1.16.5'] | (1 << 16));
+        }
+        expect(qm().requestArea.mock.calls.length).toBeGreaterThan(0);
+        fireEvent.click(screen.getByRole('button', { name: 'Save world' }));
+        await flush();
+        const [world] = JSON.parse(window.localStorage.getItem(WORLDS_KEY));
+        expect(world).toMatchObject({ seed: '3774', version: '1.16.5', dimension: 0, largeBiomes: true });
+        // Opening the row's map draws the Large Biomes world.
+        fireEvent.click(screen.getByRole('button', { name: 'Preview 3774' }));
+        await flush();
+        expect(FakeDrawSeed.latest().setMcVersion).toHaveBeenLastCalledWith(VERSIONS['1.16.5'] | (1 << 16));
     });
 
     it('the results slot reads status, ad, rows', async () => {

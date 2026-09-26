@@ -92,6 +92,7 @@ export function useFinderSearch(queue) {
 
         const searching = {
             mcVersion: next.mcVersion,
+            largeBiomes: !!next.largeBiomes,
             dimension: next.dimension,
             yHeight: next.yHeight,
             biomes: next.biomes,

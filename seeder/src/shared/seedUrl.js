@@ -1,11 +1,13 @@
 import { HEIGHT_OPTIONS, STRUCTURES_OPTIONS, VERSIONS } from '../util/constants';
-import { DEFAULT_VERSION, canonicalSeed, getInitialVersion, getRandomSeed } from '../util/seed';
+import { DEFAULT_VERSION, canonicalSeed, getInitialVersion, getRandomSeed, supportsLargeBiomes } from '../util/seed';
 
 // The seed page lives at one path and publishes one URL shape:
-//     /seed/?seed=<decimal>&version=<label>[&dim=-1|1]
+//     /seed/?seed=<decimal>&version=<label>[&dim=-1|1][&world=large]
 //            [&structs=<StructureType>,…][&coords=0][&slime=1][&grid=1][&y=<n>]
 // The first line is the canonical URL: saved worlds, the finder's links and the legacy
-// redirect only ever write that. The second line is the view, which the seed page adds
+// redirect only ever write that. `world=large` is the Large Biomes world type: it
+// changes what the world is, so it is canonical, kept in every dimension (a Large
+// Biomes world's Nether is still that world) and only from 1.3, where the type exists. The second line is the view, which the seed page adds
 // to its own address bar and Share box and reads once when it loads, so a reload or a
 // recipient sees the same structures, overlays and biome height:
 //   structs  STRUCTURES_OPTIONS values, in pick order; unknown ids and duplicates are
@@ -77,6 +79,8 @@ function parseView(params) {
  *           outside the long range included - hashed, nothing at all -> random.
  *   version a VERSIONS label, or a pre-1.0 numeric index via OLD_VERSIONS.
  *   dim     -1 (Nether) or 1 (End); anything else is the Overworld.
+ *   world   `large` is a Large Biomes world (largeBiomes: true) from 1.3 on; anything
+ *           else, or an older version, is Default.
  *   from    `legacy` marks a visitor arriving from a pre-1.0 share link.
  *   view    the view params the URL set (see the contract above), e.g. { slime: true }.
  */
@@ -85,10 +89,12 @@ export function parseSeedPage(search) {
     const raw = (params.get('seed') ?? '').trim();
     const seed = raw ? canonicalSeed(raw) : getRandomSeed();
     const dim = params.get('dim');
+    const mcVersion = getInitialVersion(params.get('version') ?? undefined);
     return {
         seed,
-        mcVersion: getInitialVersion(params.get('version') ?? undefined),
+        mcVersion,
         dimension: ['-1', '1'].includes(dim) ? Number(dim) : 0,
+        largeBiomes: params.get('world') === 'large' && supportsLargeBiomes(mcVersion),
         fromLegacy: params.get('from') === 'legacy',
         view: parseView(params),
     };
@@ -97,17 +103,19 @@ export function parseSeedPage(search) {
 /*
  * The canonical URL for a seed page state. `mcVersion` may be the cubiomes int or
  * the label itself. The Overworld is the default, so `dim` is omitted for it -
- * that keeps the common share URL short and makes the contract single-valued.
+ * that keeps the common share URL short and makes the contract single-valued. So is
+ * the Default world type: `world=large` only for a Large Biomes world on 1.3+.
  * Transient parameters (from=legacy) are never emitted, which is how the first
  * replaceState strips them. The view is written only when `view` is passed (the seed
  * page's own address bar and Share box); it holds the page's current values (the
  * DEFAULT_VIEW keys), and only those that differ from the default are written, lists
  * with literal commas.
  */
-export function buildSeedUrl({ seed, mcVersion, dimension = 0 }, { absolute = false, view = null } = {}) {
+export function buildSeedUrl({ seed, mcVersion, dimension = 0, largeBiomes = false }, { absolute = false, view = null } = {}) {
     const version = typeof mcVersion === 'string' ? mcVersion : versionLabelOf(mcVersion);
     const query = new URLSearchParams({ seed: String(seed), version });
     if (dimension) query.set('dim', String(dimension));
+    if (largeBiomes && supportsLargeBiomes(VERSIONS[version] ?? 0)) query.set('world', 'large');
     const url = `${absolute ? SITE_URL : ''}${SEED_PATH}?${query}`;
     if (!view) return url;
 

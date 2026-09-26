@@ -93,7 +93,7 @@ static double g_lastProgress; // emscripten_get_now() of the last SEED_UPDATE
 
 // The world the dashboard exports last applied to g (see useWorld). Every other export
 // that touches g calls forgetWorld() first.
-static int g_worldValid, g_worldMc, g_worldDim;
+static int g_worldValid, g_worldMc, g_worldDim, g_worldFlags;
 static uint64_t g_worldSeed;
 
 int main()
@@ -105,13 +105,32 @@ static void forgetWorld(void)
     g_worldValid = 0;
 }
 
+// Every export's version argument is packed: the cubiomes MCVersion in the low 16 bits,
+// the world-type flags above (LARGE_BIOMES << 16), so a world type needs no new
+// argument, message field or cwrap signature. A plain version is a Default world. The
+// flag is dropped where cubiomes ignores it (Beta, before 1.3), so equal worlds share
+// one generator state and one cache key; the Nether and the End keep it for the
+// Overworld spawn find_seeds reports with their hits (see useWorld).
+static int unpackVersion(int arg, int *flags)
+{
+    int mc = arg & 0xffff;
+    int f = (arg >> 16) & LARGE_BIOMES;
+    if (mc < MC_1_3)
+        f = 0;
+    if (flags)
+        *flags = f;
+    return mc;
+}
+
 // Generate a scale-4 (1:4 cells) biome area in `dimension` (-1 Nether, 0 Overworld, 1 End)
 // at height yHeight; the result is row-major, freed by free_memory().
 EMSCRIPTEN_KEEPALIVE
 int *generate_area(int mcVersion, int64_t seed, int areaX, int areaZ, int areaWidth, int areaHeight, int dimension, int yHeight)
 {
+    int flags;
+    mcVersion = unpackVersion(mcVersion, &flags);
     forgetWorld();
-    setupGenerator(&g, mcVersion, 0);
+    setupGenerator(&g, mcVersion, flags);
     Range r = {4, areaX, areaZ, areaWidth, areaHeight, yHeight / 4, 1};
     // applySeed first: allocCache sizes the buffer from g->dim, and setupGenerator leaves
     // it DIM_UNDEF - the layer-stack generators (up to 1.17) then got a cache 6-13x too
@@ -165,12 +184,14 @@ int mc_newest(void)
     return MC_NEWEST;
 }
 
+// The probes take a plain version; a packed one is stripped rather than read as an
+// unknown version (the world type changes no version's biome or structure list).
 EMSCRIPTEN_KEEPALIVE
 int biome_exists(int mc, int id)
 {
     if (id < 0 || id >= 256)
         return 0;
-    return biomeExists(mc, id);
+    return biomeExists(unpackVersion(mc, NULL), id);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -187,6 +208,7 @@ EMSCRIPTEN_KEEPALIVE
 int structure_info(int mc, int type)
 {
     StructureConfig sc;
+    mc = unpackVersion(mc, NULL);
     if (type <= Feature || type >= FEATURE_NUM || !getStructureConfig(type, mc, &sc))
         return -100;
     return sc.dim;
@@ -198,6 +220,7 @@ EMSCRIPTEN_KEEPALIVE
 int structure_region_blocks(int mc, int type)
 {
     StructureConfig sc;
+    mc = unpackVersion(mc, NULL);
     if (type <= Feature || type >= FEATURE_NUM || !getStructureConfig(type, mc, &sc))
         return 0;
     return sc.regionSize * 16;
@@ -259,6 +282,76 @@ static int resolveStructure(int uiType, int mc, int dim, int *type, StructureCon
     if (sc->dim != dim)
         return ERR_STRUCT_DIMENSION;
     return 0;
+}
+
+// ---------------------------------------------------------------------------
+// Monuments in Large Biomes worlds, 1.9-1.17. cubiomes' isViableStructurePos prechecks
+// a deep ocean on the fixed L_SHORE_16 layer at chunk coordinates, which is the 1:16
+// layer of a Default stack but 1:64 in Large Biomes (two zooms sit below it): the
+// precheck then reads a spot four times farther out and drops ~80% of the monuments
+// that generate. largeMonument is upstream's test with that precheck read on the
+// stack's own 1:16 layer; on a Default stack it matches isViableStructurePos exactly.
+// ---------------------------------------------------------------------------
+
+// Declared in finders.c, not in finders.h.
+int areBiomesViable(const Generator *g, int x, int y, int z, int rad, uint64_t validB, uint64_t validM, int approx);
+
+#define DEEP_OCEANS ((1ULL << deep_frozen_ocean) | (1ULL << deep_cold_ocean) | (1ULL << deep_ocean) | \
+                     (1ULL << deep_lukewarm_ocean) | (1ULL << deep_warm_ocean))
+#define MONUMENT_WATER (DEEP_OCEANS | (1ULL << ocean) | (1ULL << river) | (1ULL << frozen_river) | (1ULL << frozen_ocean) | \
+                        (1ULL << cold_ocean) | (1ULL << lukewarm_ocean) | (1ULL << warm_ocean))
+
+// The layer filters isViableStructurePos swaps in for a Monument while it samples:
+// a region with no oceanic cell (biome layer) or no monument biome (shore layer)
+// stops the generator. Both look at what a sample depends on, so they hold at any scale.
+static int monumentBiomeLayer(const Layer *l, int *out, int x, int z, int w, int h)
+{
+    int i, err = mapBiome(l, out, x, z, w, h);
+    if (err)
+        return err;
+    for (i = 0; i < w * h; i++)
+        if (isOceanic(out[i]))
+            return 0;
+    return 1;
+}
+
+static int monumentShoreLayer(const Layer *l, int *out, int x, int z, int w, int h)
+{
+    int i, err = mapShore(l, out, x, z, w, h);
+    if (err)
+        return err;
+    for (i = 0; i < w * h; i++)
+        if (isViableFeatureBiome(l->mc, Monument, out[i]))
+            return 0;
+    return 1;
+}
+
+static int largeMonument(int x, int z)
+{
+    int cx = x >> 4, cz = z >> 4, viable = 0;
+    Layer biome = g.ls.layers[L_BIOME_256], shore = g.ls.layers[L_SHORE_16], *entry = g.entry;
+    g.ls.layers[L_BIOME_256].getMap = monumentBiomeLayer;
+    g.ls.layers[L_SHORE_16].getMap = monumentShoreLayer;
+    g.entry = (Layer *)g.ls.entry_16;
+    int id = getBiomeAt(&g, 0, cx, 0, cz);
+    g.entry = entry;
+    if (id >= 0 && isDeepOcean(id))
+    {
+        int sx = cx * 16 + 8, sz = cz * 16 + 8;
+        viable = areBiomesViable(&g, sx, 63, sz, 16, DEEP_OCEANS, 0, 0) && areBiomesViable(&g, sx, 63, sz, 29, MONUMENT_WATER, 0, 0);
+    }
+    g.ls.layers[L_BIOME_256] = biome;
+    g.ls.layers[L_SHORE_16] = shore;
+    return viable;
+}
+
+// isViableStructurePos on g, with the Large Biomes monument fix. Every biome check of a
+// structure attempt goes through here.
+static int viableStructurePos(int type, int x, int z)
+{
+    if (type == Monument && (g.flags & LARGE_BIOMES) && g.dim == DIM_OVERWORLD && g.mc >= MC_1_9 && g.mc <= MC_1_17)
+        return largeMonument(x, z);
+    return isViableStructurePos(type, &g, x, z, 0);
 }
 
 // Resolve one requested type for find_seeds. Returns 0 or an ERR_* code.
@@ -347,14 +440,15 @@ static void reportHit(uint64_t seed, int dim, int nStructs, double examined, dou
     }
     // The Overworld state (layer stack up to 1.17, biome noise from 1.18) shares a union
     // with the Nether and End noise, so a dimension switch must rebuild it: applySeed on
-    // its own would follow clobbered layer pointers.
+    // its own would follow clobbered layer pointers. The rebuild keeps the world type: a
+    // Large Biomes world's Nether hit has a Large Biomes spawn.
     if (dim != DIM_OVERWORLD)
-        setupGenerator(&g, g.mc, 0);
+        setupGenerator(&g, g.mc, g.flags);
     applySeed(&g, DIM_OVERWORLD, seed);
     Pos sp = getSpawn(&g);
     call_seed_found((int64_t)seed, sp.x, sp.z, hitBuf, nStructs, examined, tested);
     if (dim != DIM_OVERWORLD)
-        setupGenerator(&g, g.mc, 0);
+        setupGenerator(&g, g.mc, g.flags);
     applySeed(&g, dim, seed);
 }
 
@@ -385,7 +479,8 @@ double find_seeds(int mc, int dim, int yHeight,
                   int rangeBlocks,
                   int64_t startingSeed, double maxSeedsToScan, int maxResults)
 {
-    int i, j;
+    int i, j, flags;
+    mc = unpackVersion(mc, &flags);
     g_lastTested = 0;
     g_lastHits = 0;
     forgetWorld();
@@ -425,7 +520,7 @@ double find_seeds(int mc, int dim, int yHeight,
             return err;
     }
 
-    setupGenerator(&g, mc, 0);
+    setupGenerator(&g, mc, flags);
     applySeed(&g, dim, (uint64_t)startingSeed);
 
     BiomeFilter filter;
@@ -513,7 +608,7 @@ double find_seeds(int mc, int dim, int yHeight,
                         for (k = 0; k < p->n; k++)
                         {
                             Pos a = p->at[p->order[k]];
-                            if (!isViableStructurePos(p->type, &g, a.x, a.z, 0))
+                            if (!viableStructurePos(p->type, a.x, a.z))
                                 continue;
                             // 1.18+ surface heuristic (desert/jungle temples, mansions): drops false positives.
                             if (dim == DIM_OVERWORLD && !isViableStructureTerrain(p->type, &g, a.x, a.z))
@@ -567,8 +662,10 @@ double search_last_hits(void)
 EMSCRIPTEN_KEEPALIVE
 Pos *find_spawn(int mcVersion, int64_t seed)
 {
+    int flags;
+    mcVersion = unpackVersion(mcVersion, &flags);
     forgetWorld();
-    setupGenerator(&g, mcVersion, 0);
+    setupGenerator(&g, mcVersion, flags);
     applySeed(&g, DIM_OVERWORLD, seed);
     static Pos pos;
     pos = getSpawn(&g);
@@ -578,10 +675,12 @@ Pos *find_spawn(int mcVersion, int64_t seed)
 EMSCRIPTEN_KEEPALIVE
 Pos *find_strongholds(int mcVersion, int64_t seed, int howMany)
 {
+    int flags;
+    mcVersion = unpackVersion(mcVersion, &flags);
     forgetWorld();
     StrongholdIter sh;
     initFirstStronghold(&sh, mcVersion, seed);
-    setupGenerator(&g, mcVersion, 0);
+    setupGenerator(&g, mcVersion, flags);
     applySeed(&g, 0, seed);
 
     int i, N = howMany;
@@ -618,6 +717,8 @@ Pos *find_strongholds(int mcVersion, int64_t seed, int howMany)
 EMSCRIPTEN_KEEPALIVE
 Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int range, int dimension)
 {
+    int flags;
+    mcVersion = unpackVersion(mcVersion, &flags);
     forgetWorld();
     // The UI's one Ruined Portal (11) is Ruined_Portal_N in the Nether, whose regions are
     // 25 chunks up to 1.17 (40 in the Overworld); before this the Nether map placed
@@ -628,7 +729,7 @@ Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int r
     int supported = structType > Feature && structType < FEATURE_NUM && getStructureConfig(structType, mcVersion, &sc);
     if (supported)
     {
-        setupGenerator(&g, mcVersion, 0);
+        setupGenerator(&g, mcVersion, flags);
         applySeed(&g, dimension, seed);
     }
 
@@ -646,7 +747,7 @@ Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int r
             if (supported)
             {
                 Pos a;
-                if (getStructurePos(structType, mcVersion, seed, regionX, regionY, &a) && isViableStructurePos(structType, &g, a.x, a.z, 0))
+                if (getStructurePos(structType, mcVersion, seed, regionX, regionY, &a) && viableStructurePos(structType, a.x, a.z))
                     p = a;
             }
             coords[i] = p;
@@ -685,18 +786,22 @@ static int validDimension(int dim)
     return dim == DIM_OVERWORLD || dim == DIM_NETHER || dim == DIM_END;
 }
 
-// Point g at (mc, seed, dim), skipping the work when it already is. Always a full
+// Point g at (mc | flags, seed, dim), skipping the work when it already is. Always a full
 // setupGenerator + applySeed otherwise: the Overworld state shares a union with the
 // Nether/End noise, so applySeed alone after a dimension switch would follow clobbered
-// layer pointers (see reportHit).
-static void useWorld(int mc, uint64_t seed, int dim)
+// layer pointers (see reportHit). The Nether and the End ignore the world type, so their
+// state is keyed without it.
+static void useWorld(int mc, int flags, uint64_t seed, int dim)
 {
-    if (g_worldValid && g_worldMc == mc && g_worldSeed == seed && g_worldDim == dim)
+    if (dim != DIM_OVERWORLD)
+        flags = 0;
+    if (g_worldValid && g_worldMc == mc && g_worldFlags == flags && g_worldSeed == seed && g_worldDim == dim)
         return;
-    setupGenerator(&g, mc, 0);
+    setupGenerator(&g, mc, flags);
     applySeed(&g, dim, seed);
     g_worldValid = 1;
     g_worldMc = mc;
+    g_worldFlags = flags;
     g_worldSeed = seed;
     g_worldDim = dim;
 }
@@ -705,7 +810,7 @@ static void useWorld(int mc, uint64_t seed, int dim)
 // surface heuristic that drops temples and mansions cubiomes would otherwise accept.
 static int isViableAt(int type, int dim, int x, int z)
 {
-    if (!isViableStructurePos(type, &g, x, z, 0))
+    if (!viableStructurePos(type, x, z))
         return 0;
     return dim != DIM_OVERWORLD || isViableStructureTerrain(type, &g, x, z);
 }
@@ -731,6 +836,8 @@ static int surfaceHeight(int mc, uint64_t seed, int dim, int x, int z)
 EMSCRIPTEN_KEEPALIVE
 int *seed_summary(int mc, int64_t seed, int dim, int yHeight)
 {
+    int flags;
+    mc = unpackVersion(mc, &flags);
     summaryBuf[0] = summaryBuf[1] = 0;
     summaryBuf[2] = -1;
     summaryBuf[3] = INT_MIN;
@@ -739,10 +846,10 @@ int *seed_summary(int mc, int64_t seed, int dim, int yHeight)
     Pos sp = {0, 0};
     if (dim == DIM_OVERWORLD)
     {
-        useWorld(mc, (uint64_t)seed, DIM_OVERWORLD);
+        useWorld(mc, flags, (uint64_t)seed, DIM_OVERWORLD);
         sp = getSpawn(&g);
     }
-    useWorld(mc, (uint64_t)seed, dim);
+    useWorld(mc, flags, (uint64_t)seed, dim);
     summaryBuf[0] = sp.x;
     summaryBuf[1] = sp.z;
     summaryBuf[2] = getBiomeAt(&g, 4, sp.x >> 2, yHeight / 4, sp.z >> 2);
@@ -756,6 +863,8 @@ int *seed_summary(int mc, int64_t seed, int dim, int yHeight)
 EMSCRIPTEN_KEEPALIVE
 int *strongholds_list(int mc, int64_t seed, int howMany, int approx)
 {
+    int flags;
+    mc = unpackVersion(mc, &flags);
     strongholdBuf[0] = 0;
     if (!validVersion(mc) || mc < MC_B1_8)
         return strongholdBuf;
@@ -764,7 +873,7 @@ int *strongholds_list(int mc, int64_t seed, int howMany, int approx)
         howMany = 1;
     if (howMany > limit)
         howMany = limit;
-    useWorld(mc, (uint64_t)seed, DIM_OVERWORLD);
+    useWorld(mc, flags, (uint64_t)seed, DIM_OVERWORLD);
     StrongholdIter sh;
     initFirstStronghold(&sh, mc, (uint64_t)seed);
     const Generator *gen = approx && mc > MC_1_19_2 ? NULL : &g;
@@ -793,6 +902,7 @@ int *strongholds_list(int mc, int64_t seed, int howMany, int approx)
 EMSCRIPTEN_KEEPALIVE
 int *stronghold_analyse(int mc, int64_t seed, int x, int z)
 {
+    mc = unpackVersion(mc, NULL); // pieces only: the world type plays no role
     analyseBuf[0] = analyseBuf[1] = -1;
     analyseBuf[2] = analyseBuf[3] = analyseBuf[4] = 0;
     if (!validVersion(mc) || mc < MC_1_8)
@@ -868,6 +978,8 @@ static int nearestOf(int type, int mc, uint64_t seed, int dim, StructureConfig s
 EMSCRIPTEN_KEEPALIVE
 int *nearest_structures(int mc, int64_t seed, int dim, int cx, int cz, int types[], int n, int maxRadiusBlocks)
 {
+    int flags;
+    mc = unpackVersion(mc, &flags);
     int i;
     if (n < 0)
         n = 0;
@@ -879,7 +991,7 @@ int *nearest_structures(int mc, int64_t seed, int dim, int cx, int cz, int types
         maxRadiusBlocks = MAX_NEAREST_RADIUS;
     int ok = validVersion(mc) && validDimension(dim);
     if (ok)
-        useWorld(mc, (uint64_t)seed, dim);
+        useWorld(mc, flags, (uint64_t)seed, dim);
     for (i = 0; i < n; i++)
     {
         int *out = nearestBuf + 4 * i;
@@ -953,13 +1065,15 @@ static int variantBiome(int type, int mc, int dim, uint64_t seed, int x, int z)
 EMSCRIPTEN_KEEPALIVE
 int *structure_variant(int mc, int64_t seed, int dim, int uiType, int x, int z)
 {
+    int flags;
+    mc = unpackVersion(mc, &flags);
     memset(variantBuf, 0, sizeof(variantBuf));
     variantBuf[8] = variantBuf[9] = -1;
     int type;
     StructureConfig sc;
     if (!validVersion(mc) || !validDimension(dim) || resolveStructure(uiType, mc, dim, &type, &sc))
         return variantBuf;
-    useWorld(mc, (uint64_t)seed, dim);
+    useWorld(mc, flags, (uint64_t)seed, dim);
     int biome = variantBiome(type, mc, dim, (uint64_t)seed, x, z);
     StructureVariant sv;
     int supported = getVariant(&sv, type, mc, (uint64_t)seed, x, z, biome) ? 1 : 0;
@@ -999,9 +1113,11 @@ int *structure_variant(int mc, int64_t seed, int dim, int uiType, int x, int z)
 EMSCRIPTEN_KEEPALIVE
 int biome_at(int mc, int64_t seed, int dim, int x, int y, int z)
 {
+    int flags;
+    mc = unpackVersion(mc, &flags);
     if (!validVersion(mc) || !validDimension(dim))
         return -1;
-    useWorld(mc, (uint64_t)seed, dim);
+    useWorld(mc, flags, (uint64_t)seed, dim);
     return getBiomeAt(&g, 4, x >> 2, y / 4, z >> 2);
 }
 
@@ -1009,10 +1125,12 @@ int biome_at(int mc, int64_t seed, int dim, int x, int y, int z)
 EMSCRIPTEN_KEEPALIVE
 int approx_height(int mc, int64_t seed, int dim, int x, int z)
 {
+    int flags;
+    mc = unpackVersion(mc, &flags);
     if (!validVersion(mc) || !validDimension(dim))
         return INT_MIN;
     if (dim == DIM_OVERWORLD)
-        useWorld(mc, (uint64_t)seed, dim);
+        useWorld(mc, flags, (uint64_t)seed, dim);
     return surfaceHeight(mc, (uint64_t)seed, dim, x, z);
 }
 
@@ -1055,6 +1173,8 @@ unsigned char *slime_chunks(int64_t seed, int cx0, int cz0, int w, int h)
 EMSCRIPTEN_KEEPALIVE
 int *biome_centers(int mc, int64_t seed, int dim, int biomeId, int cx, int cz, int radiusBlocks, int yHeight, int minSizeCells, int nmax)
 {
+    int flags;
+    mc = unpackVersion(mc, &flags);
     int i;
     centersBuf[0] = 0;
     if (!validVersion(mc) || mc < MC_B1_8) // Beta 1.7 has no layer stack to run the locator on
@@ -1086,7 +1206,7 @@ int *biome_centers(int mc, int64_t seed, int dim, int biomeId, int cx, int cz, i
     if (minSizeCells < 1)
         minSizeCells = 1;
 
-    useWorld(mc, (uint64_t)seed, DIM_OVERWORLD);
+    useWorld(mc, flags, (uint64_t)seed, DIM_OVERWORLD);
     int cells = radiusBlocks / 4;
     Range r = {4, (cx >> 2) - cells, (cz >> 2) - cells, 2 * cells, 2 * cells, yHeight / 4, 1};
     size_t need = (size_t)r.sx * r.sz * CENTER_BYTES_PER_CELL + HEAP_SLACK;
@@ -1128,6 +1248,8 @@ static int afkReaches(Pos afk, Pos p, int ax, int ay, int az)
 EMSCRIPTEN_KEEPALIVE
 int *quad_huts(int mc, int64_t seed)
 {
+    int flags;
+    mc = unpackVersion(mc, &flags);
     StructureConfig sc;
     quadBuf[0] = 0;
     if (!validVersion(mc) || !getStructureConfig(Swamp_Hut, mc, &sc))
@@ -1143,7 +1265,7 @@ int *quad_huts(int mc, int64_t seed)
     // The farm footprint the AFK spot is optimised for (isQuadBase's hut size).
     const int ax = 7 + 1, ay = 7 + 43 + 1, az = 9 + 1;
     if (n > 0)
-        useWorld(mc, (uint64_t)seed, DIM_OVERWORLD);
+        useWorld(mc, flags, (uint64_t)seed, DIM_OVERWORLD);
     int count = 0;
     for (i = 0; i < n; i++)
     {
@@ -1192,6 +1314,7 @@ int *quad_huts(int mc, int64_t seed)
 EMSCRIPTEN_KEEPALIVE
 int *fortress_spawners(int mc, int64_t seed, int chunkX, int chunkZ)
 {
+    mc = unpackVersion(mc, NULL); // pieces only: the world type plays no role
     StructureConfig sc;
     fortressBuf[0] = fortressBuf[1] = 0;
     if (!validVersion(mc) || !getStructureConfig(Fortress, mc, &sc))

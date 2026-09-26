@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { STRUCTURES_OPTIONS } from '../../../util/constants';
 import { STRUCTURE_ICONS } from '../../../library/draw';
+import { engineVersion } from '../../../util/seed';
 import { useSeedQuery } from '../../../shared/hooks/useSeedQuery';
 import { structureTypesIn, useVersionSupport } from '../../../shared/hooks/useVersionSupport';
 import { dimensionLabel, distanceBlocks } from '../../../shared/format';
@@ -22,22 +23,23 @@ const OPTION_OF = new Map(STRUCTURES_OPTIONS.map((s, order) => [s.value, { ...s,
 export default function StructuresSection() {
     const { world } = useDashboard();
     // Another world is another list: nothing may carry over from the previous one.
-    return <StructuresList key={`${world.mcVersion}:${world.seed}:${world.dimension}`} />;
+    return <StructuresList key={`${world.mcVersion}:${world.largeBiomes}:${world.seed}:${world.dimension}`} />;
 }
 
 function StructuresList() {
     const { world, mapApi, sheetApi, structuresToShow, setStructuresToShow } = useDashboard();
-    const { seed, mcVersion, dimension, yHeight, versionLabel } = world;
+    const { seed, mcVersion, dimension, yHeight, versionLabel, largeBiomes } = world;
+    const worldVersion = engineVersion(mcVersion, largeBiomes, dimension);
     const overworld = dimension === 0;
     const [expanded, setExpanded] = useState(false);
 
     const version = useVersionSupport(mcVersion);
     // The same params as Spawn and Strongholds: one cached answer for all three.
-    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion, seed, dimension, yHeight }, { enabled: overworld });
+    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion: worldVersion, seed, dimension, yHeight }, { enabled: overworld });
     const types = version.support ? structureTypesIn(version.support, dimension) : [];
     const centre = overworld ? (summary.data ? [summary.data.spawnX, summary.data.spawnZ] : null) : [0, 0];
     const nearest = useSeedQuery('NEAREST_STRUCTURES', {
-        mcVersion, seed, dimension, x: centre?.[0], z: centre?.[1], types, maxRadiusBlocks: RADIUS,
+        mcVersion: worldVersion, seed, dimension, x: centre?.[0], z: centre?.[1], types, maxRadiusBlocks: RADIUS,
     }, { enabled: types.length > 0 && centre !== null });
 
     const error = version.error ?? (overworld ? summary.error : null) ?? nearest.error;

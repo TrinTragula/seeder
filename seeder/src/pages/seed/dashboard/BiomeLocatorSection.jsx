@@ -3,6 +3,7 @@ import Select from 'react-select';
 import { BIOMES, VERSIONS } from '../../../util/constants';
 import CopyButton from '../../../shared/CopyButton';
 import { defaultSessionStorage, useLocalStorage } from '../../../shared/hooks/useLocalStorage';
+import { engineVersion } from '../../../util/seed';
 import { useSeedQuery } from '../../../shared/hooks/useSeedQuery';
 import { ALL_BIOME_IDS, biomesIn, useVersionSupport } from '../../../shared/hooks/useVersionSupport';
 import { biomeLabel, distanceBlocks, formatCoords, formatDistance } from '../../../shared/format';
@@ -47,12 +48,14 @@ export default function BiomeLocatorSection() {
     const { world } = useDashboard();
     if (world.dimension !== 0) return <p className="section__note">The biome locator works in the Overworld.</p>;
     // Another world is another search: the results and the radius must not carry over.
-    return <Locator key={`${world.mcVersion}:${world.seed}`} />;
+    return <Locator key={`${world.mcVersion}:${world.largeBiomes}:${world.seed}`} />;
 }
 
 function Locator() {
     const { world, mapApi, sheetApi } = useDashboard();
-    const { seed, mcVersion, yHeight, versionLabel } = world;
+    const { seed, mcVersion, yHeight, versionLabel, largeBiomes } = world;
+    // The locator is Overworld-only.
+    const worldVersion = engineVersion(mcVersion, largeBiomes);
     const [storedBiome, setStoredBiome] = useLocalStorage(LOCATOR_STORAGE_KEY, null, { storage: defaultSessionStorage() });
     const [radius, setRadius] = useState(RADII[0]);
     // What Find was pressed for; the results show only while the form still says that.
@@ -62,7 +65,7 @@ function Locator() {
 
     const version = useVersionSupport(mcVersion, { biomeIds: ALL_BIOME_IDS, structTypes: [] });
     // Spawn's params: one cached answer.
-    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion, seed, dimension: 0, yHeight });
+    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion: worldVersion, seed, dimension: 0, yHeight });
     const options = useMemo(() => {
         const support = version.support;
         if (!support) return [];
@@ -79,7 +82,7 @@ function Locator() {
     const centre = summary.data ? [summary.data.spawnX, summary.data.spawnZ] : null;
     const current = asked && asked.biomeId === biomeId && asked.radius === radius && asked.yHeight === yHeight;
     const patches = useSeedQuery('BIOME_CENTERS', {
-        mcVersion, seed, dimension: 0, biomeId, x: centre?.[0], z: centre?.[1],
+        mcVersion: worldVersion, seed, dimension: 0, biomeId, x: centre?.[0], z: centre?.[1],
         radiusBlocks: radius, yHeight, minSizeCells: MIN_SIZE_CELLS, nmax: MAX_PATCHES,
     }, { enabled: Boolean(current) && centre !== null });
 

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { seedFromString, canonicalSeed, getInitialVersion, getRandomSeed, DEFAULT_VERSION } from './seed';
+import {
+    seedFromString, canonicalSeed, getInitialVersion, getRandomSeed, DEFAULT_VERSION,
+    LARGE_BIOMES_FLAG, engineVersion, supportsLargeBiomes, worldTypeHint, WORLD_TYPE_OPTIONS,
+} from './seed';
 import { VERSIONS, OLD_VERSIONS } from './constants';
 
 // Java's String.hashCode, computed with BigInt so it cannot share bugs with the implementation.
@@ -86,5 +89,48 @@ describe('getRandomSeed', () => {
     });
     it('varies between calls', () => {
         expect(new Set(Array.from({ length: 20 }, getRandomSeed)).size).toBeGreaterThan(1);
+    });
+});
+
+describe('the Large Biomes world type', () => {
+    it('exists from 1.3, in the Overworld only', () => {
+        expect(supportsLargeBiomes(VERSIONS['1.3'])).toBe(true);
+        expect(supportsLargeBiomes(VERSIONS['26.3'])).toBe(true);
+        for (const label of ['Beta 1.7', 'Beta 1.8', '1.0', '1.1', '1.2']) expect(supportsLargeBiomes(VERSIONS[label]), label).toBe(false);
+        expect(supportsLargeBiomes(VERSIONS['26.3'], -1)).toBe(false);
+        expect(supportsLargeBiomes(VERSIONS['26.3'], 1)).toBe(false);
+        expect(supportsLargeBiomes(VERSIONS['26.3'], 0)).toBe(true);
+    });
+
+    it('engineVersion packs the flag above the 16 version bits, only where the type applies', () => {
+        expect(LARGE_BIOMES_FLAG).toBe(65536);
+        expect(engineVersion(VERSIONS['1.16.5'], true)).toBe(VERSIONS['1.16.5'] + 65536);
+        expect(engineVersion(VERSIONS['1.16.5'], true) & 0xffff).toBe(VERSIONS['1.16.5']);
+        expect(engineVersion(VERSIONS['1.16.5'], false)).toBe(VERSIONS['1.16.5']);
+        expect(engineVersion(VERSIONS['1.2'], true)).toBe(VERSIONS['1.2']);
+        expect(engineVersion(VERSIONS['Beta 1.7'], true)).toBe(VERSIONS['Beta 1.7']);
+        // With a dimension, the Nether and the End keep the plain version (one cache key)...
+        expect(engineVersion(VERSIONS['26.3'], true, -1)).toBe(VERSIONS['26.3']);
+        expect(engineVersion(VERSIONS['26.3'], true, 1)).toBe(VERSIONS['26.3']);
+        expect(engineVersion(VERSIONS['26.3'], true, 0)).toBe(VERSIONS['26.3'] + 65536);
+        // ...without one (find_seeds) the world's type is sent whatever the dimension.
+        expect(engineVersion(VERSIONS['26.3'], true)).toBe(VERSIONS['26.3'] + 65536);
+    });
+
+    it('never produces a value VERSIONS holds: the packed int stays at the engine boundary', () => {
+        const plain = new Set(Object.values(VERSIONS));
+        for (const mc of plain) {
+            if (supportsLargeBiomes(mc)) expect(plain.has(engineVersion(mc, true))).toBe(false);
+        }
+    });
+
+    it('the control: Default / Large Biomes, and why it is disabled', () => {
+        expect(WORLD_TYPE_OPTIONS.map((o) => [o.value, o.label])).toEqual([[false, 'Default'], [true, 'Large Biomes']]);
+        expect(worldTypeHint(VERSIONS['26.3'], 0)).toBeNull();
+        expect(worldTypeHint(VERSIONS['1.3'], 0)).toBeNull();
+        expect(worldTypeHint(VERSIONS['1.2'], 0)).toBe('Large Biomes starts in 1.3.');
+        expect(worldTypeHint(VERSIONS['Beta 1.7'], -1)).toBe('Large Biomes starts in 1.3.');
+        expect(worldTypeHint(VERSIONS['26.3'], -1)).toBe('No effect in the Nether.');
+        expect(worldTypeHint(VERSIONS['26.3'], 1)).toBe('No effect in the End.');
     });
 });

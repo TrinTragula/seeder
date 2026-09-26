@@ -31,6 +31,7 @@ export default function PreviewMap({ view, yHeight }) {
                 exposeGlobal
                 apiRef={apiRef}
                 mcVersion={view.mcVersion}
+                largeBiomes={view.largeBiomes}
                 seed={view.seed}
                 dimension={view.dimension}
                 yHeight={yHeight ?? view.yHeight}

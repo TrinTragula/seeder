@@ -897,3 +897,103 @@ describe('on a desktop', () => {
         expect(screen.queryByRole('button', { name: 'Toggle world details' })).toBeNull();
     });
 });
+
+describe('World type (Large Biomes)', () => {
+    const LARGE = (label) => VERSIONS[label] | (1 << 16);
+    const shareBox = () => screen.getByLabelText('Share URL');
+    const worldType = () => screen.getByLabelText('World type');
+
+    it('opens a Large Biomes world from world=large: the renderer gets the packed version, the links keep it', async () => {
+        await renderAt('/seed/?seed=42&version=1.16.5&world=large');
+        expect(drawer().setMcVersion).toHaveBeenLastCalledWith(LARGE('1.16.5'));
+        expect(screen.getByText('Large Biomes')).toBeInTheDocument();
+        expect(shareBox().value).toBe('https://mcseeder.com/seed/?seed=42&version=1.16.5&world=large');
+        expect(search().get('world')).toBe('large');
+        expect(screen.getByRole('link', { name: 'Open the advanced finder' })).toHaveAttribute('href', '/finder/?version=1.16.5&dim=0&world=large');
+        expect(loadLastSeed()).toEqual({ seed: '42', version: '1.16.5', dimension: 0, largeBiomes: true });
+    });
+
+    it('every dashboard request about the world sends the packed version; the version probes the plain one', async () => {
+        const user = userEvent.setup();
+        await renderAt('/seed/?seed=1&version=1.16.5&world=large');
+        await answerSupport();
+        for (const name of ['Spawn & structures', 'Biomes', 'Find near me', 'More']) {
+            await user.click(screen.getByRole('tab', { name }));
+        }
+        await answerSupport();
+        await act(async () => {
+            for (const entry of qm().pendingOf('SEED_SUMMARY')) entry.resolve({ spawnX: 100, spawnZ: -40, spawnBiome: 1, approxHeight: null, error: null });
+        });
+        const calls = qm().request.mock.calls.map(([kind, data]) => [kind, data]);
+        const kinds = new Set(calls.map(([kind]) => kind));
+        for (const kind of ['SEED_SUMMARY', 'STRONGHOLDS_LIST', 'NEAREST_STRUCTURES', 'QUAD_HUTS', 'GET_AREA']) expect(kinds, kind).toContain(kind);
+        for (const [kind, data] of calls) {
+            if (!('mcVersion' in data)) continue;
+            expect(data.mcVersion, kind).toBe(kind === 'GET_VERSION_SUPPORT' ? VERSIONS['1.16.5'] : LARGE('1.16.5'));
+        }
+    });
+
+    it('the control switches the map and the URL, both ways, without a new renderer', async () => {
+        await renderAt('/seed/?seed=42&version=26.3');
+        expect(worldType()).not.toBeDisabled();
+        expect(drawer().setMcVersion).toHaveBeenLastCalledWith(VERSIONS['26.3']);
+        await select('World type', 'Large Biomes');
+        expect(drawer().setMcVersion).toHaveBeenLastCalledWith(LARGE('26.3'));
+        expect(drawer().clear).toHaveBeenCalled();
+        expect(search().get('world')).toBe('large');
+        expect(shareBox().value).toContain('&world=large');
+        await select('World type', 'Default');
+        expect(drawer().setMcVersion).toHaveBeenLastCalledWith(VERSIONS['26.3']);
+        expect(search().has('world')).toBe(false);
+        expect(FakeDrawSeed.instances).toHaveLength(1);
+    });
+
+    it('is disabled before 1.3, and a version without the type makes the world Default', async () => {
+        await renderAt('/seed/?seed=42&version=1.16.5&world=large');
+        await select('Minecraft version', '1.2');
+        expect(worldType()).toBeDisabled();
+        expect(screen.getByText('Large Biomes starts in 1.3.')).toBeInTheDocument();
+        expect(search().has('world')).toBe(false);
+        expect(drawer().setMcVersion).toHaveBeenLastCalledWith(VERSIONS['1.2']);
+        // Back on a version with the type, the world stays Default.
+        await select('Minecraft version', '1.16.5');
+        expect(worldType()).not.toBeDisabled();
+        expect(search().has('world')).toBe(false);
+    });
+
+    it('is disabled on Beta', async () => {
+        await renderAt('/seed/?seed=42&version=Beta%201.7&world=large');
+        expect(worldType()).toBeDisabled();
+        expect(search().has('world')).toBe(false);
+    });
+
+    it('is disabled in the Nether but kept: it is still that world', async () => {
+        await renderAt('/seed/?seed=42&version=26.3&world=large&dim=-1');
+        expect(worldType()).toBeDisabled();
+        expect(screen.getByText('No effect in the Nether.')).toBeInTheDocument();
+        expect(search().get('world')).toBe('large');
+        // The Nether does not change with the type: its tiles keep the plain version's key.
+        expect(drawer().setMcVersion).toHaveBeenLastCalledWith(VERSIONS['26.3']);
+        await select('Dimension', 'Overworld');
+        expect(drawer().setMcVersion).toHaveBeenLastCalledWith(LARGE('26.3'));
+        expect(worldType()).not.toBeDisabled();
+    });
+
+    it('Save this world keeps the type, and My worlds tells the two worlds apart', async () => {
+        const user = userEvent.setup();
+        await renderAt('/seed/?seed=42&version=1.17&world=large');
+        await user.click(screen.getByRole('button', { name: 'Save this world' }));
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+        expect(JSON.parse(window.localStorage.getItem('seeder.worlds.v1'))).toMatchObject([
+            { name: 'Seed 42', seed: '42', version: '1.17', dimension: 0, largeBiomes: true },
+        ]);
+        expect(screen.getByText('Saved ✓')).toBeInTheDocument();
+        // The Default world of the same seed is not saved.
+        await select('World type', 'Default');
+        expect(screen.getByRole('button', { name: 'Save this world' })).toBeInTheDocument();
+        await user.click(screen.getByRole('tab', { name: 'More' }));
+        const worlds = screen.getByRole('region', { name: 'My worlds' });
+        expect(within(worlds).getByText('1.17 (Large Biomes)')).toBeInTheDocument();
+        expect(within(worlds).getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    });
+});

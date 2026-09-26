@@ -95,11 +95,11 @@ export default function SeedPanel({
     const store = useWorlds();
     const worlds = useMemo(() => store, [store.worlds, store.isSaved]);
 
-    const { seed, mcVersion, dimension, yHeight, versionLabel } = world;
+    const { seed, mcVersion, dimension, yHeight, versionLabel, largeBiomes = false } = world;
     const value = useMemo(() => ({
-        world: { seed, mcVersion, dimension, yHeight, versionLabel },
+        world: { seed, mcVersion, dimension, yHeight, versionLabel, largeBiomes },
         mapApi, sheetApi, structuresToShow, setStructuresToShow, slimeOverlay, setSlimeOverlay, setDimension, worlds, showSection,
-    }), [seed, mcVersion, dimension, yHeight, versionLabel, mapApi, sheetApi, structuresToShow, setStructuresToShow,
+    }), [seed, mcVersion, dimension, yHeight, versionLabel, largeBiomes, mapApi, sheetApi, structuresToShow, setStructuresToShow,
         slimeOverlay, setSlimeOverlay, setDimension, worlds, showSection]);
 
     return (

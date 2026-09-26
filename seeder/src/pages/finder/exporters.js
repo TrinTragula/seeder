@@ -49,7 +49,7 @@ export function toCsv(criteria, views) {
 
 /*
  * JSON, in this key order (external tools may parse it):
- *   { version, mcVersion, dimension, rangeBlocks, yHeight, biomes, anyBiomes, excludeBiomes,
+ *   { version, mcVersion, largeBiomes, dimension, rangeBlocks, yHeight, biomes, anyBiomes, excludeBiomes,
  *     structures, count,
  *     start: "decimal", generatedWith: "Seeder x.y.z",
  *     hits: [{ seed: "decimal", spawnX, spawnZ, structures: [{ type, x, z, distance }] }] }
@@ -58,6 +58,7 @@ export function toJson(criteria, views, { start = criteria.startingSeed ?? 0n } 
     return JSON.stringify({
         version: versionLabelOf(criteria.mcVersion),
         mcVersion: criteria.mcVersion,
+        largeBiomes: !!criteria.largeBiomes,
         dimension: criteria.dimension ?? 0,
         rangeBlocks: criteria.rangeBlocks,
         yHeight: criteria.yHeight,

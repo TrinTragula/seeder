@@ -196,6 +196,32 @@ describe('seed searches (findSeeds)', () => {
         expect(c.onDone).not.toHaveBeenCalled();
     });
 
+    it('sends a Large Biomes search packed (engineVersion) to every shard; the cost model reads the plain version', async () => {
+        const qm = await readyPool(3);
+        qm.findSeeds({ ...CRITERIA, mcVersion: 20, largeBiomes: true, structures: [], biomes: [21] }, cbs());
+        const posts = shardPosts();
+        expect(posts).toHaveLength(2);
+        for (const post of posts) expect(post.mcVersion).toBe(20 | (1 << 16));
+        // 1.16.5 biome-only is a layer-stack shard (10 000 seeds), not the 1.18+ noise one.
+        expect(posts[0].maxSeedsToScan).toBe(10_000);
+        expect(posts[0]).not.toHaveProperty('largeBiomes');
+    });
+
+    it('a Default search sends the plain version; a Nether search of a Large Biomes world the packed one', async () => {
+        const qm = await readyPool(2);
+        qm.findSeeds({ ...CRITERIA, largeBiomes: false }, cbs());
+        expect(shardPosts().at(-1).mcVersion).toBe(35);
+        qm.stopSearch();
+        qm.findSeeds({ ...CRITERIA, dimension: -1, structures: [18], largeBiomes: true }, cbs());
+        // The hits' Overworld spawn is the Large Biomes world's.
+        expect(shardPosts().at(-1)).toMatchObject({ dimension: -1, mcVersion: 35 | (1 << 16) });
+    });
+
+    it('GET_AREA keys separate Default and Large Biomes tiles', async () => {
+        const qm = await readyPool(1);
+        expect(qm.getAreaKey(35 | (1 << 16), '1', 0, 0, 75, 75, 0, 256)).not.toBe(qm.getAreaKey(35, '1', 0, 0, 75, 75, 0, 256));
+    });
+
     it('refuses a second search while one is running', async () => {
         const qm = await readyPool(2);
         qm.findSeeds(CRITERIA, cbs());

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getRandomSeed } from '../../util/seed';
+import { getRandomSeed, supportsLargeBiomes } from '../../util/seed';
 import { DEFAULT_VIEW, buildSeedUrl, parseSeedPage, versionLabelOf } from '../../shared/seedUrl';
 import { useSearchParamsState } from '../../shared/hooks/useSearchParamsState';
 import { useQueueManager } from '../../shared/hooks/useQueueManager';
@@ -20,8 +20,8 @@ const SHEET_COLLAPSED = 124;
 const SHEET_SNAPS = { collapsed: SHEET_COLLAPSED, half: 0.5, full: 1 };
 
 /*
- * /seed/: the map plus the panel (controls, ads, dashboard). Seed, version and
- * dimension live in the URL. Desktop shows the panel in a right column, phones in a
+ * /seed/: the map plus the panel (controls, ads, dashboard). Seed, version,
+ * dimension and world type live in the URL. Desktop shows the panel in a right column, phones in a
  * bottom sheet whose collapsed header is the seed row.
  */
 export default function SeedPage() {
@@ -30,7 +30,7 @@ export default function SeedPage() {
         build: buildSeedUrl,
         title: (state) => `Seed ${state.seed} (${versionLabelOf(state.mcVersion)}) - Seeder`,
     });
-    const { seed, mcVersion, dimension } = urlState;
+    const { seed, mcVersion, dimension, largeBiomes } = urlState;
     // from=legacy is gone after the first replaceState, so it is read before any effect.
     // So is the view (structures, overlays, height) a link opened the page with: it seeds
     // the controls' state once, here; from then on that state writes the URL.
@@ -43,7 +43,13 @@ export default function SeedPage() {
     const setSeed = useCallback((value) => setUrlState((state) => (
         String(value) === state.seed ? state : { ...state, seed: String(value) }
     )), [setUrlState]);
-    const setMcVersion = useCallback((value) => setUrlState((state) => ({ ...state, mcVersion: value })), [setUrlState]);
+    // A version without Large Biomes (before 1.3) makes the world Default (owner, 2026-09-26).
+    const setMcVersion = useCallback((value) => setUrlState((state) => ({
+        ...state, mcVersion: value, largeBiomes: state.largeBiomes && supportsLargeBiomes(value),
+    })), [setUrlState]);
+    const setLargeBiomes = useCallback((value) => setUrlState((state) => ({
+        ...state, largeBiomes: !!value && supportsLargeBiomes(state.mcVersion),
+    })), [setUrlState]);
     const setDimension = useCallback((value) => setUrlState((state) => ({ ...state, dimension: value ?? 0 })), [setUrlState]);
 
     const [yHeight, setYHeight] = useState(linkView.yHeight);
@@ -84,8 +90,8 @@ export default function SeedPage() {
     // The landing's last-seed section reopens whatever was looked at last, so every seed
     // that reaches the map is remembered.
     useEffect(() => {
-        saveLastSeed({ seed, version: versionLabelOf(mcVersion), dimension });
-    }, [seed, mcVersion, dimension]);
+        saveLastSeed({ seed, version: versionLabelOf(mcVersion), dimension, largeBiomes });
+    }, [seed, mcVersion, dimension, largeBiomes]);
 
     const versionLabel = versionLabelOf(mcVersion);
     const view = useMemo(
@@ -100,7 +106,7 @@ export default function SeedPage() {
         window.history.replaceState(null, '', buildSeedUrl(urlState, { view }));
     }, [urlState, view]);
     const shareUrl = buildSeedUrl(urlState, { absolute: true, view });
-    const finderUrl = `/finder/?${new URLSearchParams({ version: versionLabel, dim: String(dimension) })}`;
+    const finderUrl = `/finder/?${new URLSearchParams({ version: versionLabel, dim: String(dimension), ...(largeBiomes ? { world: 'large' } : {}) })}`;
 
     // First in the panel on both layouts (above the seed box on desktop).
     const whatsNew = <WhatsNew show={fromLegacy} />;
@@ -120,7 +126,7 @@ export default function SeedPage() {
     );
     // Everything else the panel holds, rendered by either layout: the controls, the
     // ads and the dashboard sections.
-    const world = { seed, mcVersion, dimension, yHeight, versionLabel };
+    const world = { seed, mcVersion, dimension, yHeight, versionLabel, largeBiomes };
     const panel = (
         <SeedPanel
             world={world}
@@ -139,6 +145,7 @@ export default function SeedPage() {
                     setYHeight={setYHeight}
                     setMcVersion={setMcVersion}
                     setDimension={setDimension}
+                    setLargeBiomes={setLargeBiomes}
                     structuresToShow={structuresToShow}
                     setStructuresToShow={setStructuresToShow}
                     availableStructures={availableStructures}
@@ -170,6 +177,7 @@ export default function SeedPage() {
                 seed={seed}
                 dimension={dimension}
                 yHeight={yHeight}
+                largeBiomes={largeBiomes}
                 structuresToShow={shownStructures}
                 showStructureCoords={showStructureCoords}
                 overlays={overlays}

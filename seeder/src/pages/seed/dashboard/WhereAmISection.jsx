@@ -6,6 +6,7 @@ import HelpTip from '../../../shared/HelpTip';
 import { HELP } from '../../../shared/help';
 import { defaultSessionStorage, useLocalStorage } from '../../../shared/hooks/useLocalStorage';
 import { useQueueManager } from '../../../shared/hooks/useQueueManager';
+import { engineVersion } from '../../../util/seed';
 import { useSeedQuery } from '../../../shared/hooks/useSeedQuery';
 import { structureTypesIn, useVersionSupport } from '../../../shared/hooks/useVersionSupport';
 import {
@@ -65,7 +66,7 @@ function formOf(stored) {
 export default function WhereAmISection() {
     const { world } = useDashboard();
     // Another world is another answer: the stored point survives, the results do not.
-    return <WhereAmI key={`${world.mcVersion}:${world.seed}:${world.dimension}`} />;
+    return <WhereAmI key={`${world.mcVersion}:${world.largeBiomes}:${world.seed}:${world.dimension}`} />;
 }
 
 function WhereAmI() {
@@ -123,19 +124,20 @@ function WhereAmI() {
 function Results({ point }) {
     const { world, mapApi, sheetApi, slimeOverlay, setSlimeOverlay } = useDashboard();
     const colors = useQueueManager().COLORS;
-    const { seed, mcVersion, dimension, yHeight, versionLabel } = world;
+    const { seed, mcVersion, dimension, yHeight, versionLabel, largeBiomes } = world;
+    const worldVersion = engineVersion(mcVersion, largeBiomes, dimension);
     const { x, z } = point;
     const y = point.y ?? yHeight;
     const inOverworld = dimension === 0;
     const approx = mcVersion > VERSIONS['1.19.2'];
 
-    const biome = useSeedQuery('BIOME_AT', { mcVersion, seed, dimension, x, y, z });
-    const surface = useSeedQuery('APPROX_HEIGHT', { mcVersion, seed, dimension, x, z });
-    const strongholds = useSeedQuery('STRONGHOLDS_LIST', { mcVersion, seed, howMany: STRONGHOLDS, approx }, { enabled: inOverworld });
+    const biome = useSeedQuery('BIOME_AT', { mcVersion: worldVersion, seed, dimension, x, y, z });
+    const surface = useSeedQuery('APPROX_HEIGHT', { mcVersion: worldVersion, seed, dimension, x, z });
+    const strongholds = useSeedQuery('STRONGHOLDS_LIST', { mcVersion: engineVersion(mcVersion, largeBiomes), seed, howMany: STRONGHOLDS, approx }, { enabled: inOverworld });
     const version = useVersionSupport(mcVersion);
     const types = version.support ? structureTypesIn(version.support, dimension) : [];
     const nearest = useSeedQuery('NEAREST_STRUCTURES', {
-        mcVersion, seed, dimension, x, z, types, maxRadiusBlocks: STRUCTURE_RADIUS,
+        mcVersion: worldVersion, seed, dimension, x, z, types, maxRadiusBlocks: STRUCTURE_RADIUS,
     }, { enabled: types.length > 0 });
     const slime = useSeedQuery('SLIME_CHUNKS', {
         seed, cx0: (x >> 4) - SLIME_REACH, cz0: (z >> 4) - SLIME_REACH, w: 2 * SLIME_REACH, h: 2 * SLIME_REACH,

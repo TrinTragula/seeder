@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import Select, { createFilter } from 'react-select';
 import { VERSIONS, VERSIONS_OPTIONS, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS } from '../../../util/constants';
 import { MAX_NAME } from '../../../shared/worlds';
+import { WORLD_TYPE_OPTIONS, worldTypeHint } from '../../../util/seed';
 import { DEFAULT_VIEW } from '../../../shared/seedUrl';
 import Legend from '../../../shared/Legend';
 import CopyButton from '../../../shared/CopyButton';
@@ -38,9 +39,9 @@ const menuProps = {
 export function SaveWorld({ world }) {
     const { worlds: store, showSection } = useDashboard();
     const [name, setName] = useState(null);             // null = not naming
-    const { seed, versionLabel, dimension } = world;
+    const { seed, versionLabel, dimension, largeBiomes = false } = world;
 
-    if (store.isSaved(seed, versionLabel, dimension)) {
+    if (store.isSaved(seed, versionLabel, dimension, largeBiomes)) {
         return (
             <div className="save-world margin-3">
                 <span className="badge">Saved ✓</span>
@@ -70,7 +71,7 @@ export function SaveWorld({ world }) {
             className="save-world save-world--naming margin-3"
             onSubmit={(event) => {
                 event.preventDefault();
-                store.add({ name, seed, version: versionLabel, dimension });
+                store.add({ name, seed, version: versionLabel, dimension, largeBiomes });
                 setName(null);
             }}
         >
@@ -90,17 +91,19 @@ export function SaveWorld({ world }) {
 
 // The seed page's controls. All state lives in SeedPage; this block only renders it and reports changes.
 export default function ControlsBlock({
-    world, yHeight, setYHeight, setMcVersion, setDimension,
+    world, yHeight, setYHeight, setMcVersion, setDimension, setLargeBiomes,
     structuresToShow, setStructuresToShow, availableStructures = null, legendBiomes = null,
     showStructureCoords, setShowStructureCoords, showChunkGrid = false, setShowChunkGrid,
     showLegend, setShowLegend, colors, mapApi, shareUrl, finderUrl,
 }) {
-    const { mcVersion, dimension } = world;
+    const { mcVersion, dimension, largeBiomes = false } = world;
     const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
     const selectedDimension = useMemo(() => DIMENSIONS_OPTIONS.find((o) => o.value === dimension), [dimension]);
     const selectedVersion = useMemo(() => VERSIONS_OPTIONS.find((o) => o.value === mcVersion), [mcVersion]);
     const selectedHeight = useMemo(() => HEIGHT_OPTIONS.find((o) => o.value === yHeight), [yHeight]);
+    const selectedWorldType = WORLD_TYPE_OPTIONS.find((o) => o.value === largeBiomes);
+    const worldTypeNote = worldTypeHint(mcVersion, dimension);
     // Only the types this version has in this dimension (every type while that is
     // unknown). A pick that does not apply here stays in structuresToShow, hidden, and is
     // back when the world changes to one where it does.
@@ -138,6 +141,19 @@ export default function ControlsBlock({
                     onChange={(option) => setMcVersion(option?.value)}
                     {...menuProps}
                 />
+            </div>
+            <div className="margin-3">
+                <div className="margin-3">World type</div>
+                <Select
+                    aria-label="World type"
+                    options={WORLD_TYPE_OPTIONS}
+                    value={selectedWorldType}
+                    isDisabled={worldTypeNote !== null}
+                    isSearchable={false}
+                    onChange={(option) => setLargeBiomes?.(option?.value ?? false)}
+                    {...menuProps}
+                />
+                {worldTypeNote && <p className="structure-coords__hint margin-3">{worldTypeNote}</p>}
             </div>
             {mcVersion >= HEIGHT_FROM && (
                 <div className="margin-3">

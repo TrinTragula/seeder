@@ -15,7 +15,7 @@ const biomeNames = new Map(BIOMES.map((b) => [b.value, b.label]));
 
 /*
  * toHitView(hit, criteria) -> {
- *   seed: "decimal", mcVersion, dimension, yHeight, rangeBlocks,
+ *   seed: "decimal", mcVersion, largeBiomes, dimension, yHeight, rangeBlocks,
  *   spawn: { x, z },
  *   structures: [{ type, name, icon, x, z, distance, verified }]   nearest to the origin first,
  *   index,                                                          the hit's position in the run
@@ -48,6 +48,7 @@ export function toHitView(hit, criteria) {
     return {
         seed: String(hit.seed),
         mcVersion: criteria.mcVersion,
+        largeBiomes: !!criteria.largeBiomes,
         dimension: criteria.dimension ?? 0,
         yHeight: criteria.yHeight ?? 256,
         // The box the row was found in: what an unverified row's "Not found within" names.
@@ -92,6 +93,8 @@ export function summaryOf(criteria) {
         ...list('no', 'avoids', criteria.excludeBiomes),
         rangeLabel(criteria.rangeBlocks),
         versionLabelOf(criteria.mcVersion),
+        // The world type only when it is not Default (owner, 2026-09-26).
+        ...(criteria.largeBiomes ? ['Large Biomes'] : []),
         dimensionLabel(criteria.dimension),
     ].join(' · ');
 }

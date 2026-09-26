@@ -200,6 +200,10 @@ describe('createThumbnailRequester', () => {
         expect(thumbKey(spec({ spawn: null }))).toBe(thumbKey(spec()));
     });
 
+    it('a Large Biomes world is another thumbnail: the packed version keys it', () => {
+        expect(thumbKey(spec({ mcVersion: 35 | (1 << 16) }))).not.toBe(thumbKey(spec()));
+    });
+
     it('another structure type at the same place is another thumbnail', () => {
         const at = (type) => thumbKey(spec({ markers: [{ type, x: 100, z: -60 }] }));
         expect(at(VILLAGE)).not.toBe(at(HUT));

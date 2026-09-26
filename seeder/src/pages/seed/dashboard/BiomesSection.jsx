@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { VERSIONS } from '../../../util/constants';
 import { useDebounce } from '../../../util/functions';
 import { useQueueManager } from '../../../shared/hooks/useQueueManager';
+import { engineVersion } from '../../../util/seed';
 import { useSeedQuery } from '../../../shared/hooks/useSeedQuery';
 import { biomeLabel } from '../../../shared/format';
 import { useDashboard } from './DashboardContext';
@@ -27,23 +28,24 @@ const pctText = (pct) => `${pct.toFixed(1)}%`;
 export default function BiomesSection() {
     const { world } = useDashboard();
     // Another world is another breakdown: the unfolded list must not carry over.
-    return <BiomeBreakdown key={`${world.mcVersion}:${world.seed}:${world.dimension}`} />;
+    return <BiomeBreakdown key={`${world.mcVersion}:${world.largeBiomes}:${world.seed}:${world.dimension}`} />;
 }
 
 function BiomeBreakdown() {
     const { world } = useDashboard();
     const colors = useQueueManager().COLORS;
-    const { seed, mcVersion, dimension, yHeight } = world;
+    const { seed, mcVersion, dimension, yHeight, largeBiomes } = world;
+    const worldVersion = engineVersion(mcVersion, largeBiomes, dimension);
     const overworld = dimension === 0;
     const [expanded, setExpanded] = useState(false);
 
     const y = useDebounce(yHeight, HEIGHT_DEBOUNCE_MS);
     // Spawn's params once the height has settled, so one cached answer serves both; asked
     // at the debounced height, the breakdown on screen stays put while the select moves.
-    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion, seed, dimension, yHeight: y }, { enabled: overworld });
+    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion: worldVersion, seed, dimension, yHeight: y }, { enabled: overworld });
     const centre = overworld ? (summary.data ? [summary.data.spawnX, summary.data.spawnZ] : null) : [0, 0];
     const area = useAreaTally({
-        mcVersion, seed,
+        mcVersion: worldVersion, seed,
         startX: centre ? (centre[0] >> 2) - HALF_CELLS : null,
         startY: centre ? (centre[1] >> 2) - HALF_CELLS : null,
         widthX: AREA_CELLS, widthY: AREA_CELLS, dimension, yHeight: y,

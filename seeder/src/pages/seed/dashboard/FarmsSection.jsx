@@ -1,5 +1,6 @@
 import { STRUCTURES_OPTIONS } from '../../../util/constants';
 import CopyButton from '../../../shared/CopyButton';
+import { engineVersion } from '../../../util/seed';
 import { useSeedQuery } from '../../../shared/hooks/useSeedQuery';
 import { useVersionSupport } from '../../../shared/hooks/useVersionSupport';
 import { distanceBlocks, formatCoords, formatDistance } from '../../../shared/format';
@@ -25,21 +26,22 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 export default function FarmsSection() {
     const { world } = useDashboard();
     // Another world starts over: open rows close.
-    return <Farms key={`${world.mcVersion}:${world.seed}:${world.dimension}`} />;
+    return <Farms key={`${world.mcVersion}:${world.largeBiomes}:${world.seed}:${world.dimension}`} />;
 }
 
 function Farms() {
     const { world, mapApi, sheetApi, slimeOverlay, setSlimeOverlay, setDimension } = useDashboard();
-    const { seed, mcVersion, dimension, yHeight } = world;
+    const { seed, mcVersion, dimension, yHeight, largeBiomes } = world;
+    const worldVersion = engineVersion(mcVersion, largeBiomes, dimension);
     const overworld = dimension === 0;
 
     // Every question is asked here, in the order the blocks need them, so each is asked once.
     const version = useVersionSupport(mcVersion);
     const support = version.support;
     // Spawn's params: one cached answer with Spawn, Strongholds and Structures.
-    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion, seed, dimension, yHeight }, { enabled: overworld });
+    const summary = useSeedQuery('SEED_SUMMARY', { mcVersion: worldVersion, seed, dimension, yHeight }, { enabled: overworld });
     // Asked at once, with the version probe: on a version without huts it answers -3.
-    const quadHuts = useSeedQuery('QUAD_HUTS', { mcVersion, seed }, { enabled: overworld });
+    const quadHuts = useSeedQuery('QUAD_HUTS', { mcVersion: worldVersion, seed }, { enabled: overworld });
     const spawn = summary.data ? { x: summary.data.spawnX, z: summary.data.spawnZ } : null;
     const slime = useSeedQuery('SLIME_CHUNKS', {
         seed, cx0: (spawn?.x >> 4) - SLIME_REACH, cz0: (spawn?.z >> 4) - SLIME_REACH, w: 2 * SLIME_REACH, h: 2 * SLIME_REACH,

@@ -3,6 +3,7 @@ import CopyButton from '../../../shared/CopyButton';
 import HelpTip from '../../../shared/HelpTip';
 import { HELP } from '../../../shared/help';
 import { useQueueManager } from '../../../shared/hooks/useQueueManager';
+import { engineVersion } from '../../../util/seed';
 import { useSeedQuery } from '../../../shared/hooks/useSeedQuery';
 import { buildSeedUrl } from '../../../shared/seedUrl';
 import { biomeLabel, formatCoords, shadowSeed } from '../../../shared/format';
@@ -25,7 +26,7 @@ export function BiomeSwatch({ colors, id }) {
  * (ocean temperature is its own noise), unrelated from 1.18, and not the Nether's
  * noise biomes. Hence: Overworld only, Beta 1.8 - 1.17.
  */
-function ShadowSeed({ seed, mcVersion, dimension }) {
+function ShadowSeed({ seed, mcVersion, dimension, largeBiomes }) {
     if (dimension !== 0 || mcVersion < VERSIONS['Beta 1.8'] || mcVersion >= VERSIONS['1.18']) return null;
     const shadow = shadowSeed(seed);
     const sentence = mcVersion < VERSIONS['1.13']
@@ -35,7 +36,7 @@ function ShadowSeed({ seed, mcVersion, dimension }) {
     // contain "Seed" except the seed box (getByLabel('Seed') matches by substring).
     return (
         <p className="section__note">
-            Shadow seed: <a href={buildSeedUrl({ seed: shadow, mcVersion, dimension })}>{shadow}</a>. {sentence}
+            Shadow seed: <a href={buildSeedUrl({ seed: shadow, mcVersion, dimension, largeBiomes })}>{shadow}</a>. {sentence}
             {' '}<HelpTip {...HELP.shadow} />
         </p>
     );
@@ -49,8 +50,10 @@ function ShadowSeed({ seed, mcVersion, dimension }) {
 export default function SpawnSection() {
     const { world, mapApi, sheetApi } = useDashboard();
     const colors = useQueueManager().COLORS;
-    const { seed, mcVersion, dimension, yHeight } = world;
-    const { data, loading, error } = useSeedQuery('SEED_SUMMARY', { mcVersion, seed, dimension, yHeight });
+    const { seed, mcVersion, dimension, yHeight, largeBiomes } = world;
+    const { data, loading, error } = useSeedQuery('SEED_SUMMARY', {
+        mcVersion: engineVersion(mcVersion, largeBiomes, dimension), seed, dimension, yHeight,
+    });
     if (error) return <SectionError error={error} />;
     if (loading || !data) return <SectionLoading />;
 
@@ -95,7 +98,7 @@ export default function SpawnSection() {
                 )}
             </dl>
             <button type="button" className="btn" onClick={showOnMap}>Show on map</button>
-            <ShadowSeed seed={seed} mcVersion={mcVersion} dimension={dimension} />
+            <ShadowSeed seed={seed} mcVersion={mcVersion} dimension={dimension} largeBiomes={largeBiomes} />
         </>
     );
 }

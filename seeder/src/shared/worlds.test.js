@@ -246,6 +246,62 @@ describe('the last seed', () => {
     });
 });
 
+describe('the world type (largeBiomes)', () => {
+    it('a world saved before world types existed still loads, as a Default world', () => {
+        const old = { id: 'a', name: 'Old', seed: '42', version: '1.18', dimension: 0, createdAt: new Date(T0).toISOString(), lastOpenedAt: new Date(T0).toISOString() };
+        const storage = fakeStorage({ [WORLDS_KEY]: JSON.stringify([old]) });
+        expect(loadWorlds(storage)).toEqual([old]);
+        expect(findWorld(loadWorlds(storage), { seed: '42', version: '1.18', dimension: 0 })).toEqual(old);
+        expect(findWorld(loadWorlds(storage), { seed: '42', version: '1.18', dimension: 0, largeBiomes: true })).toBeNull();
+    });
+
+    it('Default and Large Biomes of one seed are two entries', () => {
+        let list = addWorld([], world(), at(0));
+        list = addWorld(list, world({ name: 'Big', largeBiomes: true }), at(1));
+        expect(list).toHaveLength(2);
+        expect(list[0]).toMatchObject({ name: 'Big', largeBiomes: true });
+        // Saving either again only moves it to the front.
+        list = addWorld(list, world(), at(2));
+        expect(list).toHaveLength(2);
+        expect(list[0].name).toBe('Home');
+        expect(list[0]).not.toHaveProperty('largeBiomes');
+    });
+
+    it('stores a Default world exactly as before, and the flag only when set', () => {
+        const [plain] = addWorld([], world(), at(0));
+        expect(Object.keys(plain).sort()).toEqual(['createdAt', 'dimension', 'id', 'lastOpenedAt', 'name', 'seed', 'version']);
+        const [big] = addWorld([], world({ largeBiomes: true }), at(0));
+        expect(big.largeBiomes).toBe(true);
+    });
+
+    it('a version without the type (before 1.3) saves a Default world', () => {
+        const [w] = addWorld([], world({ version: '1.2', largeBiomes: true }), at(0));
+        expect(w).not.toHaveProperty('largeBiomes');
+    });
+
+    it('drops a stored entry whose flag is not a boolean', () => {
+        const bad = { id: 'b', name: 'x', seed: '1', version: '1.18', dimension: 0, largeBiomes: 'yes', createdAt: 'x', lastOpenedAt: 'x' };
+        expect(loadWorlds(fakeStorage({ [WORLDS_KEY]: JSON.stringify([bad]) }))).toEqual([]);
+    });
+
+    it('the last seed keeps it', () => {
+        const storage = fakeStorage();
+        saveLastSeed({ seed: '42', version: '1.18', dimension: -1, largeBiomes: true }, storage);
+        expect(loadLastSeed(storage)).toEqual({ seed: '42', version: '1.18', dimension: -1, largeBiomes: true });
+        saveLastSeed({ seed: '42', version: '1.18', dimension: 0, largeBiomes: false }, storage);
+        expect(loadLastSeed(storage)).toEqual({ seed: '42', version: '1.18', dimension: 0 });
+    });
+
+    it('useWorlds().isSaved tells the two apart', () => {
+        const storage = fakeStorage();
+        const { result } = renderHook(() => useWorlds(storage));
+        act(() => result.current.add(world({ largeBiomes: true })));
+        expect(result.current.isSaved('42', '1.18', 0, true)).toBe(true);
+        expect(result.current.isSaved('42', '1.18', 0)).toBe(false);
+        expect(result.current.isSaved('42', '1.18', 0, false)).toBe(false);
+    });
+});
+
 describe('useWorlds', () => {
     it('starts from storage and ignores what is invalid', () => {
         const good = addWorld([], world(), at(0))[0];

@@ -92,7 +92,7 @@ describe('parseSeedPage - dimension and flags', () => {
 
     it('ignores unrelated parameters', () => {
         expect(parseSeedPage('?seed=42&version=1.18&utm_source=x')).toEqual({
-            seed: '42', mcVersion: VERSIONS['1.18'], dimension: 0, fromLegacy: false, view: {},
+            seed: '42', mcVersion: VERSIONS['1.18'], dimension: 0, largeBiomes: false, fromLegacy: false, view: {},
         });
     });
 });
@@ -135,12 +135,37 @@ describe('buildSeedUrl', () => {
     });
 });
 
+describe('world type (world=large)', () => {
+    it('is canonical: written right after dim, before the view, only for Large Biomes', () => {
+        expect(buildSeedUrl({ seed: '42', mcVersion: VERSIONS['1.18'], largeBiomes: true })).toBe('/seed/?seed=42&version=1.18&world=large');
+        expect(buildSeedUrl({ seed: '42', mcVersion: VERSIONS['1.18'], dimension: -1, largeBiomes: true }, { view: { ...DEFAULT_VIEW, slime: true } }))
+            .toBe('/seed/?seed=42&version=1.18&dim=-1&world=large&slime=1');
+        expect(buildSeedUrl({ seed: '42', mcVersion: VERSIONS['1.18'], largeBiomes: false })).toBe('/seed/?seed=42&version=1.18');
+    });
+
+    it('does not exist before 1.3: neither written nor read', () => {
+        expect(buildSeedUrl({ seed: '42', mcVersion: VERSIONS['1.2'], largeBiomes: true })).toBe('/seed/?seed=42&version=1.2');
+        expect(buildSeedUrl({ seed: '42', mcVersion: VERSIONS['Beta 1.7'], largeBiomes: true })).toBe('/seed/?seed=42&version=Beta+1.7');
+        expect(parseSeedPage('?seed=42&version=1.2&world=large').largeBiomes).toBe(false);
+        expect(parseSeedPage('?seed=42&version=1.3&world=large').largeBiomes).toBe(true);
+    });
+
+    it('reads only world=large; anything else is Default', () => {
+        expect(parseSeedPage('?seed=42&version=26.3&world=large').largeBiomes).toBe(true);
+        for (const q of ['', '&world=', '&world=LARGE', '&world=amplified', '&world=1']) {
+            expect(parseSeedPage(`?seed=42&version=26.3${q}`).largeBiomes, q).toBe(false);
+        }
+    });
+});
+
 describe('round trip', () => {
     it.each([
-        { seed: '42', mcVersion: VERSIONS['1.18'], dimension: 0 },
-        { seed: BIG, mcVersion: VERSIONS['26.3'], dimension: 0 },
-        { seed: '-98765', mcVersion: VERSIONS['1.17'], dimension: -1 },
-        { seed: '0', mcVersion: VERSIONS['Beta 1.7'], dimension: 1 },
+        { seed: '42', mcVersion: VERSIONS['1.18'], dimension: 0, largeBiomes: false },
+        { seed: BIG, mcVersion: VERSIONS['26.3'], dimension: 0, largeBiomes: false },
+        { seed: '-98765', mcVersion: VERSIONS['1.17'], dimension: -1, largeBiomes: false },
+        { seed: '0', mcVersion: VERSIONS['Beta 1.7'], dimension: 1, largeBiomes: false },
+        { seed: '42', mcVersion: VERSIONS['1.16.5'], dimension: 0, largeBiomes: true },
+        { seed: BIG, mcVersion: VERSIONS['26.3'], dimension: -1, largeBiomes: true },
     ])('parse(build($seed, $mcVersion, $dimension)) is the same state', (state) => {
         const { fromLegacy, view, ...parsed } = parseSeedPage(new URL(buildSeedUrl(state), 'http://x').search);
         expect(parsed).toEqual(state);
@@ -149,7 +174,7 @@ describe('round trip', () => {
     });
 
     it('survives the absolute form too', () => {
-        const state = { seed: BIG, mcVersion: VERSIONS['1.19.2'], dimension: 1 };
+        const state = { seed: BIG, mcVersion: VERSIONS['1.19.2'], dimension: 1, largeBiomes: false };
         const { fromLegacy, view, ...parsed } = parseSeedPage(new URL(buildSeedUrl(state, { absolute: true })).search);
         expect(parsed).toEqual(state);
     });
@@ -282,7 +307,7 @@ describe('view round trip', () => {
     });
 
     it('keeps the canonical state alongside the view', () => {
-        const state = { seed: BIG, mcVersion: VERSIONS['26.3'], dimension: 1 };
+        const state = { seed: BIG, mcVersion: VERSIONS['26.3'], dimension: 1, largeBiomes: true };
         const { fromLegacy, view, ...parsed } = parseSeedPage(new URL(buildSeedUrl(state, { view: { ...DEFAULT_VIEW, structures: [21], grid: true } }), 'http://x').search);
         expect(parsed).toEqual(state);
         expect(view).toEqual({ structures: [21], grid: true });

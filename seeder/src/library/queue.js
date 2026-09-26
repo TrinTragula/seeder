@@ -1,4 +1,5 @@
 import { VERSIONS } from '../util/constants';
+import { engineVersion } from '../util/seed';
 
 /**
  * Candidate-space limits of the streaming seed search.
@@ -288,6 +289,7 @@ export class QueueManager {
      *
      * criteria = {
      *   mcVersion,            VERSIONS int
+     *   largeBiomes = false,  the world type; the shards send engineVersion(mcVersion, largeBiomes)
      *   dimension = 0,        0 Overworld, -1 Nether, 1 End; every criterion must generate there
      *   yHeight = 256,        Y at which biomes are sampled (matters from 1.18)
      *   biomes = [],          BiomeID ints, ALL required inside the box at yHeight
@@ -416,7 +418,9 @@ export class QueueManager {
                 kind: 'FIND_SEEDS',
                 data: {
                     shardId: shard.shardId,
-                    mcVersion: c.mcVersion, dimension: c.dimension, yHeight: c.yHeight,
+                    // Packed without the dimension: a Nether or End hit carries the
+                    // Overworld spawn, which is the Large Biomes world's.
+                    mcVersion: engineVersion(c.mcVersion, c.largeBiomes), dimension: c.dimension, yHeight: c.yHeight,
                     biomes: c.biomes, anyBiomes: c.anyBiomes, excludeBiomes: c.excludeBiomes,
                     structures: c.structures, rangeBlocks: c.rangeBlocks,
                     startingSeed: String(BigInt.asIntN(64, shard.start)),

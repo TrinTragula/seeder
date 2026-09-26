@@ -39,7 +39,7 @@ describe('useFinderSearch', () => {
         act(() => result.current.start({ ...criteria, startingSeed: 9007199254740993n }));
         const [sent] = queue.findSeeds.mock.calls[0];
         expect(sent).toEqual({
-            mcVersion: VERSIONS['26.3'], dimension: 0, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [VILLAGE], rangeBlocks: 300,
+            mcVersion: VERSIONS['26.3'], largeBiomes: false, dimension: 0, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [VILLAGE], rangeBlocks: 300,
             startingSeed: 9007199254740993n, count: 10, maxSeedsToScan: maxSeedsToScanFor(criteria),
         });
         expect(typeof sent.startingSeed).toBe('bigint');

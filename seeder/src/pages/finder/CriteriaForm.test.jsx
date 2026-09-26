@@ -339,3 +339,53 @@ describe('CriteriaForm - any-of and avoid lists', () => {
         expect(screen.getAllByLabelText(/seed/i)).toEqual([screen.getByLabelText('Start seed')]);
     });
 });
+
+describe('CriteriaForm: World type (in Advanced)', () => {
+    const worldType = () => screen.getByLabelText('World type');
+    // react-select's unsearchable input is transparent: the label says whether the field shows.
+    const worldTypeLabel = () => screen.getByText('World type', { selector: 'label' });
+
+    it('sits in Advanced, Default first; picking Large Biomes sets largeBiomes and keeps Advanced open', async () => {
+        const { seen } = renderForm();
+        const toggle = screen.getByRole('button', { name: 'Advanced' });
+        expect(worldTypeLabel()).not.toBeVisible();
+        fireEvent.click(toggle);
+        expect(worldTypeLabel()).toBeVisible();
+        expect(screen.getByText('Default')).toBeInTheDocument();
+        await select('World type', 'Large Biomes');
+        expect(seen.criteria.largeBiomes).toBe(true);
+        // A criterion is never hidden: Advanced stays open while it is set.
+        expect(toggle).toBeDisabled();
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        await select('World type', 'Default');
+        expect(seen.criteria.largeBiomes).toBe(false);
+        expect(toggle).not.toBeDisabled();
+    });
+
+    it('a Large Biomes search from a link opens with Advanced shown', () => {
+        renderForm({ initial: { largeBiomes: true } });
+        expect(worldTypeLabel()).toBeVisible();
+        expect(screen.getByText('Large Biomes')).toBeInTheDocument();
+    });
+
+    it('is disabled on Beta, before 1.3 and in the Nether and the End, saying why', () => {
+        renderForm({ initial: { mcVersion: VERSIONS['Beta 1.7'] } });
+        fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
+        expect(worldType()).toBeDisabled();
+        expect(screen.getByText('Large Biomes starts in 1.3.')).toBeInTheDocument();
+    });
+
+    it('is disabled in the Nether, keeping the choice', () => {
+        const { seen } = renderForm({ initial: { dimension: -1, largeBiomes: true } });
+        expect(worldType()).toBeDisabled();
+        expect(screen.getByText('No effect in the Nether.')).toBeInTheDocument();
+        expect(seen.criteria.largeBiomes).toBe(true);
+    });
+
+    it('a version without the type makes the search Default', async () => {
+        const { seen } = renderForm({ initial: { mcVersion: VERSIONS['1.16.5'], largeBiomes: true } });
+        await select('Minecraft version', '1.2');
+        expect(seen.criteria.largeBiomes).toBe(false);
+        expect(worldType()).toBeDisabled();
+    });
+});

@@ -21,6 +21,7 @@ import { summaryOf } from './hitModel';
 import { useFinderSearch } from './useFinderSearch';
 import { useSeedsMode } from './useSeedsMode';
 import './FinderPage.css';
+import { supportsLargeBiomes } from '../../util/seed';
 
 const buildUrl = (state) => buildFinderUrl(state.criteria, { seeds: state.seeds, start: state.start });
 
@@ -105,11 +106,13 @@ export default function FinderPage() {
     // stricter than presetAvailable(): a preset over a limit only fills the form. A pinned
     // preset may switch the version: it waits for that version's support, and any edit
     // of the form before it lands cancels the search.
-    const applyPreset = useCallback((next) => {
+    // A preset keeps the world type, as it keeps the version: it is the world being played.
+    const applyPreset = useCallback((preset) => {
+        const next = { ...preset, largeBiomes: !!criteria.largeBiomes && supportsLargeBiomes(preset.mcVersion) };
         setCriteria(next);
         if (support?.mcVersion !== next.mcVersion) setPendingPreset(next);
         else if (validate(next, support).ok) onSearch(next, { preset: true });
-    }, [setCriteria, onSearch, support]);
+    }, [setCriteria, onSearch, support, criteria.largeBiomes]);
     useEffect(() => {
         if (!pendingPreset || support?.mcVersion !== pendingPreset.mcVersion) return;
         setPendingPreset(null);
@@ -164,9 +167,9 @@ export default function FinderPage() {
 
     const onOpen = useCallback((seed) => setOpenSeed(seed), []);
     const onClose = useCallback((seed) => setOpenSeed((s) => (s === seed ? null : s)), []);
-    const saved = useCallback((view) => isSaved(view.seed, versionLabelOf(view.mcVersion), view.dimension), [isSaved]);
+    const saved = useCallback((view) => isSaved(view.seed, versionLabelOf(view.mcVersion), view.dimension, view.largeBiomes), [isSaved]);
     const onSave = useCallback((view) => {
-        add({ name: `Seed ${view.seed}`, seed: view.seed, version: versionLabelOf(view.mcVersion), dimension: view.dimension });
+        add({ name: `Seed ${view.seed}`, seed: view.seed, version: versionLabelOf(view.mcVersion), dimension: view.dimension, largeBiomes: view.largeBiomes });
     }, [add]);
 
     const ran = search.status !== 'idle';

@@ -74,8 +74,14 @@ function useDraft(value, format = String) {
  */
 export default function CriteriaForm({ criteria, onChange, onSearch, support, disabled = false }) {
     const id = useId();
-    const { mcVersion, dimension, biomes, structures, rangeBlocks, yHeight, count, startingSeed } = criteria;
+    const { mcVersion, dimension, biomes, anyBiomes = [], excludeBiomes = [], structures, rangeBlocks, yHeight, count, startingSeed } = criteria;
     const [advancedOpen, setAdvancedOpen] = useState(false);
+    // "Any of" / "Avoid" sit behind a disclosure so Search stays above the fold at 1280×800
+    // (owner, 2026-09-26). Lists with biomes (a preset, a link) keep it open: a criterion is
+    // never hidden.
+    const [moreBiomesOpen, setMoreBiomesOpen] = useState(false);
+    const hasMoreBiomes = anyBiomes.length > 0 || excludeBiomes.length > 0;
+    const moreBiomesShown = moreBiomesOpen || hasMoreBiomes;
     const [removed, setRemoved] = useState(null);
 
     const change = (patch) => {
@@ -97,6 +103,12 @@ export default function CriteriaForm({ criteria, onChange, onSearch, support, di
         () => BIOMES.filter((b) => !support || !biomeProblem(b.value, dimension, support)),
         [support, dimension],
     );
+    // A biome sits in one list at most: each list offers what the other two have not taken.
+    const biomeOptionsWithout = (...taken) => {
+        const used = new Set(taken.flat());
+        return biomeOptions.filter((b) => !used.has(b.value));
+    };
+    const biomeValue = (ids) => ids.map((b) => BIOMES.find((o) => o.value === b)).filter(Boolean);
     const structureOptions = useMemo(
         () => STRUCTURES_OPTIONS.filter((s) => !support || !structureProblem(s.value, dimension, support)),
         [support, dimension],
@@ -136,14 +148,58 @@ export default function CriteriaForm({ criteria, onChange, onSearch, support, di
                 <label htmlFor={`${id}-biomes`}>Biomes</label>
                 <Select
                     inputId={`${id}-biomes`}
-                    options={biomeOptions}
+                    options={biomeOptionsWithout(anyBiomes, excludeBiomes)}
                     isMulti
                     isDisabled={disabled}
-                    value={biomes.map((b) => BIOMES.find((o) => o.value === b)).filter(Boolean)}
+                    value={biomeValue(biomes)}
                     onChange={(options) => change({ biomes: (options ?? []).map((o) => o.value) })}
                     placeholder="Any biome"
                     {...menuProps}
                 />
+            </div>
+            <div className="criteria-form__field">
+                <button
+                    type="button"
+                    className="btn btn--full criteria-form__advanced-toggle"
+                    aria-expanded={moreBiomesShown}
+                    aria-controls={`${id}-more-biomes`}
+                    disabled={disabled || hasMoreBiomes}
+                    onClick={() => setMoreBiomesOpen((open) => !open)}
+                >
+                    More biome options
+                </button>
+            </div>
+            <div id={`${id}-more-biomes`} className="criteria-form__more-biomes" hidden={!moreBiomesShown}>
+                <div className="criteria-form__field">
+                    <label htmlFor={`${id}-any-biomes`}>Any of these biomes</label>
+                    <Select
+                        inputId={`${id}-any-biomes`}
+                        options={biomeOptionsWithout(biomes, excludeBiomes)}
+                        isMulti
+                        isDisabled={disabled}
+                        value={biomeValue(anyBiomes)}
+                        onChange={(options) => change({ anyBiomes: (options ?? []).map((o) => o.value) })}
+                        placeholder="No alternatives"
+                        {...menuProps}
+                    />
+                </div>
+                <div className="criteria-form__field">
+                    <label htmlFor={`${id}-exclude-biomes`}>Avoid these biomes</label>
+                    <Select
+                        inputId={`${id}-exclude-biomes`}
+                        options={biomeOptionsWithout(biomes, anyBiomes)}
+                        isMulti
+                        isDisabled={disabled}
+                        value={biomeValue(excludeBiomes)}
+                        onChange={(options) => change({ excludeBiomes: (options ?? []).map((o) => o.value) })}
+                        placeholder="Nothing avoided"
+                        {...menuProps}
+                    />
+                    {/* Before 1.18 biomes have no height, and the form shows none. */}
+                    <p className="criteria-form__hint">
+                        {hasHeight ? 'Checked at the biome height below, inside the whole range.' : 'Checked inside the whole range.'}
+                    </p>
+                </div>
             </div>
             <div className="criteria-form__field">
                 <label htmlFor={`${id}-structures`}>Structures</label>

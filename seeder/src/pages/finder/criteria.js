@@ -21,7 +21,9 @@ export const DEFAULT_CRITERIA = {
     mcVersion: VERSIONS[DEFAULT_VERSION],
     dimension: 0,
     yHeight: 256,
-    biomes: [],
+    biomes: [],         // all of these
+    anyBiomes: [],      // at least one of these
+    excludeBiomes: [],  // none of these
     structures: [],
     rangeBlocks: 300,
     count: 10,
@@ -32,7 +34,8 @@ export const RANGE_OPTIONS_BLOCKS = [100, 300, 500, 750, 1000, 2000];
 export const COUNT_OPTIONS = [10, 25, 50];
 export const MIN_RANGE_BLOCKS = 1;
 export const MAX_RANGE_BLOCKS = 2048;       // the engine's box limit (-7 beyond)
-export const MAX_BIOMES = 32;
+export const MAX_BIOMES = 32;          // required, and alternatives: the engine takes 32 of each
+export const MAX_EXCLUDE_BIOMES = 64;  // avoided: one bitmask in the engine, long lists are cheap
 export const MAX_STRUCTURES = 8;
 
 // The fixed 16 MB WASM heap cannot hold a biome box wider than this (the
@@ -51,6 +54,10 @@ const biomeLabel = (id) => BIOMES.find((b) => b.value === id)?.label ?? `Biome $
 const structureLabel = (type) => STRUCTURES_OPTIONS.find((s) => s.value === type)?.pureText ?? `Structure ${type}`;
 const thousands = (n) => n.toLocaleString('en-US');
 
+// The three biome lists (all of / any of / none of) and whether a search has one.
+const biomeLists = (criteria) => [criteria.biomes ?? [], criteria.anyBiomes ?? [], criteria.excludeBiomes ?? []];
+export const hasBiomeFilter = (criteria) => biomeLists(criteria).some((list) => list.length > 0);
+
 export const rangeLabel = (blocks) => (blocks >= 1000 && blocks % 1000 === 0 ? `${blocks / 1000}k blocks` : `${blocks} blocks`);
 
 /*
@@ -58,7 +65,7 @@ export const rangeLabel = (blocks) => (blocks >= 1000 && blocks % 1000 === 0 ? `
  * not fit in memory at all, so it stays listed (the user learns why) but disabled.
  */
 export function rangeChoices(criteria) {
-    const withBiomes = criteria.biomes.length > 0;
+    const withBiomes = hasBiomeFilter(criteria);
     return RANGE_OPTIONS_BLOCKS.map((value) => {
         const disabled = withBiomes && value > BIOME_RANGE_CAP;
         return { value, label: rangeLabel(value), slow: value === 2000, disabled, reason: disabled ? BIOME_RANGE_CAP_REASON : null };
@@ -99,20 +106,28 @@ export function structureProblem(type, dimension, support) {
  */
 export function validate(criteria, support) {
     const errors = [];
-    const { biomes, structures, rangeBlocks, count, dimension } = criteria;
-    if (biomes.length === 0 && structures.length === 0) errors.push(NO_CRITERION);
+    const { structures, rangeBlocks, count, dimension } = criteria;
+    const [biomes, anyBiomes, excludeBiomes] = biomeLists(criteria);
+    const withBiomes = hasBiomeFilter(criteria);
+    if (!withBiomes && structures.length === 0) errors.push(NO_CRITERION);
     if (biomes.length > MAX_BIOMES) errors.push(`Pick at most ${MAX_BIOMES} biomes.`);
+    if (anyBiomes.length > MAX_BIOMES) errors.push(`Pick at most ${MAX_BIOMES} alternative biomes.`);
+    if (excludeBiomes.length > MAX_EXCLUDE_BIOMES) errors.push(`Avoid at most ${MAX_EXCLUDE_BIOMES} biomes.`);
+    // The engine refuses a biome that is both wanted and avoided (-7): say which one.
+    for (const id of excludeBiomes) {
+        if (biomes.includes(id) || anyBiomes.includes(id)) errors.push(`${biomeLabel(id)} is both wanted and avoided.`);
+    }
     if (structures.length > MAX_STRUCTURES) errors.push(`Pick at most ${MAX_STRUCTURES} structures.`);
     if (!Number.isInteger(rangeBlocks) || rangeBlocks < MIN_RANGE_BLOCKS || rangeBlocks > MAX_RANGE_BLOCKS) {
         errors.push(`The range must be between ${MIN_RANGE_BLOCKS} and ${thousands(MAX_RANGE_BLOCKS)} blocks.`);
-    } else if (biomes.length > 0 && rangeBlocks > BIOME_RANGE_CAP) {
+    } else if (withBiomes && rangeBlocks > BIOME_RANGE_CAP) {
         errors.push(`${BIOME_RANGE_CAP_REASON} Pick ${thousands(BIOME_RANGE_CAP)} blocks or less.`);
     }
     if (!COUNT_OPTIONS.includes(count)) errors.push(`Results must be ${COUNT_OPTIONS.slice(0, -1).join(', ')} or ${COUNT_OPTIONS.at(-1)}.`);
 
     if (!support) return { ok: false, errors: [...errors, CHECKING_SUPPORT] };
 
-    for (const id of biomes) {
+    for (const id of new Set([biomes, anyBiomes, excludeBiomes].flat())) {
         const problem = biomeProblem(id, dimension, support);
         if (problem) errors.push(`${biomeLabel(id)} ${problem}`);
     }
@@ -138,17 +153,20 @@ export function validate(criteria, support) {
  */
 export function dropUnsupported(criteria, support) {
     const removed = [];
-    const biomes = criteria.biomes.filter((id) => {
+    const keepBiomes = (list = []) => list.filter((id) => {
         const problem = biomeProblem(id, criteria.dimension, support);
         if (problem) removed.push({ label: biomeLabel(id), problem });
         return !problem;
     });
+    const biomes = keepBiomes(criteria.biomes);
+    const anyBiomes = keepBiomes(criteria.anyBiomes);
+    const excludeBiomes = keepBiomes(criteria.excludeBiomes);
     const structures = criteria.structures.filter((type) => {
         const problem = structureProblem(type, criteria.dimension, support);
         if (problem) removed.push({ label: structureLabel(type), problem });
         return !problem;
     });
-    return { criteria: removed.length ? { ...criteria, biomes, structures } : criteria, removed };
+    return { criteria: removed.length ? { ...criteria, biomes, anyBiomes, excludeBiomes, structures } : criteria, removed };
 }
 
 // Per-core cost of one biome check, µs per cell of the box (measured; the same
@@ -177,18 +195,19 @@ export function rateHint(criteria) {
 
 // The finder's slowness warnings, as sentences.
 export function warningsFor(criteria) {
-    const { biomes, structures, rangeBlocks, mcVersion, dimension } = criteria;
+    const { structures, rangeBlocks, mcVersion, dimension } = criteria;
+    const withBiomes = hasBiomeFilter(criteria);
     const warnings = [];
     if (structures.length > 1) {
         warnings.push('Each extra structure multiplies the odds: matches get much rarer and the search slower.');
     }
-    if (biomes.length > 0 && dimension === 0 && mcVersion >= HEIGHT_FROM && rangeBlocks > 300) {
+    if (withBiomes && dimension === 0 && mcVersion >= HEIGHT_FROM && rangeBlocks > 300) {
         warnings.push(`Biomes on 1.18+ are slow beyond 300 blocks: expect ${biomeRate(criteria)}.`);
     }
     if (structures.length > 0 && rangeBlocks >= 2000) {
         warnings.push('2k blocks covers many regions per structure: each seed takes longer to check.');
     }
-    if (dimension === 1 && biomes.some((id) => id !== THE_END)) {
+    if (dimension === 1 && [...(criteria.biomes ?? []), ...(criteria.anyBiomes ?? [])].some((id) => id !== THE_END)) {
         warnings.push('Within about 1,000 blocks the End has only The End biome: other End biomes will not be found here.');
     }
     return warnings;

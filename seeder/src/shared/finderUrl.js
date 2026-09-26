@@ -5,7 +5,9 @@ import { COUNT_OPTIONS, DEFAULT_CRITERIA, MAX_RANGE_BLOCKS, MIN_RANGE_BLOCKS } f
 
 // The finder's stable URL contract:
 //     /finder/?version=<label>&dim=<n>&range=<blocks>&y=<n>&count=<n>&start=<decimal>
-//              [&biomes=185,132][&structures=5,11][&seeds=<decimal>,…]
+//              [&biomes=185,132][&any=12,140][&exclude=0,24][&structures=5,11][&seeds=<decimal>,…]
+// biomes: all required; any: at least one of them; exclude: none of them. Lists
+// missing from a URL are empty, so links made before any/exclude existed still parse.
 // A criteria URL never starts a search by itself; `seeds` switches the page to
 // render-only mode.
 export const FINDER_PATH = '/finder/';
@@ -71,6 +73,8 @@ export function parseFinderUrl(search) {
         dimension: ['-1', '0', '1'].includes(dim) ? Number(dim) : 0,
         yHeight: intIn(params.get('y'), Y_MIN, Y_MAX, DEFAULT_CRITERIA.yHeight),
         biomes: idList(params.get('biomes'), BIOME_IDS),
+        anyBiomes: idList(params.get('any'), BIOME_IDS),
+        excludeBiomes: idList(params.get('exclude'), BIOME_IDS),
         structures: idList(params.get('structures'), STRUCTURE_IDS),
         rangeBlocks: intIn(params.get('range'), MIN_RANGE_BLOCKS, MAX_RANGE_BLOCKS, DEFAULT_CRITERIA.rangeBlocks),
         count: COUNT_OPTIONS.includes(count) ? count : DEFAULT_CRITERIA.count,
@@ -81,7 +85,7 @@ export function parseFinderUrl(search) {
 
 /*
  * The URL for a finder state. Every parameter is written, in a fixed order, so a
- * pasted link is unambiguous; only empty biomes / structures / seeds are left out.
+ * pasted link is unambiguous; only empty biome lists / structures / seeds are left out.
  * `start` defaults to the criteria's own starting seed. Lists keep literal commas
  * (URLSearchParams would write %2C), which is what the contract shows.
  */
@@ -96,6 +100,8 @@ export function buildFinderUrl(criteria, { seeds = null, start = criteria.starti
         `start=${String(start)}`,
     ];
     if (criteria.biomes?.length) parts.push(`biomes=${criteria.biomes.join(',')}`);
+    if (criteria.anyBiomes?.length) parts.push(`any=${criteria.anyBiomes.join(',')}`);
+    if (criteria.excludeBiomes?.length) parts.push(`exclude=${criteria.excludeBiomes.join(',')}`);
     if (criteria.structures?.length) parts.push(`structures=${criteria.structures.join(',')}`);
     if (seeds?.length) parts.push(`seeds=${seeds.map(String).join(',')}`);
     return `${absolute ? SITE_URL : ''}${FINDER_PATH}?${parts.join('&')}`;

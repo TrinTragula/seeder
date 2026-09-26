@@ -107,4 +107,20 @@ describe('summaryOf', () => {
         expect(summaryOf({ ...criteria, structures: [structure('Fortress')], biomes: [], rangeBlocks: 1000, dimension: -1, mcVersion: VERSIONS['1.17'] }))
             .toBe('Fortress · 1k blocks · 1.17 · Nether');
     });
+
+    it('names the alternatives and the avoided biomes, each list as one part', () => {
+        const all = {
+            ...criteria, structures: [], rangeBlocks: 300,
+            biomes: [biome('Mushroom Fields')], anyBiomes: [biome('Snowy Plains'), biome('Ice Spikes')], excludeBiomes: [biome('Ocean'), biome('Deep Ocean')],
+        };
+        expect(summaryOf(all)).toBe('Mushroom Fields · any of Snowy Plains, Ice Spikes · no Ocean, Deep Ocean · 300 blocks · 26.3 · Overworld');
+        expect(summaryOf({ ...all, biomes: [], anyBiomes: [] })).toBe('no Ocean, Deep Ocean · 300 blocks · 26.3 · Overworld');
+    });
+
+    it('counts a list longer than four names, so the phone summary stays a few lines', () => {
+        const ids = ['Plains', 'Desert', 'Forest', 'Taiga', 'Swamp'].map(biome);
+        expect(summaryOf({ ...criteria, structures: [], rangeBlocks: 150, biomes: [biome('Mushroom Fields')], anyBiomes: ids, excludeBiomes: ids.slice(0, 4) }))
+            .toBe('Mushroom Fields · any of 5 biomes · no Plains, Desert, Forest, Taiga · 150 blocks · 26.3 · Overworld');
+        expect(summaryOf({ ...criteria, structures: [], rangeBlocks: 150, biomes: [], excludeBiomes: ids })).toBe('avoids 5 biomes · 150 blocks · 26.3 · Overworld');
+    });
 });

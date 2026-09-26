@@ -28,7 +28,8 @@ const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
  * CSV, one row per view, CRLF line ends:
  *   seed,spawnX,spawnZ,structures,version,dimension,criteria
  * `structures` is type:x:z:distance per found structure joined by `|` (empty when
- * none), `version` the label, `dimension` -1 | 0 | 1, `criteria` the quoted summary.
+ * none), `version` the label, `dimension` -1 | 0 | 1, `criteria` the quoted summary
+ * (summaryOf: it names or counts the any-of / avoid lists; the ids are in the JSON export).
  */
 export function toCsv(criteria, views) {
     const version = versionLabelOf(criteria.mcVersion);
@@ -48,7 +49,8 @@ export function toCsv(criteria, views) {
 
 /*
  * JSON, in this key order (external tools may parse it):
- *   { version, mcVersion, dimension, rangeBlocks, yHeight, biomes, structures, count,
+ *   { version, mcVersion, dimension, rangeBlocks, yHeight, biomes, anyBiomes, excludeBiomes,
+ *     structures, count,
  *     start: "decimal", generatedWith: "Seeder x.y.z",
  *     hits: [{ seed: "decimal", spawnX, spawnZ, structures: [{ type, x, z, distance }] }] }
  */
@@ -60,6 +62,8 @@ export function toJson(criteria, views, { start = criteria.startingSeed ?? 0n } 
         rangeBlocks: criteria.rangeBlocks,
         yHeight: criteria.yHeight,
         biomes: [...criteria.biomes],
+        anyBiomes: [...(criteria.anyBiomes ?? [])],
+        excludeBiomes: [...(criteria.excludeBiomes ?? [])],
         structures: [...criteria.structures],
         count: criteria.count,
         start: String(start),

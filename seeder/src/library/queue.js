@@ -291,6 +291,8 @@ export class QueueManager {
      *   dimension = 0,        0 Overworld, -1 Nether, 1 End; every criterion must generate there
      *   yHeight = 256,        Y at which biomes are sampled (matters from 1.18)
      *   biomes = [],          BiomeID ints, ALL required inside the box at yHeight
+     *   anyBiomes = [],       BiomeID ints, at least ONE of them inside the box at yHeight
+     *   excludeBiomes = [],   BiomeID ints, NONE of them anywhere in the box at yHeight
      *   structures = [],      StructureType ints, ALL required inside the box
      *   rangeBlocks,          block half-width: the box is [-range, +range]²
      *   startingSeed = 0n,    BigInt or decimal string (never a Number): the first candidate
@@ -342,6 +344,8 @@ export class QueueManager {
             throw new Error('QueueManager.findSeeds: a search is already running; call stopSearch() first.');
         }
         const biomes = criteria.biomes ?? [];
+        const anyBiomes = criteria.anyBiomes ?? [];
+        const excludeBiomes = criteria.excludeBiomes ?? [];
         const structures = criteria.structures ?? [];
         const mode = structures.length > 0 ? 'struct' : 'biome';
         const requested = BigInt(criteria.startingSeed ?? 0);
@@ -355,7 +359,7 @@ export class QueueManager {
         const id = ++this.searchCounter;
         this.search = {
             id, mode, start, end, target,
-            criteria: { ...criteria, biomes, structures, dimension: criteria.dimension ?? 0, yHeight: criteria.yHeight ?? 256 },
+            criteria: { ...criteria, biomes, anyBiomes, excludeBiomes, structures, dimension: criteria.dimension ?? 0, yHeight: criteria.yHeight ?? 256 },
             nextShard: start,
             retry: [],                 // shards whose worker crashed, dealt again before new ones
             shardLen: BigInt(shardLenFor({ ...criteria, structures })),
@@ -413,7 +417,8 @@ export class QueueManager {
                 data: {
                     shardId: shard.shardId,
                     mcVersion: c.mcVersion, dimension: c.dimension, yHeight: c.yHeight,
-                    biomes: c.biomes, structures: c.structures, rangeBlocks: c.rangeBlocks,
+                    biomes: c.biomes, anyBiomes: c.anyBiomes, excludeBiomes: c.excludeBiomes,
+                    structures: c.structures, rangeBlocks: c.rangeBlocks,
                     startingSeed: String(BigInt.asIntN(64, shard.start)),
                     maxSeedsToScan: Number(shard.len),
                     maxResults: Math.max(1, s.target - s.hits.length),

@@ -136,6 +136,16 @@ describe('SeedCard', () => {
         expect(screen.getByText('Around (-32, 80)')).toBeInTheDocument();
     });
 
+    it('marks the Overworld spawn on the thumbnail, and no spawn on a Nether row', async () => {
+        setBox();
+        const thumbs = createThumbnailRequester(getQueueManager());
+        const request = vi.spyOn(thumbs, 'request');
+        render(<SeedCard view={view({ structures: [] })} thumbnails={thumbs} eager />);
+        expect(request.mock.calls[0][0].spawn).toEqual({ x: -32, z: 80 });
+        render(<SeedCard view={view({ seed: 7n, structures: [] }, { ...criteria, dimension: -1 })} thumbnails={thumbs} eager />);
+        expect(request.mock.calls[1][0].spawn).toBeNull();
+    });
+
     it('a box without a layout asks for no thumbnail', () => {
         render(<SeedCard view={view()} thumbnails={createThumbnailRequester(getQueueManager())} />);
         expect(qm().pendingOf('GET_AREA')).toHaveLength(0);
@@ -311,9 +321,9 @@ describe('SeedCard', () => {
         await seen();
         await answerThumb();
         const ctx = screen.getByRole('button', { name: 'Preview 3774' }).querySelector('canvas').getContext('2d');
-        // One marker, the village's outlined icon (after the biome bitmap).
+        // The spawn's house, then one marker, the village's outlined icon (after the biome bitmap).
         const icons = ctx.callsOf('drawImage').slice(1).map((c) => c.args[0].getContext('2d').callsOf('drawImage').at(-1).args[0]);
-        expect(icons.map((icon) => new URL(icon.src).pathname)).toEqual(['/img/village.png']);
+        expect(icons.map((icon) => new URL(icon.src).pathname)).toEqual(['/img/spawn.png', '/img/village.png']);
         expect(ctx.callsOf('fillRect')).toEqual([]);
     });
 

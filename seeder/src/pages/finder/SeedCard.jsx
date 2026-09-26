@@ -90,7 +90,7 @@ function Thumbnail({ canvas }) {
 // of the screen. A box without a layout (hidden, jsdom) asks for nothing.
 function useThumbnail(thumbnails, view, box, open, target, eager) {
     const [canvas, setCanvas] = useState(null);
-    const { mcVersion, seed, dimension, yHeight, found } = view;
+    const { mcVersion, seed, dimension, yHeight, found, spawn } = view;
     const near = useInView(box, { rootMargin: THUMB_LOOKAHEAD });
     const wanted = eager || near;
     useLayoutEffect(() => {
@@ -102,8 +102,10 @@ function useThumbnail(thumbnails, view, box, open, target, eager) {
         let live = true;
         // Markers only where the engine found a structure (a shared row's unverified ones have no place).
         const markers = found.map(({ type, x, z }) => ({ type, x, z }));
+        // The spawn is the Overworld's: marked on Overworld rows only, as the opened map does.
         thumbnails.request({
-            mcVersion, seed, dimension, yHeight, markers, widthCells, heightCells, centreX: target.x, centreZ: target.z,
+            mcVersion, seed, dimension, yHeight, markers, spawn: dimension === 0 ? spawn : null,
+            widthCells, heightCells, centreX: target.x, centreZ: target.z,
         }, (ready) => {
             if (live) setCanvas(ready.canvas);
         });

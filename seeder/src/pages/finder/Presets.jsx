@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useIsDesktop } from '../../shared/hooks/useMediaQuery';
 import { versionLabelOf } from '../../shared/seedUrl';
 import {
-    NEWEST_MC, PINNED_GROUP, PRESET_GROUPS, presetAvailable, presetCaption, presetCriteria, presetVersion, presetsOf,
+    PINNED_GROUP, PRESET_GROUPS, presetAvailable, presetBadge, presetCaption, presetCriteria, presetVersion, presetsOf,
 } from './presets.js';
 
 /*
@@ -83,8 +83,7 @@ function PresetChip({ preset, idBase, mcVersion, support, disabled, onApply }) {
     const reason = support ? why : null;
     const runsOn = presetVersion(preset, mcVersion);
     const note = support && runsOn !== mcVersion ? `Switches to ${versionLabelOf(runsOn)}.` : null;
-    // A pinned preset from an earlier drop than the newest says which one.
-    const badge = preset.since != null && preset.since !== NEWEST_MC ? versionLabelOf(preset.since) : null;
+    const badge = presetBadge(preset);
     const ids = { name: `${idBase}-name`, badge: `${idBase}-badge`, caption: `${idBase}-caption`, reason: `${idBase}-reason`, note: `${idBase}-note` };
     return (
         <li className="preset">

@@ -8,7 +8,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import Presets from './Presets.jsx';
 import { BIOMES, STRUCTURES_OPTIONS, VERSIONS } from '../../util/constants';
 import { FakeMatchMedia, defaultVersionSupport } from '../../test/fakes';
-import { NEWEST_MC, PINNED_GROUP, PRESETS, PRESET_GROUPS, presetCaption, presetsOf } from './presets.js';
+import { NEWEST_MC, PINNED_GROUP, PRESETS, PRESET_GROUPS, presetBadge, presetCaption, presetsOf } from './presets.js';
 
 const biome = (label) => BIOMES.find((b) => b.label === label).value;
 const structure = (pureText) => STRUCTURES_OPTIONS.find((s) => s.pureText === pureText).value;
@@ -30,9 +30,7 @@ function support(mcVersion) {
     return s;
 }
 // The badge of a pinned preset from an earlier drop is part of its name.
-const nameOf = (p) => (p.since != null && p.since !== NEWEST_MC
-    ? `${p.label} ${Object.keys(VERSIONS).find((k) => VERSIONS[k] === p.since)}`
-    : p.label);
+const nameOf = (p) => (presetBadge(p) ? `${p.label} ${presetBadge(p)}` : p.label);
 const chip = (name) => screen.getByRole('button', { name, exact: true });
 
 describe('Presets', () => {
@@ -81,12 +79,14 @@ describe('Presets', () => {
 
     it('keeps the pinned group enabled on an older version: each chip says it switches to the newest', () => {
         render(<Presets mcVersion={VERSIONS['1.12']} support={support(VERSIONS['1.12'])} onApply={vi.fn()} />);
-        for (const p of presetsOf(PINNED_GROUP)) {
+        const switching = PRESETS.filter((p) => p.since != null);
+        expect(switching.map((p) => p.slug)).toEqual(expect.arrayContaining([...presetsOf(PINNED_GROUP).map((p) => p.slug), 'survival-island']));
+        for (const p of switching) {
             const button = chip(nameOf(p));
             expect(button, p.slug).toBeEnabled();
             expect(button).toHaveAccessibleDescription(`Switches to ${NEWEST}. ${presetCaption(p)}`);
         }
-        expect(screen.getAllByText(`Switches to ${NEWEST}.`, { selector: 'p' })).toHaveLength(presetsOf(PINNED_GROUP).length);
+        expect(screen.getAllByText(`Switches to ${NEWEST}.`, { selector: 'p' })).toHaveLength(switching.length);
     });
 
     it('says nothing about switching on the newest version', () => {

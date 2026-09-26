@@ -52,6 +52,13 @@ describe('toCsv', () => {
         expect(c).toBe(`7,0,16,,26.3,0,${summary}`);
     });
 
+    it('names the any-of and avoid lists in the criteria column, under the same header', () => {
+        const csv = toCsv({ ...criteria, anyBiomes: [biome('Snowy Plains')], excludeBiomes: [biome('Ocean')] }, views.slice(0, 1));
+        const [header, row] = csv.split('\r\n');
+        expect(header).toBe(CSV_HEADER);
+        expect(row.endsWith('"Village · Ruined Portal · Plains · any of Snowy Plains · no Ocean · 300 blocks · 26.3 · Overworld"')).toBe(true);
+    });
+
     it('doubles the double quotes inside the summary (RFC 4180)', () => {
         summaryOf.mockReturnValueOnce('Village "near" spawn, 300 blocks');
         const [, row] = toCsv(criteria, views.slice(0, 1)).split('\r\n');
@@ -81,11 +88,17 @@ describe('toCsv', () => {
 });
 
 describe('toJson', () => {
+    it('carries the any-of and avoid lists as ids', () => {
+        const data = JSON.parse(toJson({ ...criteria, anyBiomes: [biome('Snowy Plains')], excludeBiomes: [biome('Ocean'), biome('Deep Ocean')] }, views));
+        expect(data.anyBiomes).toEqual([biome('Snowy Plains')]);
+        expect(data.excludeBiomes).toEqual([biome('Ocean'), biome('Deep Ocean')]);
+    });
+
     it('has exactly the documented keys, in order, with string seeds and start', () => {
         const json = toJson(criteria, views, { start: 2n ** 63n + 5n });
         const data = JSON.parse(json);
         expect(Object.keys(data)).toEqual([
-            'version', 'mcVersion', 'dimension', 'rangeBlocks', 'yHeight', 'biomes', 'structures', 'count', 'start', 'generatedWith', 'hits',
+            'version', 'mcVersion', 'dimension', 'rangeBlocks', 'yHeight', 'biomes', 'anyBiomes', 'excludeBiomes', 'structures', 'count', 'start', 'generatedWith', 'hits',
         ]);
         expect(data).toEqual({
             version: '26.3',
@@ -94,6 +107,8 @@ describe('toJson', () => {
             rangeBlocks: 300,
             yHeight: 64,
             biomes: [biome('Plains')],
+            anyBiomes: [],
+            excludeBiomes: [],
             structures: [VILLAGE, PORTAL],
             count: 25,
             start: '9223372036854775813',

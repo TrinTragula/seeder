@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FakeQueueManager } from '../test/fakes';
 import {
-    MARKER_BORDER_COLOR, MARKER_COLOR, MARKER_ICON_PX, THUMB_CACHE_MAX, THUMB_CELLS, THUMB_MAX_CELLS, THUMB_SCALE, THUMB_STRIP_CELLS,
+    MARKER_BORDER_COLOR, MARKER_COLOR, MARKER_ICON_PX, SPAWN_ICON, SPAWN_ICON_H, SPAWN_ICON_W, THUMB_CACHE_MAX, THUMB_CELLS, THUMB_MAX_CELLS, THUMB_SCALE, THUMB_STRIP_CELLS,
     areaOf, createThumbnailRequester, thumbKey,
 } from './thumbnail';
 
@@ -174,6 +174,30 @@ describe('createThumbnailRequester', () => {
         ]);
         expect(ctx.fillStyle).toBe(MARKER_COLOR);
         expect(MARKER_BORDER_COLOR).toBe('#000');
+    });
+
+    it('marks the spawn with the map\'s house icon, under the structures, and only inside the area', async () => {
+        const thumbs = createThumbnailRequester(queue);
+        const onReady = vi.fn();
+        thumbs.request(spec({ markers: [{ type: VILLAGE, x: 100, z: -60 }], spawn: { x: -32, z: 80 } }), onReady);
+        queue.resolveAreas();
+        await flush();
+        // (64 - 8, 64 + 20): the 32 × 30 house centred there, in its 2 px outline, drawn first.
+        expect([SPAWN_ICON, SPAWN_ICON_W, SPAWN_ICON_H]).toEqual(['/img/spawn.png', 32, 30]);
+        expect(iconDraws(onReady.mock.calls[0][0].canvas.getContext('2d'))).toEqual([
+            ['/img/spawn.png', 38, 67, 36, 34],
+            ['/img/village.png', 72, 32, 34, 34],
+        ]);
+        const outside = vi.fn();
+        thumbs.request(spec({ spawn: { x: 600, z: 0 } }), outside);
+        queue.resolveAreas();
+        await flush();
+        expect(iconDraws(outside.mock.calls[0][0].canvas.getContext('2d'))).toEqual([]);
+    });
+
+    it('the spawn is part of the key: a thumbnail without it is another one', () => {
+        expect(thumbKey(spec({ spawn: { x: -32, z: 80 } }))).not.toBe(thumbKey(spec()));
+        expect(thumbKey(spec({ spawn: null }))).toBe(thumbKey(spec()));
     });
 
     it('another structure type at the same place is another thumbnail', () => {

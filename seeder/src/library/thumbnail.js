@@ -1,6 +1,6 @@
 // Finder result-row thumbnails: a biome area centred on the row's preview block, 1 px
-// per cell like the map at zoom 1, with the hit's structures marked. The opened row's
-// map starts on the same block, so the thumbnail is its first frame.
+// per cell like the map at zoom 1, with the hit's structures and the Overworld spawn
+// marked. The opened row's map starts on the same block, so the thumbnail is its first frame.
 
 import { ICON_OUTLINE_PX, STRUCTURE_ICONS, outlinedIcon } from './draw';
 
@@ -12,6 +12,11 @@ export const THUMB_CACHE_MAX = 30;       // rendered canvases kept (oldest evict
 // A structure is marked with its map icon, drawn as DrawSeed draws it without a label
 // (30 px, centred, in its black outline).
 export const MARKER_ICON_PX = 30;
+// The spawn: the map's house icon at the map's size (32 × 30), in the same outline, under
+// the structures. Without a label, like the structures.
+export const SPAWN_ICON = '/img/spawn.png';
+export const SPAWN_ICON_W = 32;
+export const SPAWN_ICON_H = 30;
 // The fallback for a type without an icon (or one that failed to load): --color-accent in
 // tokens.css (a canvas cannot read CSS custom properties). A 6 px accent square in a 1 px
 // black frame: a bare 4 px square vanished on desert and savanna colours.
@@ -22,8 +27,8 @@ export const MARKER_BORDER_PX = 1;
 
 // One decoded image per icon, shared by every requester. A missing or broken icon is null.
 const icons = new Map();
-const iconOf = (type) => {
-    const src = STRUCTURE_ICONS[type];
+const iconOf = (type) => imageOf(STRUCTURE_ICONS[type]);
+const imageOf = (src) => {
     if (!src) return Promise.resolve(null);
     if (!icons.has(src)) {
         const img = new Image();
@@ -65,12 +70,13 @@ const stripsOf = ({ startX, startY, widthX, widthY }) => {
 // One thumbnail per world, size and marker set. The markers are part of the key because
 // the same seed found by other criteria marks other structures.
 export const thumbKey = (spec) => {
-    const { mcVersion, seed, dimension = 0, yHeight = 256, markers = [] } = spec;
+    const { mcVersion, seed, dimension = 0, yHeight = 256, markers = [], spawn = null } = spec;
     const { startX, startY, widthX, widthY } = areaOf(spec);
-    return `${mcVersion}:${seed}:${dimension}:${yHeight}:${startX},${startY}:${widthX}x${widthY}:${markers.map((m) => `${m.type}@${m.x},${m.z}`).join(';')}`;
+    const spawnPart = spawn ? `:spawn@${spawn.x},${spawn.z}` : '';
+    return `${mcVersion}:${seed}:${dimension}:${yHeight}:${startX},${startY}:${widthX}x${widthY}:${markers.map((m) => `${m.type}@${m.x},${m.z}`).join(';')}${spawnPart}`;
 };
 
-function render(rgba, { startX, startY, widthX, widthY }, markers, markerIcons, doc) {
+function render(rgba, { startX, startY, widthX, widthY }, markers, markerIcons, spawn, spawnIcon, doc) {
     const small = doc.createElement('canvas');
     small.width = widthX;
     small.height = widthY;
@@ -87,6 +93,17 @@ function render(rgba, { startX, startY, widthX, widthY }, markers, markerIcons, 
     const outer = MARKER_PX + 2 * MARKER_BORDER_PX;
     // Block -> pixel: a cell is 4 blocks, and the area starts at cell startX / startY.
     const toPixel = (block, start) => (block / 4 - start) * THUMB_SCALE;
+    // Under the structures, which are what the row was found for. Outside the area, or
+    // with its icon missing, the spawn has no marker (the card prints its coordinates).
+    if (spawn && spawnIcon) {
+        const px = Math.round(toPixel(spawn.x, startX));
+        const pz = Math.round(toPixel(spawn.z, startY));
+        if (px >= 0 && pz >= 0 && px < canvas.width && pz < canvas.height) {
+            const w = SPAWN_ICON_W + 2 * ICON_OUTLINE_PX;
+            const h = SPAWN_ICON_H + 2 * ICON_OUTLINE_PX;
+            ctx.drawImage(outlinedIcon(spawnIcon, SPAWN_ICON_W, SPAWN_ICON_H, doc), px - w / 2, pz - h / 2, w, h);
+        }
+    }
     markers.forEach(({ x, z }, i) => {
         const px = Math.round(toPixel(x, startX));
         const pz = Math.round(toPixel(z, startY));
@@ -110,13 +127,14 @@ function render(rgba, { startX, startY, widthX, widthY }, markers, markerIcons, 
  * createThumbnailRequester(queue) -> { request(spec, onReady), destroy(), size }
  *
  * spec = { mcVersion, seed: "decimal", dimension, yHeight, markers: [{ x, z, type }],
- *          widthCells, heightCells, centreX, centreZ }  (the area, centred on block
+ *          spawn: { x, z } | null, widthCells, heightCells, centreX, centreZ }  (the area, centred on block
  *          centreX, centreZ - the origin by default; 128 cells each by default).
  * request() asks the pool once per key, in strips (queue.requestArea: low priority and
  * `wide`, so tiles and high queries go first and the strips spread over every spare
  * worker), then calls onReady({ canvas, key }) with a canvas of widthCells × THUMB_SCALE
  * by heightCells × THUMB_SCALE px (each marker inside it drawn as the structure's map
- * icon in its outline, or an 8 px framed square for a type without one); a
+ * icon in its outline, or an 8 px framed square for a type without one; the spawn, when
+ * given and inside, as the map's house icon under them); a
  * cached canvas answers at once. Every request carries this requester's one token, so
  * destroy() cancels them all. A cancellation is silent; an engine error or any other failure
  * leaves the card's placeholder. A pool reset (killAll / restartAll: in-flight requests
@@ -138,23 +156,24 @@ export function createThumbnailRequester(queue, { document: doc = globalThis.doc
     const ask = (key, entry) => {
         const attempt = ++attempts;
         entry.attempt = attempt;
-        const { mcVersion, seed, dimension = 0, yHeight = 256, markers = [] } = entry.spec;
+        const { mcVersion, seed, dimension = 0, yHeight = 256, markers = [], spawn = null } = entry.spec;
         const area = areaOf(entry.spec);
         const strips = stripsOf(area);
         // Stale answers (an earlier attempt, a key no longer wanted) are dropped.
         const current = () => !destroyed && wanted.get(key) === entry && entry.attempt === attempt;
         // The icons load beside the strips, so the canvas is drawn once, with them in it.
         const markerIcons = Promise.all(markers.map((m) => iconOf(m.type)));
-        Promise.all([markerIcons, ...strips.map(({ row, ...strip }) => queue.requestArea(
+        const spawnIcon = spawn ? imageOf(SPAWN_ICON) : Promise.resolve(null);
+        Promise.all([markerIcons, spawnIcon, ...strips.map(({ row, ...strip }) => queue.requestArea(
             { mcVersion, seed: String(seed), ...strip, dimension, yHeight }, { token, wide: true },
-        ))]).then(([loaded, ...replies]) => {
+        ))]).then(([loaded, house, ...replies]) => {
             if (!current()) return;
             wanted.delete(key);
             // One strip the engine could not draw leaves the whole placeholder.
             if (replies.some((reply) => reply?.error || !reply?.rgba)) return;
             const rgba = new Uint8ClampedArray(area.widthX * area.widthY * 4);
             replies.forEach((reply, i) => rgba.set(reply.rgba, strips[i].row * area.widthX * 4));
-            const canvas = render(rgba, area, markers, loaded, doc);
+            const canvas = render(rgba, area, markers, loaded, spawn, house, doc);
             remember(key, canvas);
             for (const onReady of entry.listeners) onReady({ canvas, key });
         }, (reason) => {

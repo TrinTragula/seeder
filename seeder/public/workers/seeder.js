@@ -6,7 +6,7 @@ const FIND_SEEDS_ERRORS = {
     '-4': 'One of the structures does not generate in this dimension.',
     '-5': 'The range covers too many regions for one of the structures, or it is a chunk-scale feature that cannot be searched.',
     '-6': 'One of the biomes does not exist in this version or dimension.',
-    '-7': 'Invalid search: the range must be 1-2048 blocks, with at most 32 biomes and 8 structures, at least one criterion and at least one result.',
+    '-7': 'Invalid search: the range must be 1-2048 blocks, with at most 32 required and 32 alternative biomes, 64 avoided biomes and 8 structures, no biome both wanted and avoided, at least one criterion and at least one result.',
     '-8': 'Not enough memory for a biome box this large: reduce the range.',
     '-9': 'End cities only generate more than 1008 blocks from the centre: increase the range.',
 };
@@ -53,7 +53,7 @@ class Seeder {
         // Streaming multi-criteria search: hits and progress arrive as SEED_FOUND /
         // SEED_UPDATE messages posted from C while the call runs; the return value is
         // the number of candidates examined (or a negative FIND_SEEDS_ERRORS code).
-        this.WASMfindSeeds = this.module.cwrap("find_seeds", "number", ["number", "number", "number", "array", "number", "array", "number", "number", "number", "number", "number"]);
+        this.WASMfindSeeds = this.module.cwrap("find_seeds", "number", ["number", "number", "number", "array", "number", "array", "number", "array", "number", "array", "number", "number", "number", "number", "number"]);
         this.WASMsearchLastTested = this.module.cwrap("search_last_tested", "number", []);
         this.WASMsearchLastHits = this.module.cwrap("search_last_hits", "number", []);
         // Version-gating probes for the finder UI.
@@ -152,13 +152,14 @@ class Seeder {
         return coords;
     }
 
-    // Run one bounded search shard. Every biome in `biomes` AND every structure in
-    // `structures` must occur within [-rangeBlocks, +rangeBlocks]^2 of the origin, in
-    // `dimension`. Candidates are consumed from `startingSeed` (a decimal string or
+    // Run one bounded search shard. Every biome in `biomes`, at least one of `anyBiomes`,
+    // none of `excludeBiomes` AND every structure in `structures` must occur within
+    // [-rangeBlocks, +rangeBlocks]^2 of the origin, in `dimension` (an empty list is no
+    // condition). Candidates are consumed from `startingSeed` (a decimal string or
     // BigInt: seeds are 64-bit) up to `maxSeedsToScan` or `maxResults` hits, whichever
     // comes first. Hits stream out as SEED_FOUND messages while this call runs; the
     // return value summarises the shard so the caller can tile the next one exactly.
-    findSeeds({ mcVersion, dimension = 0, yHeight = 256, biomes = [], structures = [], rangeBlocks, startingSeed = '0', maxSeedsToScan, maxResults }) {
+    findSeeds({ mcVersion, dimension = 0, yHeight = 256, biomes = [], anyBiomes = [], excludeBiomes = [], structures = [], rangeBlocks, startingSeed = '0', maxSeedsToScan, maxResults }) {
         const failure = (code, message) => ({ examined: 0, tested: 0, hits: 0, error: { code, message } });
         let start;
         try {
@@ -167,9 +168,9 @@ class Seeder {
             // Never route a seed through Number: a malformed string is an argument error.
             return failure(-7, `Invalid starting seed "${startingSeed}".`);
         }
-        const biomeArgs = new Uint8Array(new Int32Array(biomes).buffer);
-        const structArgs = new Uint8Array(new Int32Array(structures).buffer);
-        const examined = this.WASMfindSeeds(mcVersion, dimension, yHeight, biomeArgs, biomes.length, structArgs, structures.length,
+        const ints = (list) => new Uint8Array(new Int32Array(list).buffer);
+        const examined = this.WASMfindSeeds(mcVersion, dimension, yHeight, ints(biomes), biomes.length,
+            ints(anyBiomes), anyBiomes.length, ints(excludeBiomes), excludeBiomes.length, ints(structures), structures.length,
             rangeBlocks, start, Number(maxSeedsToScan), maxResults);
         if (examined < 0) {
             return failure(examined, FIND_SEEDS_ERRORS[examined] ?? `Engine error ${examined}.`);

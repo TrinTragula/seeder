@@ -95,6 +95,8 @@ export function useFinderSearch(queue) {
             dimension: next.dimension,
             yHeight: next.yHeight,
             biomes: next.biomes,
+            anyBiomes: next.anyBiomes ?? [],
+            excludeBiomes: next.excludeBiomes ?? [],
             structures: next.structures,
             rangeBlocks: next.rangeBlocks,
             startingSeed: BigInt(next.startingSeed ?? 0),

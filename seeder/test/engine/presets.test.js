@@ -38,7 +38,8 @@ describe(`presets on the newest version (${labelOf(NEWEST_MC)})`, () => {
             const c = presetCriteria(p, NEWEST_MC);
             w.clear();
             const result = seeder.findSeeds({
-                mcVersion: c.mcVersion, dimension: c.dimension, yHeight: c.yHeight, biomes: c.biomes, structures: c.structures,
+                mcVersion: c.mcVersion, dimension: c.dimension, yHeight: c.yHeight, biomes: c.biomes,
+                anyBiomes: c.anyBiomes, excludeBiomes: c.excludeBiomes, structures: c.structures,
                 rangeBlocks: c.rangeBlocks, startingSeed: '1', maxSeedsToScan: 1, maxResults: 1,
             });
             expect(result.error, p.slug).toBeNull();
@@ -58,4 +59,34 @@ describe('the pinned presets', () => {
             expect(validate(raw, supportFor(before)).ok, `${p.slug} on ${labelOf(before)}`).toBe(false);
         }
     });
+});
+
+describe('Survival island', () => {
+    const island = PRESETS.find((p) => p.slug === 'survival-island');
+    // Oceans, rivers and Mushroom Fields (cubiomes/biomes.h): what an island may touch.
+    const WATER_OR_MUSHROOM = new Set([0, 10, 24, 44, 45, 46, 47, 48, 49, 50, 7, 11, 14, 15]);
+
+    it('avoids exactly the land biomes of the newest version: a new one must be added', () => {
+        const support = supportFor(NEWEST_MC);
+        const land = support.biomes.filter((id) => support.biomeDimensions[id] === 0 && !WATER_OR_MUSHROOM.has(id) && !(id & ~0xbf));
+        expect([...island.criteria.excludeBiomes].sort((a, b) => a - b)).toEqual(land.sort((a, b) => a - b));
+    });
+
+    it('runs from its `since` version and not on the version before it', () => {
+        expect(validate(presetCriteria(island, island.since), supportFor(island.since))).toEqual({ ok: true, errors: [] });
+        const raw = { ...presetCriteria(island, island.since), mcVersion: island.since - 1 };
+        expect(validate(raw, supportFor(island.since - 1)).ok).toBe(false);
+    });
+
+    it('finds a Mushroom Fields island with nothing but water in the box', () => {
+        const c = presetCriteria(island, NEWEST_MC);
+        w.clear();
+        const result = seeder.findSeeds({ ...c, startingSeed: '1', maxSeedsToScan: 600, maxResults: 1 });
+        expect(result).toMatchObject({ hits: 1, error: null });
+        const [{ seed }] = w.drain('SEED_FOUND').map((m) => m.data);
+        const cells = Math.ceil(c.rangeBlocks / 4);
+        const ids = new Set(seeder.getArea(c.mcVersion, seed, -cells, -cells, 2 * cells, 2 * cells, 0, c.yHeight).ids);
+        expect(ids.has(14)).toBe(true);
+        expect([...ids].filter((id) => !WATER_OR_MUSHROOM.has(id))).toEqual([]);
+    }, 120_000);
 });

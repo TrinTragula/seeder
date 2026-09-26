@@ -5,7 +5,7 @@ import { BIOMES, STRUCTURES_OPTIONS, VERSIONS } from '../../util/constants';
 import { defaultVersionSupport } from '../../test/fakes';
 import {
     BIOME_RANGE_CAP, BIOME_RANGE_CAP_REASON, CHECKING_SUPPORT, COUNT_OPTIONS, DEFAULT_CRITERIA, MAX_BIOMES, MAX_STRUCTURES, NO_CRITERION,
-    RANGE_OPTIONS_BLOCKS, dropUnsupported, maxSeedsToScanFor, rangeChoices, rateHint, validate, warningsFor,
+    MAX_EXCLUDE_BIOMES, RANGE_OPTIONS_BLOCKS, dropUnsupported, maxSeedsToScanFor, rangeChoices, rateHint, validate, warningsFor,
 } from './criteria';
 
 const biome = (label) => BIOMES.find((b) => b.label === label).value;
@@ -37,7 +37,7 @@ const crit = (patch = {}) => ({ ...DEFAULT_CRITERIA, ...patch });
 describe('defaults and options', () => {
     it('defaults to 26.3, the Overworld, Y 256, 300 blocks, 10 results from seed 0', () => {
         expect(DEFAULT_CRITERIA).toEqual({
-            mcVersion: VERSIONS['26.3'], dimension: 0, yHeight: 256, biomes: [], structures: [],
+            mcVersion: VERSIONS['26.3'], dimension: 0, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [],
             rangeBlocks: 300, count: 10, startingSeed: 0n,
         });
         expect(typeof DEFAULT_CRITERIA.startingSeed).toBe('bigint');
@@ -243,5 +243,65 @@ describe('rateHint', () => {
         expect(rateHint(crit({ dimension: 1, biomes: [biome('The End')] }))).toBe('~25 seeds/s per core');
         expect(rateHint(crit({ structures: [VILLAGE] }))).toBe('thousands of layouts per second');
         expect(rateHint(crit({ structures: [VILLAGE], biomes: [PLAINS] }))).toBe('thousands of layouts per second');
+    });
+});
+
+describe('any-of and avoid lists', () => {
+    const OCEAN = biome('Ocean');
+    const DEEP_OCEAN = biome('Deep Ocean');
+    const SNOWY = biome('Snowy Plains');
+    const ICE_SPIKES = biome('Ice Spikes');
+
+    it('each list counts as a criterion on its own', () => {
+        expect(validate(crit({ excludeBiomes: [OCEAN] }), support())).toEqual({ ok: true, errors: [] });
+        expect(validate(crit({ anyBiomes: [SNOWY, ICE_SPIKES] }), support())).toEqual({ ok: true, errors: [] });
+    });
+
+    it('caps each list at the engine limit, separately', () => {
+        const overworld = ALL_BIOMES.filter((id) => support().biomeDimensions[id] === 0);
+        expect(validate(crit({ anyBiomes: overworld.slice(0, MAX_BIOMES + 1) }), support()).errors).toEqual([`Pick at most ${MAX_BIOMES} alternative biomes.`]);
+        expect(validate(crit({ anyBiomes: overworld.slice(0, MAX_BIOMES) }), support()).errors).toEqual([]);
+        // Avoiding every land biome but one takes 44 ids on 26.3: the avoid list allows 64.
+        expect(MAX_EXCLUDE_BIOMES).toBe(64);
+        expect(validate(crit({ excludeBiomes: overworld.slice(0, MAX_EXCLUDE_BIOMES) }), support()).errors).toEqual([]);
+        expect(validate(crit({ excludeBiomes: ALL_BIOMES.slice(0, MAX_EXCLUDE_BIOMES + 1) }), support()).errors).toContain(`Avoid at most ${MAX_EXCLUDE_BIOMES} biomes.`);
+    });
+
+    it('names a biome that is both wanted and avoided', () => {
+        expect(validate(crit({ biomes: [PLAINS], excludeBiomes: [PLAINS] }), support()).errors).toEqual(['Plains is both wanted and avoided.']);
+        expect(validate(crit({ anyBiomes: [SNOWY, OCEAN], excludeBiomes: [OCEAN] }), support()).errors).toEqual(['Ocean is both wanted and avoided.']);
+    });
+
+    it('applies the biome memory cap when only an avoid list is set', () => {
+        const { errors } = validate(crit({ excludeBiomes: [OCEAN], rangeBlocks: 1500 }), support());
+        expect(errors).toEqual([`${BIOME_RANGE_CAP_REASON} Pick 1,000 blocks or less.`]);
+        expect(rangeChoices(crit({ anyBiomes: [SNOWY] })).find((c) => c.value === 2000).disabled).toBe(true);
+    });
+
+    it('checks every id of every list against the version and the dimension', () => {
+        const s = support(VERSIONS['1.12'], { biomes: ALL_BIOMES.filter((id) => id !== biome('Cherry Grove')) });
+        const { errors } = validate(crit({ mcVersion: VERSIONS['1.12'], anyBiomes: [biome('Cherry Grove'), SNOWY], excludeBiomes: [CRIMSON] }), s);
+        expect(errors).toEqual(['Cherry Grove does not exist in 1.12.', 'Crimson Forest does not generate in the Overworld.']);
+    });
+
+    it('dropUnsupported cleans all three lists', () => {
+        const s = support(VERSIONS['1.12'], { biomes: ALL_BIOMES.filter((id) => id !== biome('Cherry Grove')) });
+        const { criteria, removed } = dropUnsupported(crit({ biomes: [PLAINS], anyBiomes: [biome('Cherry Grove'), SNOWY], excludeBiomes: [OCEAN, CRIMSON] }), s);
+        expect(criteria).toMatchObject({ biomes: [PLAINS], anyBiomes: [SNOWY], excludeBiomes: [OCEAN] });
+        expect(removed.map((r) => r.label)).toEqual(['Cherry Grove', 'Crimson Forest']);
+    });
+
+    it('warns about slow 1.18+ biome boxes whichever list is set', () => {
+        expect(warningsFor(crit({ excludeBiomes: [OCEAN], rangeBlocks: 500 }))).toEqual([`Biomes on 1.18+ are slow beyond 300 blocks: expect ${rateHint(crit({ rangeBlocks: 500 }))}.`]);
+    });
+
+    it('the scan cap never grows with exclusions: it already prices every check at the whole box', () => {
+        for (const rangeBlocks of [100, 300, 1000]) {
+            const plain = maxSeedsToScanFor(crit({ biomes: [PLAINS], rangeBlocks }));
+            const avoiding = maxSeedsToScanFor(crit({ biomes: [PLAINS], excludeBiomes: [OCEAN, DEEP_OCEAN], rangeBlocks }));
+            expect(avoiding).toBeLessThanOrEqual(plain);
+            expect(maxSeedsToScanFor(crit({ excludeBiomes: [OCEAN], rangeBlocks }))).toBeLessThanOrEqual(plain);
+        }
+        expect(maxSeedsToScanFor(crit({ mcVersion: VERSIONS['1.17'], excludeBiomes: [OCEAN] }))).toBe(5_000_000n);
     });
 });

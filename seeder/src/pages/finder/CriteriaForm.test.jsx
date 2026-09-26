@@ -266,7 +266,7 @@ describe('CriteriaForm - Search', () => {
 
     it('disabled disables everything', () => {
         renderForm({ initial: { structures: [structure('Village')] }, disabled: true });
-        for (const name of ['Biomes', 'Structures', 'Range', 'Minecraft version', 'Dimension', 'Biome height']) {
+        for (const name of ['Biomes', 'Any of these biomes', 'Avoid these biomes', 'Structures', 'Range', 'Minecraft version', 'Dimension', 'Biome height']) {
             expect(screen.getByLabelText(name), name).toBeDisabled();
         }
         for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled();
@@ -275,5 +275,67 @@ describe('CriteriaForm - Search', () => {
         expect(screen.getByLabelText('Exact range (blocks)')).toBeDisabled();
         expect(screen.getByLabelText('Exact height')).toBeDisabled();
         expect(searchButton()).toBeDisabled();
+    });
+});
+
+describe('CriteriaForm - any-of and avoid lists', () => {
+    const moreToggle = () => screen.getByRole('button', { name: /More biome options/ });
+
+    it('starts collapsed behind "More biome options", which opens and closes while both lists are empty', () => {
+        renderForm();
+        expect(moreToggle()).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.getByLabelText('Avoid these biomes').closest('[hidden]')).not.toBeNull();
+        fireEvent.click(moreToggle());
+        expect(moreToggle()).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByLabelText('Avoid these biomes').closest('[hidden]')).toBeNull();
+        fireEvent.click(moreToggle());
+        expect(moreToggle()).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('stays open, and cannot be closed, while a list holds biomes (a preset, a link)', () => {
+        renderForm({ initial: { excludeBiomes: [biome('Ocean')] } });
+        expect(moreToggle()).toHaveAttribute('aria-expanded', 'true');
+        expect(moreToggle()).toBeDisabled();
+        expect(screen.getByLabelText('Avoid these biomes').closest('[hidden]')).toBeNull();
+    });
+
+    it('picks biomes in both lists by their labels, and an id taken in one list leaves the others', async () => {
+        const { seen } = renderForm();
+        fireEvent.click(moreToggle());
+        await select('Any of these biomes', 'Snowy Plains');
+        await select('Any of these biomes', 'Ice Spikes');
+        await select('Avoid these biomes', 'Ocean');
+        expect(seen.criteria).toMatchObject({ biomes: [], anyBiomes: [biome('Snowy Plains'), biome('Ice Spikes')], excludeBiomes: [biome('Ocean')] });
+        expect(searchButton()).toBeEnabled();                 // an avoid list alone is a criterion
+
+        openMenu('Biomes');
+        expect(optionTexts()).not.toContain('Snowy Plains');
+        expect(optionTexts()).not.toContain('Ocean');
+        expect(optionTexts()).toContain('Plains');
+        fireEvent.keyDown(screen.getByLabelText('Biomes'), { key: 'Escape' });
+        openMenu('Avoid these biomes');
+        expect(optionTexts()).not.toContain('Ice Spikes');
+        fireEvent.keyDown(screen.getByLabelText('Avoid these biomes'), { key: 'Escape' });
+        openMenu('Any of these biomes');
+        expect(optionTexts()).not.toContain('Ocean');
+    });
+
+    it('says where avoided biomes are checked: at the biome height from 1.18, in the whole range before', async () => {
+        renderForm();
+        fireEvent.click(moreToggle());
+        expect(screen.getByText('Checked at the biome height below, inside the whole range.')).toBeVisible();
+        await select('Minecraft version', '1.17');
+        expect(screen.getByText('Checked inside the whole range.')).toBeInTheDocument();
+    });
+
+    it('a biome both wanted and avoided (a pasted link) is an error that names it', () => {
+        renderForm({ initial: { biomes: [biome('Plains')], excludeBiomes: [biome('Plains')] } });
+        expect(errors()).toEqual(['Plains is both wanted and avoided.']);
+        expect(searchButton()).toBeDisabled();
+    });
+
+    it('no accessible name on the finder form contains "Seed" but the start seed box', () => {
+        renderForm();
+        expect(screen.getAllByLabelText(/seed/i)).toEqual([screen.getByLabelText('Start seed')]);
     });
 });

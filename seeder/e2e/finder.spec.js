@@ -441,7 +441,13 @@ test('the layouts "?" opens its tip during a search, on screen, and the status l
     await chooseHopeless(page);
     await searchButton(page).click();
     await expect(results(page).getByRole('status')).toHaveText(/Searching… [\d,]+ seeds checked · [\d,]+ seeds\/s/);
-    await page.getByRole('button', { name: 'About layouts', exact: true }).click();
+    // At 720 px the form reaches below the fold, so clicking Search scrolled the page. Bring
+    // the "?" into view and let that scroll's event fire first: a tip closes on any scroll,
+    // and click()'s own scroll-into-view could land right after it opened.
+    const tip = page.getByRole('button', { name: 'About layouts', exact: true });
+    await tip.scrollIntoViewIfNeeded();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await tip.click();
     const bubble = page.getByRole('dialog', { name: 'About layouts' });
     await expect(bubble).toContainText('lower 48 bits');
     const box = await bubble.boundingBox();
@@ -537,6 +543,43 @@ async function openShare(page) {
     const toggle = page.getByRole('button', { name: 'Share / export', exact: true });
     if (await toggle.count() && await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
 }
+
+test('Avoid these biomes: Plains with no Ocean gets rows, and the share link carries exclude= and restores the form', async ({ page, isMobile }) => {
+    await openFinder(page);
+    await choose(page, 'Minecraft version', '1.17');
+    await expect(page.getByRole('button', { name: 'Village at spawn', exact: true })).toBeEnabled();
+    await choose(page, 'Biomes', 'Plains');
+    await form(page).getByRole('button', { name: 'More biome options' }).click();
+    await choose(page, 'Avoid these biomes', 'Ocean');
+    await choose(page, 'Range', '100 blocks');
+    await expect(form(page).getByText('Ocean', { exact: true })).toBeVisible();
+    await expect(form(page).getByText('Checked inside the whole range.')).toBeVisible();
+    await expect(page).toHaveURL(/[?&]biomes=1&exclude=0(&|$)/);
+    await searchButton(page).click();
+    await expect(cards(page)).toHaveCount(10, { timeout: 60_000 });
+    await expect(doneSentence(page, /^Found all 10/)).toBeVisible();
+    const seeds = await seedsOf(page);
+
+    await openShare(page);
+    await page.getByRole('button', { name: 'Share these results' }).click();
+    const shared = new URL(await clipboard(page));
+    expect(shared.searchParams.get('biomes')).toBe('1');
+    expect(shared.searchParams.get('exclude')).toBe('0');
+    expect(shared.searchParams.get('seeds')).toBe(seeds.join(','));
+
+    await page.goto(`/finder/${shared.search}`);
+    await expect(cards(page)).toHaveCount(10, { timeout: 10_000 });
+    const summary = 'Plains · no Ocean · 100 blocks · 1.17 · Overworld';
+    if (isMobile) {
+        await expect(page.getByText(summary, { exact: true })).toBeVisible();
+        await page.getByRole('button', { name: 'Edit criteria' }).click();
+    }
+    // The list holds a biome: its section is open by itself.
+    await expect(form(page).getByRole('button', { name: 'More biome options' })).toHaveAttribute('aria-expanded', 'true');
+    await expect(form(page).getByText('Plains', { exact: true })).toBeVisible();
+    await expect(form(page).getByText('Ocean', { exact: true })).toBeVisible();
+    await expect(form(page).getByText('100 blocks', { exact: true })).toBeVisible();
+});
 
 test('"Share these results" round-trips: the link renders its rows without searching, and "Find more" appends new seeds', async ({ page }) => {
     // A 19-digit start: every hit and the resume cursor are beyond Number's precision.

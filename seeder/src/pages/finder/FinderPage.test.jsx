@@ -124,7 +124,7 @@ describe('FinderPage', () => {
         expect(qm().findSeeds).toHaveBeenCalledTimes(1);
         const [sent] = qm().findSeeds.mock.calls[0];
         expect(sent).toEqual({
-            mcVersion: VERSIONS['26.3'], dimension: 0, yHeight: 256, biomes: [], structures: [VILLAGE], rangeBlocks: 300,
+            mcVersion: VERSIONS['26.3'], dimension: 0, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [VILLAGE], rangeBlocks: 300,
             startingSeed: 9007199254740993n, count: 25, maxSeedsToScan: maxSeedsToScanFor({ structures: [VILLAGE] }),
         });
         expect(results().getByRole('status')).toHaveTextContent('Searching…');

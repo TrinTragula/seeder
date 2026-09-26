@@ -4,12 +4,13 @@ import { CHECKING_SUPPORT, DEFAULT_CRITERIA, biomeProblem, dimensionName } from 
 
 /*
  * Ready-made searches, grouped (docs/presets-proposal.md). A preset carries only what
- * defines it - biomes, structures, range, dimension, height - never a version: it
+ * defines it - biome lists, structures, range, dimension, height - never a version: it
  * applies on top of the version the visitor is looking at, and is greyed out where it
  * cannot work. The pinned first group is the exception: its presets carry the version
  * that added their content (`since`), and on an older version they switch to the newest
- * one instead of greying out. Ids are looked up by label / pureText (a typo throws at
- * import, which the tests see).
+ * one instead of greying out. Survival island does the same: its avoid list names every
+ * land biome of the version it was written for. Ids are looked up by label / pureText (a
+ * typo throws at import, which the tests see).
  */
 
 const biome = (label) => {
@@ -43,13 +44,32 @@ export const PRESET_GROUPS = [
     { id: 'nether-end', title: 'Nether & End' },
 ];
 
-const preset = (slug, group, label, { biomes = [], structures = [], rangeBlocks, dimension = 0, yHeight = DEFAULT_CRITERIA.yHeight, since = null }) => ({
+const preset = (slug, group, label, {
+    biomes = [], anyBiomes = [], excludeBiomes = [], structures = [], rangeBlocks, dimension = 0, yHeight = DEFAULT_CRITERIA.yHeight, since = null,
+}) => ({
     slug, group, label, since: since && version(since),
-    criteria: { biomes: biomes.map(biome), structures: structures.map(structure), rangeBlocks, dimension, yHeight },
+    criteria: {
+        biomes: biomes.map(biome), anyBiomes: anyBiomes.map(biome), excludeBiomes: excludeBiomes.map(biome),
+        structures: structures.map(structure), rangeBlocks, dimension, yHeight,
+    },
 });
 
 // Cave biomes only exist underground: Y 0 is where Sulfur Caves and Lush Caves peak.
 const CAVES = 0;
+const SEA_LEVEL = 62;
+
+// Every Overworld biome of 26.3 that is not water or Mushroom Fields: avoiding them all
+// leaves an island in open ocean. A new land biome belongs here (test/engine/presets.test.js
+// fails until it is added, and `since` moves to its version).
+const LAND_BIOMES = [
+    'Plains', 'Sunflower Plains', 'Snowy Plains', 'Ice Spikes', 'Desert', 'Swamp', 'Mangrove Swamp',
+    'Forest', 'Flower Forest', 'Birch Forest', 'Tall Birch Forest', 'Dark Forest', 'Pale Garden', 'Dappled Forest', 'Cherry Grove',
+    'Taiga', 'Snowy Taiga', 'Giant Tree Taiga', 'Giant Spruce Taiga', 'Jungle', 'Sparse Jungle', 'Bamboo Jungle',
+    'Savanna', 'Savanna Plateau', 'Windswept Savanna', 'Badlands', 'Wooded Badlands', 'Eroded Badlands',
+    'Windswept Hills', 'Windswept Forest', 'Windswept Gravelly Hills', 'Meadow', 'Grove', 'Snowy Slopes',
+    'Jagged Peaks', 'Frozen Peaks', 'Stony Peaks', 'Beach', 'Snowy Beach', 'Stony Shore',
+    'Dripstone Caves', 'Lush Caves', 'Deep Dark', 'Sulfur Caves',
+];
 
 export const PRESETS = [
     // Newest drop first, then the earlier drops of the same year.
@@ -68,6 +88,9 @@ export const PRESETS = [
     preset('village-lush-caves', 'survival', 'Village + Lush Caves', { biomes: ['Lush Caves'], structures: ['Village'], rangeBlocks: 300, yHeight: CAVES }),
     preset('mushroom-island', 'survival', 'Mushroom island at spawn', { biomes: ['Mushroom Fields'], rangeBlocks: 100 }),
     preset('island-monument', 'survival', 'Island + Monument', { biomes: ['Mushroom Fields'], structures: ['Monument'], rangeBlocks: 300 }),
+    preset('survival-island', 'survival', 'Survival island', {
+        biomes: ['Mushroom Fields'], excludeBiomes: LAND_BIOMES, rangeBlocks: 150, yHeight: SEA_LEVEL, since: '26.3',
+    }),
 
     preset('classic-fast-start', 'speedrun', 'Classic fast start', { structures: ['Village', 'Ruined Portal'], rangeBlocks: 150 }),
     preset('shipwreck-start', 'speedrun', 'Shipwreck start', { structures: ['Shipwreck', 'Ruined Portal'], rangeBlocks: 150 }),
@@ -117,18 +140,30 @@ const structureLabel = (type) => STRUCTURES_OPTIONS.find((s) => s.value === type
 /*
  * What a preset searches, in plain words, for the line under its catchy name:
  * "Pale Garden + Mansion, 300 blocks", "Sulfur Caves + Village, 300 blocks, Y 0",
- * "Bastion + Fortress, 200 blocks, Nether". No "·": the pixel font draws it as a minus.
+ * "Bastion + Fortress, 200 blocks, Nether", "Mushroom Fields, avoids 40 biomes, 150 blocks".
+ * Alternatives read "A or B". No "·": the pixel font draws it as a minus.
  */
 export function presetCaption({ criteria }) {
-    const { biomes, structures, rangeBlocks, dimension, yHeight } = criteria;
+    const { biomes, anyBiomes = [], excludeBiomes = [], structures, rangeBlocks, dimension, yHeight } = criteria;
+    const alternatives = anyBiomes.length ? [anyBiomes.map(biomeLabel).join(' or ')] : [];
     const parts = [
-        [...biomes.map(biomeLabel), ...structures.map(structureLabel)].join(' + '),
-        `${rangeBlocks.toLocaleString('en-US')} blocks`,
+        [...biomes.map(biomeLabel), ...alternatives, ...structures.map(structureLabel)].join(' + '),
     ];
+    // A long avoid list would crowd the chip's line: count it instead of naming it.
+    if (excludeBiomes.length > 2) parts.push(`avoids ${excludeBiomes.length} biomes`);
+    else if (excludeBiomes.length) parts.push(`no ${excludeBiomes.map(biomeLabel).join(' or ')}`);
+    parts.push(`${rangeBlocks.toLocaleString('en-US')} blocks`);
     if (dimension === -1) parts.push('Nether');
     if (dimension === 1) parts.push('End');
     if (yHeight !== DEFAULT_CRITERIA.yHeight) parts.push(`Y ${yHeight}`);
     return parts.join(', ');
+}
+
+// The version label a chip carries: a pinned preset from an earlier drop than the newest
+// says which drop. Survival island also has a `since`, but it only means "runs from", so
+// it never gets a badge (it would read "26.3" in Survival starts after the next version).
+export function presetBadge(preset) {
+    return preset.group === PINNED_GROUP && preset.since != null && preset.since !== NEWEST_MC ? versionLabelOf(preset.since) : null;
 }
 
 // The version a preset runs on from `mcVersion`: the same one, except for a pinned
@@ -147,8 +182,8 @@ export function presetVersion(preset, mcVersion) {
 export function presetAvailable(preset, support) {
     if (!support) return { ok: false, reason: CHECKING_SUPPORT };
     if (presetVersion(preset, support.mcVersion) !== support.mcVersion) return { ok: true, reason: null };
-    const { biomes, structures, dimension } = preset.criteria;
-    for (const id of biomes) {
+    const { biomes, anyBiomes = [], excludeBiomes = [], structures, dimension } = preset.criteria;
+    for (const id of [...biomes, ...anyBiomes, ...excludeBiomes]) {
         const problem = biomeProblem(id, dimension, support);
         if (problem) return { ok: false, reason: `${biomeLabel(id)} ${problem}` };
     }

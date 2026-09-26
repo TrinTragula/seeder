@@ -6,7 +6,7 @@ import { BIOMES, STRUCTURES_OPTIONS, VERSIONS } from '../../util/constants';
 import { defaultVersionSupport } from '../../test/fakes';
 import { CHECKING_SUPPORT, DEFAULT_CRITERIA, validate } from './criteria';
 import {
-    NEWEST_MC, PINNED_GROUP, PRESETS, PRESET_GROUPS, presetAvailable, presetCaption, presetCriteria, presetVersion, presetsOf,
+    NEWEST_MC, PINNED_GROUP, PRESETS, PRESET_GROUPS, presetAvailable, presetBadge, presetCaption, presetCriteria, presetVersion, presetsOf,
 } from './presets.js';   // explicit: Presets.jsx differs only in case
 
 const biome = (label) => BIOMES.find((b) => b.label === label).value;
@@ -30,7 +30,7 @@ function support(mcVersion, patch = {}) {
 }
 
 describe('PRESETS', () => {
-    it('has the seven groups, pinned first, and the thirty-seven slugs in order', () => {
+    it('has the seven groups, pinned first, and the thirty-eight slugs in order', () => {
         expect(PRESET_GROUPS.map((g) => g.title)).toEqual([
             `New in ${newestLabel}`, 'Survival starts', 'Speedrun', 'Jackpot seeds', "Builders' biomes", 'Structure hunts', 'Nether & End',
         ]);
@@ -38,7 +38,7 @@ describe('PRESETS', () => {
         expect(new Set(PRESETS.map((p) => p.group))).toEqual(new Set(PRESET_GROUPS.map((g) => g.id)));
         expect(PRESET_GROUPS.flatMap((g) => presetsOf(g.id).map((p) => p.slug))).toEqual([
             'camp-at-spawn', 'autumn-camp', 'haunted-camp', 'autumn-blossom', 'everything-new', 'sulfur-village',
-            'village-at-spawn', 'villagers-pillagers', 'witch-next-door', 'village-lush-caves', 'mushroom-island', 'island-monument',
+            'village-at-spawn', 'villagers-pillagers', 'witch-next-door', 'village-lush-caves', 'mushroom-island', 'island-monument', 'survival-island',
             'classic-fast-start', 'shipwreck-start', 'temple-start', 'triple-start', 'bastion-fortress',
             'structure-jackpot', 'six-pack', 'loot-run', 'pale-manor', 'mansion-village',
             'cherry-grove', 'cherry-village', 'pale-garden', 'alpine-meadow', 'ice-spikes', 'flower-village',
@@ -67,9 +67,32 @@ describe('PRESETS', () => {
             .toEqual(['bastion-fortress', 'happy-ghast-start', 'safe-nether-base', 'nether-sampler']);
         expect(PRESETS.filter((p) => p.criteria.dimension === 1).map((p) => p.slug)).toEqual(['first-end-city']);
         expect(PRESETS.filter((p) => p.criteria.yHeight !== DEFAULT_CRITERIA.yHeight).map((p) => [p.slug, p.criteria.yHeight]))
-            .toEqual([['everything-new', 0], ['sulfur-village', 0], ['village-lush-caves', 0]]);
+            .toEqual([['everything-new', 0], ['sulfur-village', 0], ['village-lush-caves', 0], ['survival-island', 62]]);
         // Ruined Portal presets search the Overworld.
         for (const slug of ['classic-fast-start', 'shipwreck-start', 'temple-start', 'triple-start']) expect(bySlug(slug).criteria.dimension).toBe(0);
+    });
+
+    it('Survival island: Mushroom Fields in open ocean at sea level, every land biome avoided', () => {
+        const { criteria, since, group } = bySlug('survival-island');
+        expect(group).toBe('survival');
+        expect(since).toBe(VERSIONS['26.3']);
+        expect(criteria).toMatchObject({ biomes: [biome('Mushroom Fields')], anyBiomes: [], rangeBlocks: 150, yHeight: 62, dimension: 0 });
+        const avoided = criteria.excludeBiomes.map((id) => BIOMES.find((b) => b.value === id).label);
+        expect(avoided).toEqual(expect.arrayContaining(['Plains', 'Beach', 'Stony Shore', 'Cherry Grove', 'Dappled Forest', 'Deep Dark']));
+        expect(avoided.some((label) => /Ocean|River|Mushroom/.test(label))).toBe(false);
+        expect(new Set(criteria.excludeBiomes).size).toBe(criteria.excludeBiomes.length);
+        // The pinned-group rule: an older version switches to the newest instead of greying out.
+        expect(presetVersion(bySlug('survival-island'), VERSIONS['1.21.1'])).toBe(NEWEST_MC);
+    });
+
+    it('badges only pinned presets from an earlier drop: Survival island\'s `since` never shows', () => {
+        expect(presetBadge(bySlug('sulfur-village'))).toBe('26.2');
+        expect(presetBadge(bySlug('camp-at-spawn'))).toBeNull();
+        expect(presetBadge(bySlug('village-at-spawn'))).toBeNull();
+        // After the next version, a `since` older than the newest: still no badge outside the pinned group.
+        const older = VERSIONS['26.2'];
+        expect(presetBadge({ ...bySlug('survival-island'), since: older })).toBeNull();
+        expect(presetBadge({ ...bySlug('camp-at-spawn'), since: older })).toBe('26.2');
     });
 
     it('passes the form\'s validation on the newest version: ranges, caps, the End city distance', () => {
@@ -81,8 +104,8 @@ describe('PRESETS', () => {
 describe('the pinned group', () => {
     const pinned = presetsOf(PINNED_GROUP);
 
-    it('only its presets carry the version that added their content, newest drop first', () => {
-        for (const p of PRESETS) expect(p.since != null, p.slug).toBe(p.group === PINNED_GROUP);
+    it('only its presets (and Survival island) carry the version that added their content, newest drop first', () => {
+        for (const p of PRESETS) expect(p.since != null, p.slug).toBe(p.group === PINNED_GROUP || p.slug === 'survival-island');
         const since = pinned.map((p) => p.since);
         expect(since).toEqual([...since].sort((a, b) => b - a));
         expect(bySlug('sulfur-village').since).toBe(VERSIONS['26.2']);
@@ -128,6 +151,13 @@ describe('presetCaption', () => {
         expect(presetCaption(bySlug('sulfur-village'))).toBe('Sulfur Caves + Village, 300 blocks, Y 0');
         expect(presetCaption(bySlug('bastion-fortress'))).toBe('Bastion + Fortress, 200 blocks, Nether');
         expect(presetCaption(bySlug('first-end-city'))).toBe('End City, 1,100 blocks, End');
+    });
+
+    it('reads alternatives as "or", names a short avoid list and counts a long one', () => {
+        expect(presetCaption(bySlug('survival-island'))).toBe(`Mushroom Fields, avoids ${bySlug('survival-island').criteria.excludeBiomes.length} biomes, 150 blocks, Y 62`);
+        const made = (criteria) => presetCaption({ criteria: { biomes: [], anyBiomes: [], excludeBiomes: [], structures: [], rangeBlocks: 300, dimension: 0, yHeight: 256, ...criteria } });
+        expect(made({ anyBiomes: [biome('Snowy Plains'), biome('Ice Spikes')], structures: [structure('Village')] })).toBe('Snowy Plains or Ice Spikes + Village, 300 blocks');
+        expect(made({ biomes: [biome('Plains')], excludeBiomes: [biome('Ocean'), biome('Deep Ocean')] })).toBe('Plains, no Ocean or Deep Ocean, 300 blocks');
     });
 
     it('never uses "·", which the pixel font draws as a minus', () => {

@@ -11,9 +11,9 @@ const BIG = '8091867987493326313';          // 19 digits: Number would round it
 describe('parseFinderUrl', () => {
     it('reads every parameter', () => {
         const { criteria, seeds, start } = parseFinderUrl(
-            `?version=1.21.11&dim=-1&biomes=185,132&structures=5,11&range=750&y=62&count=25&start=${BIG}&seeds=1,-2,${BIG}`);
+            `?version=1.21.11&dim=-1&biomes=185,132&any=12,140&exclude=0,24&structures=5,11&range=750&y=62&count=25&start=${BIG}&seeds=1,-2,${BIG}`);
         expect(criteria).toEqual({
-            mcVersion: VERSIONS['1.21.11'], dimension: -1, yHeight: 62, biomes: [185, 132], structures: [5, 11],
+            mcVersion: VERSIONS['1.21.11'], dimension: -1, yHeight: 62, biomes: [185, 132], anyBiomes: [12, 140], excludeBiomes: [0, 24], structures: [5, 11],
             rangeBlocks: 750, count: 25, startingSeed: BigInt(BIG),
         });
         expect(start).toBe(BigInt(BIG));
@@ -35,6 +35,17 @@ describe('parseFinderUrl', () => {
         const { criteria } = parseFinderUrl('?biomes=185,999,1,185,176&structures=5,12,5,-3,22');
         expect(criteria.biomes).toEqual([185, 1]);          // 999 and 176 are no BiomeID in BIOMES
         expect(criteria.structures).toEqual([5, 22]);       // 12 (Ruined_Portal_N) is not offered
+    });
+
+    it('reads any= and exclude= like biomes=: unknown ids and duplicates dropped, order kept', () => {
+        const { criteria } = parseFinderUrl('?any=140,999,12,140&exclude=24,x,0,176,24');
+        expect(criteria.anyBiomes).toEqual([140, 12]);
+        expect(criteria.excludeBiomes).toEqual([24, 0]);
+    });
+
+    it('keeps links made before any= / exclude= working: both lists empty', () => {
+        const { criteria } = parseFinderUrl('?version=1.21.11&biomes=1&range=300');
+        expect(criteria).toMatchObject({ biomes: [1], anyBiomes: [], excludeBiomes: [] });
     });
 
     it('resolves versions: labels, legacy numeric indexes, unknown -> default', () => {
@@ -113,6 +124,12 @@ describe('buildFinderUrl', () => {
         expect(FINDER_PATH).toBe('/finder/');
     });
 
+    it('writes any= and exclude= after biomes=, only when they are not empty', () => {
+        const url = buildFinderUrl({ ...DEFAULT_CRITERIA, biomes: [14], anyBiomes: [12, 140], excludeBiomes: [0, 24] });
+        expect(url).toBe('/finder/?version=26.3&dim=0&range=300&y=256&count=10&start=0&biomes=14&any=12,140&exclude=0,24');
+        expect(buildFinderUrl({ ...DEFAULT_CRITERIA, excludeBiomes: [0] })).toBe('/finder/?version=26.3&dim=0&range=300&y=256&count=10&start=0&exclude=0');
+    });
+
     it('writes an unsigned start back as its signed seed after a parse', () => {
         const { criteria } = parseFinderUrl('?start=18446744073709551615&dim=-1');
         expect(buildFinderUrl(criteria)).toBe('/finder/?version=26.3&dim=-1&range=300&y=256&count=10&start=-1');
@@ -122,7 +139,7 @@ describe('buildFinderUrl', () => {
         const states = [
             { criteria: DEFAULT_CRITERIA, seeds: null, start: 0n },
             {
-                criteria: { mcVersion: VERSIONS['Beta 1.7'], dimension: 1, yHeight: -70, biomes: [9], structures: [21, 22], rangeBlocks: 2048, count: 50, startingSeed: -(2n ** 63n) },
+                criteria: { mcVersion: VERSIONS['Beta 1.7'], dimension: 1, yHeight: -70, biomes: [9], anyBiomes: [40, 42], excludeBiomes: [41], structures: [21, 22], rangeBlocks: 2048, count: 50, startingSeed: -(2n ** 63n) },
                 seeds: [BIG, '-1'], start: -(2n ** 63n),
             },
             {

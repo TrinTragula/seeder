@@ -29,6 +29,10 @@ extern struct mallinfo mallinfo(void);
 
 #define MAX_STRUCTS 8
 #define MAX_BIOMES 32
+#define MAX_ANY_BIOMES 32
+// Exclusions are one bitmask over every searchable id: a longer list costs nothing per
+// check, and "every land biome but one" (44 on 26.3) must fit.
+#define MAX_EXCL_BIOMES 64
 #define MAX_ATTEMPTS 256          // regions per type intersecting the box (range<=2048, regionSize>=20 -> <=196)
 #define MAX_RANGE_BLOCKS 2048     // biome cache (2*512 cells)^2 ints = 4 MB; do not raise without ALLOW_MEMORY_GROWTH
 #define PROGRESS_INTERVAL_MS 100  // SEED_UPDATE at most ~10/s per worker, however cheap the path
@@ -313,6 +317,22 @@ static void collectAttempts(StructPlan *p, int mc, uint64_t s48, int range)
     p->n = n;
 }
 
+// One find_seeds biome list: every id must exist in `mc` and belong to `dim`.
+// setupBiomeFilter exit()s on ids outside [0,64) u [128,192); the_void (127) is one.
+static int checkBiomeList(const int *ids, int n, int mc, int dim)
+{
+    int i;
+    for (i = 0; i < n; i++)
+    {
+        int id = ids[i];
+        if (id < 0 || id >= 256 || (id & ~0xbf))
+            return ERR_BIOME_UNSUPPORTED;
+        if (!biomeExists(mc, id) || getDimension(id) != dim)
+            return ERR_BIOME_UNSUPPORTED;
+    }
+    return 0;
+}
+
 // Post a hit: the chosen attempt per type plus the Overworld spawn (what the seed page
 // shows, whatever dimension was searched), then restore the search dimension.
 static void reportHit(uint64_t seed, int dim, int nStructs, double examined, double tested)
@@ -342,8 +362,13 @@ static void reportHit(uint64_t seed, int dim, int nStructs, double examined, dou
 // find_seeds
 // ---------------------------------------------------------------------------
 
-// Bounded, streaming search for seeds that have ALL of `biomes` (at yHeight) and ALL of
-// `structs` inside [-rangeBlocks, +rangeBlocks]^2 around the origin, in `dim`.
+// Bounded, streaming search for seeds that have ALL of `biomes`, at least one of
+// `anyBiomes`, none of `exclBiomes` (all at yHeight) and ALL of `structs` inside
+// [-rangeBlocks, +rangeBlocks]^2 around the origin, in `dim`. An empty list is no
+// condition; an any-of list of one biome is the same as requiring it.
+//
+// Exclusions change the cost of a biome check on the noise generators: an excluded biome
+// ends it early, but a pass must sample the whole box to prove the biome is absent.
 //
 // Candidates are consumed from startingSeed: one 64-bit seed each when only biomes are
 // requested, one lower-48 family (65 536 seeds sharing the structure layout) when
@@ -354,6 +379,8 @@ static void reportHit(uint64_t seed, int dim, int nStructs, double examined, dou
 EMSCRIPTEN_KEEPALIVE
 double find_seeds(int mc, int dim, int yHeight,
                   int biomes[], int nBiomes,
+                  int anyBiomes[], int nAny,
+                  int exclBiomes[], int nExcl,
                   int structs[], int nStructs,
                   int rangeBlocks,
                   int64_t startingSeed, double maxSeedsToScan, int maxResults)
@@ -369,22 +396,31 @@ double find_seeds(int mc, int dim, int yHeight,
         return ERR_DIMENSION;
     if (rangeBlocks < 1 || rangeBlocks > MAX_RANGE_BLOCKS)
         return ERR_ARGS;
-    if (nBiomes < 0 || nBiomes > MAX_BIOMES || nStructs < 0 || nStructs > MAX_STRUCTS || nBiomes + nStructs == 0)
+    if (nBiomes < 0 || nBiomes > MAX_BIOMES || nAny < 0 || nAny > MAX_ANY_BIOMES || nExcl < 0 || nExcl > MAX_EXCL_BIOMES ||
+        nStructs < 0 || nStructs > MAX_STRUCTS || nBiomes + nAny + nExcl + nStructs == 0)
         return ERR_ARGS;
     if (maxResults < 1 || !(maxSeedsToScan >= 1)) // also rejects NaN
         return ERR_ARGS;
-    for (i = 0; i < nBiomes; i++)
+    int err = checkBiomeList(biomes, nBiomes, mc, dim);
+    if (!err)
+        err = checkBiomeList(anyBiomes, nAny, mc, dim);
+    if (!err)
+        err = checkBiomeList(exclBiomes, nExcl, mc, dim);
+    if (err)
+        return err;
+    // A biome both wanted and avoided can never match: the caller made a mistake.
+    for (i = 0; i < nExcl; i++)
     {
-        int id = biomes[i];
-        // setupBiomeFilter exit()s on ids outside [0,64) u [128,192); the_void (127) is one.
-        if (id < 0 || id >= 256 || (id & ~0xbf))
-            return ERR_BIOME_UNSUPPORTED;
-        if (!biomeExists(mc, id) || getDimension(id) != dim)
-            return ERR_BIOME_UNSUPPORTED;
+        for (j = 0; j < nBiomes; j++)
+            if (exclBiomes[i] == biomes[j])
+                return ERR_ARGS;
+        for (j = 0; j < nAny; j++)
+            if (exclBiomes[i] == anyBiomes[j])
+                return ERR_ARGS;
     }
     for (i = 0; i < nStructs; i++)
     {
-        int err = planStructure(&plans[i], structs[i], mc, dim, rangeBlocks);
+        err = planStructure(&plans[i], structs[i], mc, dim, rangeBlocks);
         if (err)
             return err;
     }
@@ -395,9 +431,10 @@ double find_seeds(int mc, int dim, int yHeight,
     BiomeFilter filter;
     Range r = {0, 0, 0, 0, 0, 0, 0};
     int *cache = NULL;
-    if (nBiomes)
+    int anyBiomeFilter = nBiomes || nAny || nExcl;
+    if (anyBiomeFilter)
     {
-        setupBiomeFilter(&filter, mc, 0, biomes, nBiomes, NULL, 0, NULL, 0);
+        setupBiomeFilter(&filter, mc, 0, biomes, nBiomes, exclBiomes, nExcl, anyBiomes, nAny);
         int cells = (rangeBlocks + 3) >> 2;
         r = (Range){4, -cells, -cells, 2 * cells, 2 * cells, yHeight / 4, 1};
         // allocCache needs g->dim, hence after applySeed.
@@ -446,7 +483,7 @@ double find_seeds(int mc, int dim, int yHeight,
         // alone; stage 2 tries upper-16 values for biome viability; stage 3 (biomes) is
         // the expensive one and runs last. One hit per family: all 65 536 seeds share
         // the layout, continuing would only yield near-duplicates.
-        int upMax = nBiomes ? UPPER16_MAX_WITH_BIOMES : UPPER16_MAX;
+        int upMax = anyBiomeFilter ? UPPER16_MAX_WITH_BIOMES : UPPER16_MAX;
         for (i = 0; (double)i < maxSeedsToScan && hits < maxResults; i++)
         {
             uint64_t s48 = ((uint64_t)startingSeed + (uint64_t)i) & MASK48;
@@ -489,7 +526,7 @@ double find_seeds(int mc, int dim, int yHeight,
                     }
                     if (j < nStructs)
                         continue;
-                    if (nBiomes)
+                    if (anyBiomeFilter)
                     {
                         checks++;
                         int ok = checkForBiomes(&g, cache, r, dim, seed, &filter, NULL) > 0;

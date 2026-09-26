@@ -165,6 +165,17 @@ describe('seed searches (findSeeds)', () => {
     const done = (w, over = {}) => w.emit('DONE_FIND_SEEDS', { shardId: w.lastPosted('FIND_SEEDS').data.shardId, examined: 0, tested: 0, hits: 0, error: null, ...over });
     const blank = (a) => ({ ...a, rgba: new Uint8ClampedArray(0), ids: new Int32Array(0) });
 
+    it('passes the any-of and avoid lists to every shard; with no structure the search stays in biome mode', async () => {
+        const qm = await readyPool(3);
+        qm.findSeeds({ ...CRITERIA, structures: [], anyBiomes: [12, 140], excludeBiomes: [0, 24] }, cbs());
+        const posts = shardPosts();
+        expect(posts).toHaveLength(2);
+        for (const post of posts) expect(post).toMatchObject({ biomes: [], anyBiomes: [12, 140], excludeBiomes: [0, 24], structures: [] });
+        // Biome mode: 64-bit seeds, so the start is not folded to its lower 48 bits.
+        expect(posts[0].startingSeed).toBe('1000');
+        expect(BigInt(posts[1].startingSeed) - BigInt(posts[0].startingSeed)).toBe(BigInt(posts[0].maxSeedsToScan));
+    });
+
     it('deals disjoint, consecutive shards to at most N-1 workers and keeps one free for tiles', async () => {
         const qm = await readyPool(3);
         const c = cbs();
@@ -173,7 +184,7 @@ describe('seed searches (findSeeds)', () => {
         expect(qm.searching).toBe(true);
         const posts = shardPosts();
         expect(posts).toHaveLength(2);
-        expect(posts[0]).toEqual({ shardId: '1-0', mcVersion: 35, dimension: 0, yHeight: 256, biomes: [], structures: [5], rangeBlocks: 300, startingSeed: '1000', maxSeedsToScan: 250_000, maxResults: 3 });
+        expect(posts[0]).toEqual({ shardId: '1-0', mcVersion: 35, dimension: 0, yHeight: 256, biomes: [], anyBiomes: [], excludeBiomes: [], structures: [5], rangeBlocks: 300, startingSeed: '1000', maxSeedsToScan: 250_000, maxResults: 3 });
         expect(posts[1]).toMatchObject({ shardId: '1-1', startingSeed: '251000', maxSeedsToScan: 250_000, maxResults: 3 });
         expect(qm.workers.filter((w) => w.busy)).toHaveLength(2);
         // The reserved worker takes a tile at once instead of queueing it behind the search.

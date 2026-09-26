@@ -73,13 +73,23 @@ export function previewTarget(view) {
 
 /*
  * One line for the phone's collapsed criteria, the share card and the CSV:
- * "Village · Cherry Grove · 300 blocks · 26.3 · Overworld" (structures, biomes, range,
- * version, dimension).
+ * "Village · Cherry Grove · any of Snowy Plains, Ice Spikes · no Ocean · 300 blocks ·
+ * 26.3 · Overworld" (structures, biomes, alternatives, avoided biomes, range, version,
+ * dimension). Each alternative / avoided list is one part, so its names stay together;
+ * past SUMMARY_NAMES names it is counted instead ("avoids 44 biomes": Survival island).
  */
+const SUMMARY_NAMES = 4;
 export function summaryOf(criteria) {
+    const biomeName = (id) => biomeNames.get(id) ?? `Biome ${id}`;
+    const list = (prefix, counted, ids = []) => {
+        if (ids.length === 0) return [];
+        return [ids.length > SUMMARY_NAMES ? `${counted} ${ids.length} biomes` : `${prefix} ${ids.map(biomeName).join(', ')}`];
+    };
     return [
         ...criteria.structures.map((type) => structureNames.get(type) ?? `Structure ${type}`),
-        ...criteria.biomes.map((id) => biomeNames.get(id) ?? `Biome ${id}`),
+        ...criteria.biomes.map(biomeName),
+        ...list('any of', 'any of', criteria.anyBiomes),
+        ...list('no', 'avoids', criteria.excludeBiomes),
         rangeLabel(criteria.rangeBlocks),
         versionLabelOf(criteria.mcVersion),
         dimensionLabel(criteria.dimension),

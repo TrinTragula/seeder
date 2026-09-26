@@ -1,0 +1,36 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- The seed page's and the finder's prerendered intro (StaticIntro) and the footer under it are
+     for crawlers and visitors without JavaScript, who see them at once. With JavaScript on they stay
+     invisible until the app replaces them, so a visitor sees the header (the same in both) and then
+     the app; they fade in after 3s only if the app never arrived. Inline, so it holds before any
+     stylesheet has loaded (the dev server injects styles from JS). -->
+<script>document.documentElement.classList.add('js')</script>
+<style>
+    .js .static-intro, .js main:has(> .static-intro) ~ .site-footer { animation: static-fallback 220ms ease-out 3s both }
+    @keyframes static-fallback { from { opacity: 0 } }
+    @media (prefers-reduced-motion: reduce) { .js .static-intro, .js main:has(> .static-intro) ~ .site-footer { animation-duration: 0ms } }
+</style>
+<meta name="theme-color" content="#8FCA5C" />
+<link rel="icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="/logo.png" />
+<!-- The version and site-URL placeholders in this file are stamped by the html-vars plugin in vite/plugins.js -->
+<link rel="manifest" href="/manifest.json?v=__APP_VERSION__" />
+<meta property="og:site_name" content="Seeder" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="__SITE_URL__/img/og-card.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Seeder: a Minecraft biome map with villages next to the tagline Minecraft seed map, finder &amp; explorer" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@McSeeder" />
+<!-- Google Analytics (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-CLDNC49SNT"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    // A legacy /?seed= hit is about to be replaced by /seed/, where the view is counted.
+    if (!window.__legacyRedirect) gtag('config', 'G-CLDNC49SNT', { 'anonymize_ip': true });
+</script>
+<!-- The AdSense loader is not here: src/shared/ads.js adds it once the page has mounted (loadAds). -->

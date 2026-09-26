@@ -14,7 +14,6 @@ export default defineConfig({
         baseURL: 'http://localhost:4173',
         trace: 'retain-on-failure',
         permissions: ['clipboard-read', 'clipboard-write'],
-        ...devices['Desktop Chrome'],
     },
     webServer: {
         command: 'npm run build && npx vite preview --port 4173 --strictPort',
@@ -22,5 +21,12 @@ export default defineConfig({
         reuseExistingServer: true,
         timeout: 180_000,
     },
-    projects: [{ name: 'chromium' }],
+    // Every spec runs on a desktop browser; the phone project runs the specs written for
+    // it (the bottom-sheet seed page) plus the landing, the dashboard and the finder, which
+    // work in both layouts (their width-dependent cases skip themselves). mobile.spec.js is
+    // phone-only: its cases need the bottom sheet, which the desktop layout does not have.
+    projects: [
+        { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec\.js/ },
+        { name: 'mobile', use: { ...devices['Pixel 7'] }, testMatch: /(mobile|landing|dashboard|finder)\.spec\.js/ },
+    ],
 });

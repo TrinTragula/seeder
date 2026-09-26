@@ -2,33 +2,28 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8" />
-  <link rel="icon" href="/favicon.ico" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#8FCA5C" />
-  <meta name="description" content="Seeder - Find, show, share and admire Minecraft seeds" />
-  <link rel="apple-touch-icon" href="/logo.png" />
-  <!-- __APP_VERSION__ is replaced with package.json's version by vite.config.js -->
-  <link rel="manifest" href="/manifest.json?v=__APP_VERSION__" />
-  <title>Seeder</title>
-  <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CLDNC49SNT"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-CLDNC49SNT', { 'anonymize_ip': true });
-  </script>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2625181666337030"
-     crossorigin="anonymous"></script>
+    <!-- Legacy share links are /?seed=X&version=Y: the landing entry replaces them with /seed/…
+         before React mounts. Hiding the body meanwhile stops the landing from flashing, and the
+         GA snippet in head-common.html reads the flag so the view is only counted on /seed/.
+         Only a decimal seed is redirected (the same test as src/shared/legacy.js), so a text
+         seed keeps the landing visible and counted. -->
+    <script>window.__legacyRedirect = /^[+-]?\d+$/.test((new URLSearchParams(location.search).get('seed') || '').trim()); if (window.__legacyRedirect) document.documentElement.classList.add('redirecting');</script>
+    <style>.redirecting body { visibility: hidden }</style>
+    <!-- @include head-common.html -->
+    <title>Seeder - Minecraft seed finder and analyzer</title>
+    <meta name="description" content="Search and analyze any Minecraft seed. Discover biomes and structures, find seeds with the biomes you want. All in your browser!" />
+    <meta property="og:title" content="Seeder - Minecraft seed finder and analyzer" />
+    <meta property="og:description" content="Search and analyze any Minecraft seed. Discover biomes and structures, find seeds with the biomes you want. All in your browser!" />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta name="twitter:title" content="Seeder - Minecraft seed finder and analyzer" />
+    <meta name="twitter:description" content="Search and analyze any Minecraft seed. Discover biomes and structures, find seeds with the biomes you want. All in your browser!" />
+    <link rel="canonical" href="__SITE_URL__/" />
 </head>
 
 <body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="root">
-    <h1>Loading...</h1>
-  </div>
-  <script type="module" src="/src/main.jsx"></script>
+    <noscript>The map and finder need JavaScript.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/pages/landing/main.jsx"></script>
 </body>
 
 </html>

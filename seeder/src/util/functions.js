@@ -1,15 +1,5 @@
 import { useEffect, useState } from 'react';
 
-export const debounce = (func, wait = 25) => {
-    let timeout;
-    return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            func.apply(this, args);
-        }, wait);
-    };
-}
-
 export const copyToClipboard = (textToCopy) => {
     // navigator clipboard api needs a secure context (https)
     if (navigator.clipboard && window.isSecureContext) {
@@ -27,19 +17,15 @@ export const copyToClipboard = (textToCopy) => {
         textArea.focus();
         textArea.select();
         return new Promise((res, rej) => {
-            // here the magic happens
-            document.execCommand('copy') ? res() : rej();
-            textArea.remove();
+            // the textarea goes away whether execCommand succeeds, fails or throws
+            try {
+                document.execCommand('copy') ? res() : rej();
+            } catch (error) {
+                rej(error);
+            } finally {
+                textArea.remove();
+            }
         });
-    }
-}
-
-export const setUrl = (seed, mcVersion, setButtonText) => {
-    if (window.history.pushState) {
-        let newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-        newUrl += `?seed=${seed}&version=${mcVersion}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-        setButtonText('COPY');
     }
 }
 

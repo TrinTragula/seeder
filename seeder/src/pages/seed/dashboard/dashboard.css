@@ -1,0 +1,706 @@
+/*
+ * The seed page's dashboard: the tab bar, sections and their states,
+ * Save world, My worlds. It lives inside the panel's scroll container on both layouts
+ * (the desktop <aside>, the sheet's content on phones).
+ */
+
+/* --- tab bar: sticky at the top of the panel's scroll container --------------- */
+
+/*
+ * Sticks over the scroll container's top padding (var(--space-1), SeedPage.css, on both
+ * layouts) and has no margin: a sticky element keeps its margin as a gap, and either
+ * gap would let scrolled content show above the bar. The tabs wrap rather than scroll
+ * sideways, so none of them is ever out of sight.
+ */
+.dashboard-tabs {
+    position: sticky;
+    top: calc(-1 * var(--space-1));
+    z-index: 1;
+    /*
+     * One full-width row. Columns grow from their content and share what is left: in the
+     * pixel font "Structures" alone needs 77 px, more than a fifth of the 1024 px desktop
+     * column (53 px), while the five labels together (~256 px) fit every width from 360 px.
+     */
+    display: flex;
+    margin: 0;
+    padding: 0;
+    border-bottom: var(--border-1) solid var(--color-border);
+    background: var(--color-surface);
+    /*
+     * Covers the strip just above the bar: at fractional device-pixel ratios (Pixel 7:
+     * 2.625) the stuck edge falls on half a device pixel and scrolled text bled through
+     * as a 1-2 px sliver under the sheet's seed row.
+     */
+    box-shadow: 0 calc(-1 * var(--space-1)) 0 var(--color-surface);
+}
+
+/* In the phone sheet's header the strip does not scroll, so nothing needs covering. */
+.dashboard-tabs--header {
+    position: static;
+    margin-top: var(--space-2);
+    border-top: var(--border-1) solid var(--color-border);
+    box-shadow: none;
+}
+
+.dashboard-tab {
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 auto;
+    align-items: center;
+    gap: 2px;
+    margin: 0 0 calc(-1 * var(--border-1));
+    padding: var(--space-1) 2px 2px;
+    border: 0;
+    /* The open tab's bar sits on the strip's bottom line. */
+    border-bottom: var(--border-3) solid transparent;
+    border-radius: var(--radius-0);
+    background: none;
+    /* A tint (hover) stops above that transparent bar: painted under it, it covered the
+       strip's bottom line, which the bar overlaps by the negative margin. */
+    background-clip: padding-box;
+    color: var(--color-muted);
+    font-family: var(--font-display);
+    font-size: 11px;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.dashboard-tab__icon {
+    width: 20px;
+    height: 20px;
+    image-rendering: pixelated;
+    opacity: .75;
+}
+
+.dashboard-tab__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-tab[aria-selected='true'] {
+    border-bottom-color: var(--color-ink);
+    background: var(--color-brand);
+    color: var(--color-brand-ink);
+}
+
+.dashboard-tab[aria-selected='true'] .dashboard-tab__icon {
+    opacity: 1;
+}
+
+/* Touch screens keep :hover after a tap: only real pointers get the hover tint. */
+@media (hover: hover) {
+    /* background-color, not the shorthand: that would reset background-clip. */
+    .dashboard-tab[aria-selected='false']:hover {
+        background-color: var(--color-paper);
+        color: var(--color-ink);
+    }
+}
+
+.dashboard-tab:focus-visible {
+    outline: var(--border-3) solid var(--color-accent);
+    outline-offset: calc(-1 * var(--border-3));
+}
+
+/*
+ * The bar's natural spot, and room above it: the bar's cover shadow reaches 4 px up and
+ * would otherwise paint over the bottom border of the seed box's Random button.
+ */
+.dashboard-tabs__anchor {
+    height: var(--space-2);
+}
+
+/* On phones the strip lives in the sheet's header, so the content needs no room for it. */
+.sheet__content .dashboard-tabs__anchor {
+    height: 0;
+}
+
+/* The Map tab's controls start under the bar, not flush against it. */
+.dashboard-panel {
+    padding-top: var(--space-1);
+}
+
+/* --- sections ------------------------------------------------------------------ */
+
+/*
+ * position: relative is the containing block for everything visually hidden inside a
+ * section (.sr-only, the stacked .table's thead): the nearest positioned ancestor would
+ * otherwise be the sheet's panel, outside the scroll container, and a hidden header
+ * would hang off it as blank scrollable space below the footer.
+ */
+.section {
+    position: relative;
+    /* The query container for the narrow-column tables below. */
+    container-type: inline-size;
+    margin: var(--space-4) 0;
+    padding: 0 3px;
+    /* Scrolled into view, the heading lands below the sticky tab bar, not under it. */
+    scroll-margin-top: 52px;
+}
+
+.section h3 {
+    margin: 0 0 var(--space-2);
+}
+
+.section__title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.section__icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    image-rendering: pixelated;
+}
+
+.section__soon,
+.section__empty {
+    margin: var(--space-2) 0;
+    color: var(--color-muted);
+}
+
+.section__error {
+    margin: var(--space-2) 0;
+    color: var(--color-danger);
+}
+
+.section__loading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-2) 0;
+}
+
+.section__bar {
+    display: block;
+    height: 12px;
+    /* --color-paper would vanish on the panel's own paper background. */
+    background: color-mix(in srgb, var(--color-muted) 25%, transparent);
+    animation: section-pulse 1.2s ease-in-out infinite;
+}
+
+.section__bar:nth-child(3) {
+    width: 80%;
+}
+
+.section__bar:nth-child(4) {
+    width: 60%;
+}
+
+@keyframes section-pulse {
+    50% {
+        opacity: .4;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .section__bar {
+        animation: none;
+    }
+}
+
+/* --- ads (dev placeholder for a slot that does not exist yet) ------------------ */
+
+.ad--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border-1) dashed var(--color-muted);
+    color: var(--color-muted);
+    font-size: 12px;
+}
+
+/* --- Save world, My worlds -------------------------------------------------- */
+
+.save-world {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.save-world--naming .input {
+    flex: 1 1 10em;
+    min-width: 0;
+}
+
+.worlds-table code {
+    word-break: break-all;
+}
+
+.world-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+/* --- Spawn, Strongholds ------------------------------------------------------ */
+
+/* Label / value rows (a <dl> of <div>s): the label column is as wide as its longest label. */
+.kv {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-1) var(--space-3);
+    margin: 0 0 var(--space-3);
+}
+
+.kv__row {
+    display: contents;
+}
+
+.kv dt {
+    font-family: var(--font-display);
+    color: var(--color-muted);
+}
+
+.kv dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    min-width: 0;
+}
+
+.swatch {
+    display: inline-block;
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border: var(--border-1) solid var(--color-border);
+}
+
+.section__note {
+    margin: var(--space-2) 0;
+    color: var(--color-muted);
+    font-size: 14px;
+}
+
+.section__note a {
+    word-break: break-all;
+}
+
+.stronghold-analysis {
+    margin: var(--space-1) 0 0;
+    padding-left: var(--space-4);
+}
+
+/* --- result lists (Structures, Strongholds) ------------------------------------ */
+
+/*
+ * One line per result, a tap opens its details (ResultRow): compact and collapsible
+ * instead of stacked table cards (~200 px each in the panel).
+ */
+.result-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: var(--border-3) solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.result-row + .result-row {
+    border-top: var(--border-1) solid color-mix(in srgb, var(--color-border) 20%, transparent);
+}
+
+.result-row__summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: var(--space-2);
+    border: 0;
+    background: none;
+    color: var(--color-ink);
+    font: inherit;
+    text-align: left;
+}
+
+button.result-row__summary {
+    cursor: pointer;
+}
+
+button.result-row__summary[aria-expanded='true'] {
+    background: var(--color-paper);
+}
+
+/* Touch screens keep :hover after a tap: only real pointers get the hover tint. */
+@media (hover: hover) {
+    button.result-row__summary:hover {
+        background: var(--color-paper);
+    }
+}
+
+button.result-row__summary:focus-visible {
+    outline: var(--border-3) solid var(--color-accent);
+    outline-offset: calc(-1 * var(--border-3));
+}
+
+.result-row__icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    image-rendering: pixelated;
+}
+
+.result-row__main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    min-width: 0;
+}
+
+.result-row__name {
+    font-family: var(--font-display);
+}
+
+.result-row__main code {
+    white-space: nowrap;
+}
+
+.result-row__meta {
+    flex: none;
+    color: var(--color-muted);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.result-row__chevron {
+    flex: none;
+    width: 14px;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--color-muted);
+    text-align: center;
+    transition: transform var(--motion-fast);
+}
+
+[aria-expanded='true'] > .result-row__chevron {
+    transform: rotate(90deg);
+}
+
+.result-row__details {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    padding: 0 var(--space-2) var(--space-2);
+    background: var(--color-paper);
+}
+
+/* Lined up under the text of the summary, past the icon column. */
+.result-row:has(.result-row__icon) .result-row__details {
+    padding-left: calc(20px + 2 * var(--space-2));
+}
+
+.result-row__details[hidden] {
+    display: none;
+}
+
+.result-row__details .btn {
+    height: 28px;
+    font-size: 13px;
+}
+
+.result-row__details .stronghold-analysis {
+    flex-basis: 100%;
+    padding-left: var(--space-6);
+}
+
+.result-more {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+}
+
+.badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+/* A badge-sized placeholder while the variant is computed. */
+.badge-skeleton {
+    display: inline-block;
+    width: 72px;
+    height: 1.5em;
+    font-size: 11px;
+    vertical-align: middle;
+    /* --color-paper would vanish on the panel's own paper background. */
+    background: color-mix(in srgb, var(--color-muted) 25%, transparent);
+    animation: section-pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .badge-skeleton {
+        animation: none;
+    }
+}
+
+/* --- Biomes, Biome locator ------------------------------------------------------ */
+
+/*
+ * The breakdown as one stacked bar: a segment per listed biome, as wide as its share of
+ * the whole area, so the unlisted rest shows as the empty end of the bar.
+ */
+.biome-bar {
+    display: flex;
+    height: 14px;
+    margin: 0 0 var(--space-2);
+    overflow: hidden;
+    border: var(--border-1) solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.biome-bar span {
+    flex: none;
+    height: 100%;
+}
+
+.biome-row .result-row__summary {
+    min-height: 32px;
+    padding-block: var(--space-1);
+}
+
+.biome-row .result-row__main {
+    overflow-wrap: anywhere;
+}
+
+/* Biome select, the 1k / 2k pair and Find on one line; the select takes the room left. */
+.locator-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-2);
+}
+
+.locator-form__biome {
+    flex: 1 1 12em;
+    min-width: 0;
+}
+
+.locator-form__radius {
+    display: flex;
+}
+
+/* The chosen radius reads as "on", distinct from the brand-green Find next to it. */
+.locator-form__radius .btn[aria-pressed='true'] {
+    background: var(--color-ink);
+    color: var(--color-surface);
+}
+
+.locator-form__radius .btn + .btn {
+    margin-left: calc(-1 * var(--border-1));
+}
+
+.locator-hint {
+    margin: var(--space-2) 0;
+    color: var(--color-muted);
+    font-size: 14px;
+}
+
+/* --- Find near me (section id `where`) ------------------------------------------ */
+
+/* X, Z, the optional Y and Locate on one line; they wrap in a column too narrow for it. */
+.where-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-2);
+}
+
+.where-form__field {
+    display: flex;
+    flex: 1 1 8ch;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+    font-family: var(--font-display);
+    color: var(--color-muted);
+}
+
+.where-form__field .input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Y is optional and short (-64 .. 320). */
+.where-form__field--y {
+    flex: none;
+}
+
+.where-form__field--y .input {
+    width: 7ch;
+}
+
+/* No spinner arrows: they eat the few digits a narrow box has, and step 1 is all they do. */
+.where-form .input[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.where-form .input[type='number']::-webkit-inner-spin-button,
+.where-form .input[type='number']::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
+.where-block {
+    margin: var(--space-3) 0;
+}
+
+.where-block__title {
+    margin: 0 0 var(--space-1);
+    color: var(--color-muted);
+    font-size: 13px;
+}
+
+/* A block heading with its "?" (Block's `help`) on the heading's line, beside it. */
+.where-block__title--help {
+    display: inline-block;
+    margin-right: var(--space-2);
+    vertical-align: middle;
+}
+
+/* A long biome name wraps beside its swatch rather than leaving the swatch alone on a line. */
+.kv dd.where-biome {
+    flex-wrap: nowrap;
+}
+
+/* The slime-overlay checkbox: the whole line is the hit area. */
+.where-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    cursor: pointer;
+}
+
+.where-toggle input {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.section__caveat {
+    margin: var(--space-1) 0 0;
+    color: var(--color-muted);
+    font-size: 13px;
+}
+
+/* --- Farms ---------------------------------------------------------------------- */
+
+/* The quad witch farm answer: the sentence, then Show on map, wrapping in a narrow column. */
+.quad-farm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0;
+}
+
+.fortress-warts {
+    flex-basis: 100%;
+}
+
+.fortress-count {
+    color: var(--color-muted);
+    font-size: 13px;
+}
+
+/*
+ * A fortress's spawners, one line each: coordinates, Copy, Show on map. One grid for all
+ * of them, so the buttons line up however long each spawner's coordinates are.
+ */
+.fortress-spawners {
+    display: grid;
+    flex-basis: 100%;
+    grid-template-columns: max-content max-content max-content;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    margin: var(--space-1) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Each line spans the three columns (a subgrid: the <li> keeps its box and its list role). */
+.fortress-spawners li {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: center;
+}
+
+.fortress-note {
+    flex-basis: 100%;
+    margin: 0;
+}
+
+.farms-caveat {
+    margin-top: var(--space-3);
+}
+
+/* --- tables in a narrow column -------------------------------------------------- */
+
+/*
+ * components.css stacks a .table into cards below the 768px viewport. The desktop panel
+ * is itself a narrow column (~280-360 px at 1024-1280 px), too narrow for any dashboard
+ * table (Strongholds needs ~425 px, My worlds ~510 px), so tables stack there too, by the
+ * section's width. Same rules as components.css' phone block.
+ */
+@container (max-width: 560px) {
+
+    .section .table,
+    .section .table thead,
+    .section .table tbody,
+    .section .table tr,
+    .section .table th,
+    .section .table td {
+        display: block;
+    }
+
+    .section .table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+
+    .section .table tr {
+        margin-bottom: var(--space-2);
+        border: var(--border-1) solid var(--color-border);
+    }
+
+    .section .table td {
+        display: flex;
+        gap: var(--space-2);
+        justify-content: space-between;
+        border-bottom: 0;
+    }
+
+    .section .table td::before {
+        content: attr(data-label);
+        color: var(--color-muted);
+        font-family: var(--font-display);
+    }
+}
+
+/* A control's caption and its "?" (HelpTip), centred on one line like the finder's labels. */
+.control-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}

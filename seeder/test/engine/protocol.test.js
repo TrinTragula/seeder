@@ -108,25 +108,54 @@ describe('requests and replies', () => {
         }
     });
 
-    it('GET_BIOMES -> DONE_GET_BIOMES { seed: BigInt } after SEED_UPDATE progress ticks', async () => {
+    it('FIND_SEEDS -> streamed SEED_FOUND hits, then DONE_FIND_SEEDS echoing shardId with the shard summary', async () => {
         w.clear();
-        const { data } = await w.call('GET_BIOMES', { mcVersion: MC, biomes: [1], x: -25, z: -25, widthX: 50, widthZ: 50, startingSeed: 0, dimension: 0, yHeight: 256 });
-        expect(typeof data.seed).toBe('bigint');
-        expect(w.drain('SEED_UPDATE').length).toBeGreaterThanOrEqual(1);
-        const area = (await w.call('GET_AREA', { mcVersion: MC, seed: data.seed, startX: -25, startY: -25, widthX: 50, widthY: 50, dimension: 0, yHeight: 256 })).data.ids;
-        expect(Array.from(area)).toContain(1);
+        const req = { shardId: 'p-1', mcVersion: MC, dimension: 0, yHeight: 256, biomes: [1], structures: [5], rangeBlocks: 300, startingSeed: '1', maxSeedsToScan: 1000, maxResults: 1 };
+        const { data } = await w.call('FIND_SEEDS', req);
+        expect(data).toEqual({ shardId: 'p-1', examined: expect.any(Number), tested: expect.any(Number), hits: 1, error: null });
+        const hits = w.drain('SEED_FOUND').map((m) => m.data);
+        expect(hits).toHaveLength(1);
+        expect(hits[0]).toEqual({
+            seed: expect.any(BigInt), spawnX: expect.any(Number), spawnZ: expect.any(Number),
+            structures: [{ type: 5, x: expect.any(Number), z: expect.any(Number) }],
+            examined: expect.any(Number), tested: expect.any(Number),
+        });
+        expect(hits[0].structures[0]).not.toBeInstanceOf(Int32Array);      // plain objects, copied out of the heap
+        expect(hits[0].examined).toBe(data.examined);
     });
 
-    it('FIND_STRUCTURES -> DONE_FIND_STRUCTURES { seed: BigInt }', async () => {
-        const { data } = await w.call('FIND_STRUCTURES', { mcVersion: MC, structType: 5, x: 0, z: 0, range: 300, startingSeed: 1, dimension: 0 });
-        expect(typeof data.seed).toBe('bigint');
-        const { coords } = (await w.call('GET_STRUCTURES_IN_REGIONS', { mcVersion: MC, structType: 5, seed: data.seed, regionsRange: 3, dimension: 0 })).data;
-        expect(coords.some(([x, z]) => Math.abs(x) <= 300 && Math.abs(z) <= 300)).toBe(true);
+    it('SEED_UPDATE carries numeric { examined, tested } progress counters, paced by time (~100 ms)', async () => {
+        w.clear();
+        // A 26.3 biome check at ±100 costs ~7 ms and this biome set never occurs together:
+        // 40 checks are well over 100 ms of work with no hit to end the shard early.
+        await w.call('FIND_SEEDS', { shardId: 'p-2', mcVersion: MC, dimension: 0, yHeight: 256, biomes: [1, 14, 140, 21, 185], structures: [], rangeBlocks: 100, startingSeed: '0', maxSeedsToScan: 40, maxResults: 1e9 });
+        const updates = w.drain('SEED_UPDATE').map((m) => m.data);
+        expect(updates.length).toBeGreaterThanOrEqual(1);
+        for (const u of updates) expect(u).toEqual({ examined: expect.any(Number), tested: expect.any(Number) });
+        expect(updates.at(-1).examined).toBeLessThanOrEqual(40);
     });
 
-    it('GET_BIOMES_WITH_STRUCTURES -> DONE_GET_BIOMES_WITH_STRUCTURES { seed: BigInt }', async () => {
-        const { data } = await w.call('GET_BIOMES_WITH_STRUCTURES', { mcVersion: MC, structType: 5, biomes: [1], x: 0, z: 0, range: 500, startingSeed: 1, dimension: 0, yHeight: 256 });
-        expect(typeof data.seed).toBe('bigint');
+    it('DONE_FIND_SEEDS reports engine errors as { code, message } instead of throwing', async () => {
+        const { data } = await w.call('FIND_SEEDS', { shardId: 'p-3', mcVersion: MC, dimension: 0, yHeight: 256, biomes: [], structures: [], rangeBlocks: 300, startingSeed: '1', maxSeedsToScan: 1000, maxResults: 1 });
+        expect(data).toEqual({ shardId: 'p-3', examined: 0, tested: 0, hits: 0, error: { code: -7, message: expect.any(String) } });
+    });
+
+    it('GET_VERSION_SUPPORT -> DONE_GET_VERSION_SUPPORT { mcVersion, newest, biomes, biomeDimensions, structures, regionBlocks, minDistance }', async () => {
+        const { data } = await w.call('GET_VERSION_SUPPORT', { mcVersion: MC, biomeIds: [1, 8], structTypes: [5, 21] });
+        expect(data).toEqual({
+            mcVersion: MC, newest: Math.max(...Object.values(VERSIONS)),
+            biomes: [1, 8], biomeDimensions: { 1: 0, 8: -1 },
+            structures: { 5: 0, 21: 1 }, regionBlocks: { 5: 544, 21: 320 }, minDistance: { 5: 0, 21: 1008 },
+        });
+    });
+
+    it('the single-result legacy kinds are gone: GET_BIOMES, FIND_STRUCTURES and GET_BIOMES_WITH_STRUCTURES get no reply', async () => {
+        w.clear();
+        w.send('GET_BIOMES', { mcVersion: MC, biomes: [1], x: -25, z: -25, widthX: 50, widthZ: 50, startingSeed: 0, dimension: 0, yHeight: 256 });
+        w.send('FIND_STRUCTURES', { mcVersion: MC, structType: 5, x: 0, z: 0, range: 300, startingSeed: 1, dimension: 0 });
+        w.send('GET_BIOMES_WITH_STRUCTURES', { mcVersion: MC, structType: 5, biomes: [1], x: 0, z: 0, range: 500, startingSeed: 1, dimension: 0, yHeight: 256 });
+        await tick();
+        expect(w.messages).toEqual([]);
     });
 });
 

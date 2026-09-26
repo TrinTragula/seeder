@@ -1,6 +1,6 @@
 // Regression snapshot: one fixed seed, every version x dimension, plus spawn and the
 // first three strongholds. A cubiomes update must not change generation for existing
-// versions. When it does on purpose (an upstream fix), review the diff and re-record:
+// versions. When it does intentionally (an upstream fix), review the diff and re-record:
 //     npx vitest run --project engine -u
 // A new version shows up as a missing key -> record it the same way.
 import { describe, it, expect, beforeAll } from 'vitest';

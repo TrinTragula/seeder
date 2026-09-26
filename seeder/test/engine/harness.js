@@ -155,7 +155,9 @@ export async function loadSeeder(options) {
 }
 
 // A `Worker` constructor backed by the vm harness, for driving QueueManager in
-// Node: replies are delivered asynchronously like real worker messages.
+// Node: replies are delivered asynchronously like real worker messages, and an exception
+// escaping the worker's handler fires 'error' like a browser's (after the messages the
+// handler already posted).
 export function makeFakeWorkerClass({ workersDir = WORKERS_DIR } = {}) {
     return class VmWorker {
         static instances = [];
@@ -164,6 +166,7 @@ export function makeFakeWorkerClass({ workersDir = WORKERS_DIR } = {}) {
             this.url = url;
             this.terminated = false;
             this.listeners = [];
+            this.errorListeners = [];
             this.onmessage = null;
             this.inner = createWorkerContext({
                 workersDir,
@@ -180,10 +183,28 @@ export function makeFakeWorkerClass({ workersDir = WORKERS_DIR } = {}) {
         }
         postMessage(message) {
             if (this.terminated) return;
-            setTimeout(() => { if (!this.terminated) this.inner.dispatch(message); }, 0);
+            setTimeout(() => {
+                if (this.terminated) return;
+                try {
+                    this.inner.dispatch(message);
+                } catch (error) {
+                    if (this.errorListeners.length === 0) throw error;
+                    setTimeout(() => {
+                        if (this.terminated) return;
+                        const event = { type: 'error', message: `Uncaught ${error}`, error, preventDefault() {} };
+                        for (const fn of [...this.errorListeners]) fn(event);
+                    }, 0);
+                }
+            }, 0);
         }
-        addEventListener(type, fn) { if (type === 'message') this.listeners.push(fn); }
-        removeEventListener(type, fn) { this.listeners = this.listeners.filter((f) => f !== fn); }
+        addEventListener(type, fn) {
+            if (type === 'message') this.listeners.push(fn);
+            else if (type === 'error') this.errorListeners.push(fn);
+        }
+        removeEventListener(type, fn) {
+            this.listeners = this.listeners.filter((f) => f !== fn);
+            this.errorListeners = this.errorListeners.filter((f) => f !== fn);
+        }
         terminate() { this.terminated = true; }
     };
 }

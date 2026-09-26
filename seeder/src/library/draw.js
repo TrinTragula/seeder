@@ -1,4 +1,5 @@
 import { BIOMES } from '../util/constants';
+import { OVERLAYS } from './overlays';
 
 // One biome cell = 4 blocks (world-gen is generated at scale 1:4).
 const CELL_TO_BLOCK = 4;
@@ -8,14 +9,78 @@ const CLICK_THRESHOLD = 4;
 const FRICTION = 0.92;
 // Velocity (px/frame) below which a glide stops.
 const MIN_VELOCITY = 0.05;
+// A release this long (ms) after the last move is a finger that stopped: no glide. The
+// bottom sheet measures its flicks over the same window (WINDOW_MS in BottomSheet.jsx).
+const REST_MS = 80;
 // Clamp on glide velocity so a violent flick can't teleport the map.
 const MAX_VELOCITY = 60;
 // Velocity impulse (px/frame) added per arrow-key / arrow-button press.
 const ARROW_IMPULSE = 14;
 // Upper bound on cached tiles (LRU). Each tile is a 75x75 canvas (~22KB) + an
-// Int16 biome-id array (~11KB) ≈ 34KB, so 1500 tiles ≈ ~50MB — enough history
+// Int16 biome-id array (~11KB) ≈ 34KB, so 1500 tiles ≈ ~50MB - enough history
 // to wander several screens and return without regenerating.
 const MAX_TILES = 1500;
+// Duration of an animated panTo (ease-out cubic).
+const PAN_MS = 300;
+// The highlight's pin body: --color-accent in tokens.css. A canvas cannot read CSS custom
+// properties, so the value is repeated here.
+const HIGHLIGHT_COLOR = '#ff8c00';
+/*
+ * The highlight: a pixel map pin (public/svg/pin.svg, 16x16) drawn at `scale`, its tip
+ * on the marked block, over a soft shadow. `rects` are the pin's pixels as
+ * [x, y, w, h] runs per colour, in the pin's own 16x16 grid; the tip is the bottom
+ * centre (8, 16).
+ */
+export const HIGHLIGHT_PIN = {
+    scale: 2,
+    size: 16,
+    rects: [
+        ['#000', [[5, 0, 6, 1], [3, 1, 2, 1], [11, 1, 2, 1], [2, 2, 1, 2], [13, 2, 1, 2], [1, 4, 1, 4], [14, 4, 1, 4],
+            [2, 8, 1, 2], [13, 8, 1, 2], [3, 10, 1, 2], [12, 10, 1, 2], [4, 12, 1, 1], [11, 12, 1, 1], [5, 13, 1, 1],
+            [10, 13, 1, 1], [6, 14, 1, 1], [9, 14, 1, 1], [7, 15, 2, 1]]],
+        [HIGHLIGHT_COLOR, [[5, 1, 6, 1], [3, 2, 10, 2], [2, 4, 12, 4], [3, 8, 10, 2], [4, 10, 8, 2], [5, 12, 6, 1],
+            [6, 13, 4, 1], [7, 14, 2, 1]]],
+        ['#fff', [[6, 4, 4, 4]]],
+        ['#000', [[7, 5, 2, 2]]],
+    ],
+};
+// The shadow under the tip (screen px radii), and the gap between the pin's head and its label.
+const PIN_SHADOW = { rx: 7, rz: 3, color: 'rgba(0, 0, 0, 0.35)' };
+const PIN_LABEL_GAP = 4;
+
+// Two tips (see _emitTip) say the same thing: nothing, or the same place, biome and spot.
+const sameTip = (a, b) => a === b || (a != null && b != null
+    && a.x === b.x && a.z === b.z && a.id === b.id && a.left === b.left && a.top === b.top);
+
+/*
+ * An icon drawn without its coordinate label (the finder's preview map and thumbnails, or
+ * the labels turned off) loses the label's pale box that made it stand out, so it gets a
+ * black silhouette outline instead: outlinedIcon(icon, w, h) is the icon drawn at w × h on
+ * a canvas ICON_OUTLINE_PX larger on every side, over its own shape in black grown by
+ * ICON_OUTLINE_PX. Built once per loaded icon.
+ */
+export const ICON_OUTLINE_PX = 2;
+const outlinedIcons = new WeakMap();
+export function outlinedIcon(icon, w, h, doc = globalThis.document) {
+    const cached = outlinedIcons.get(icon);
+    if (cached) return cached;
+    const o = ICON_OUTLINE_PX;
+    const canvas = doc.createElement('canvas');
+    canvas.width = w + 2 * o;
+    canvas.height = h + 2 * o;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    for (let dx = 0; dx <= 2 * o; dx++) {
+        for (let dy = 0; dy <= 2 * o; dy++) ctx.drawImage(icon, dx, dy, w, h);
+    }
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(icon, o, o, w, h);
+    outlinedIcons.set(icon, canvas);
+    return canvas;
+}
 
 export const STRUCTURE_ICONS = {
     /*  Desert_Pyramid */   1: '/img/temple.png',
@@ -46,13 +111,24 @@ export const STRUCTURE_ICONS = {
     /*  Abandoned Camp */   26: '/img/camp.png',
 };
 
+// The user asked the OS for less motion: animations become instant.
+const prefersReducedMotion = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 export class DrawSeed {
-    constructor(mcVersion, queue, canvas, onclick, onmousemove, drawDim, pixDim) {
+    // `ontip({ hover, pin })` reports the biome under the mouse and the place a finger
+    // tapped (see _emitTip). `opts.onUserMove()` is called once, the first time the user
+    // moves the map (drag, pinch, wheel, arrows, zoom); panTo() is not the user.
+    // `opts.exposeGlobal` publishes the instance as window.__seederDrawer for tooling
+    // (bench/bench.mjs, the e2e fixtures). Opt-in, so a preview map or a thumbnail can
+    // never take the hook away from the page's main map.
+    constructor(mcVersion, queue, canvas, onclick, ontip, drawDim, pixDim, { exposeGlobal = false, onUserMove = null } = {}) {
         this.mcVersion = mcVersion;
         this.dimension = 0; // Overworld
         this.yHeight = 320; // Top of the world
         this.queue = queue;
         this.canvas = canvas;
+        // null where there is no 2D context (a bare jsdom): _render then does nothing.
         this.ctx = this.canvas.getContext("2d");
         this.TILE = drawDim ?? 75;   // biome cells per tile edge
         this.pixDim = pixDim ?? 1;   // integer zoom (screen px per biome cell)
@@ -79,6 +155,13 @@ export class DrawSeed {
         this.structures = {};
         this.showStructureCoords = true;
 
+        // The one highlighted place ({ x, z, label } in blocks) or null. See setHighlight.
+        this.highlight = null;
+
+        // Overlays switched on, by name (see setOverlay). Public for tooling: the e2e
+        // tests wait on overlays.slime.pending.
+        this.overlays = {};
+
         // rAF render loop.
         this.dirty = false;
         this.rafId = null;
@@ -95,7 +178,14 @@ export class DrawSeed {
         this.velX = 0;
         this.velZ = 0;
         this.glideRaf = null;
-        this.lastPointer = null;   // last hover position, canvas-relative { x, y }
+        // True while panTo's animation owns glideRaf (instead of an inertial glide).
+        this.panning = false;
+        this.lastPointer = null;   // last pointer position (any pointer), canvas-relative { x, y }
+        this.hover = null;         // the mouse / pen position, canvas-relative { x, y }, or null
+        // The place a finger tapped: { cellX, cellZ } (the exact world point, in fractional
+        // biome cells) plus its { x, z, biome, id }, or null. See _emitTip.
+        this.pin = null;
+        this.lastTip = { hover: null, pin: null };   // what ontip last reported
 
         // Multi-touch / pinch state.
         this.activePointers = new Map();   // pointerId -> { x, y } in client coords
@@ -104,13 +194,15 @@ export class DrawSeed {
         this.pinchLastMid = null;          // { x, y } canvas-relative midpoint, last sample
 
         this.onclick = onclick;
-        this.onmousemove = onmousemove;
+        this.ontip = ontip;
+        this.onUserMove = onUserMove;
+        this.userMoved = false;
 
         // O(1) hover: biome id -> label.
         this.biomeIdToLabel = new Map(BIOMES.map(b => [b.value, b.label]));
 
         // When the worker pool is torn down (seed search / STOP), any in-flight
-        // tile requests are lost — drop our bookkeeping and re-request on repaint.
+        // tile requests are lost - drop our bookkeeping and re-request on repaint.
         this._onQueueReset = () => {
             this.pending.clear();
             this._markDirty();
@@ -119,7 +211,7 @@ export class DrawSeed {
 
         // Lightweight perf counters (read by the benchmark harness).
         this.stats = { renders: 0, tilesGenerated: 0, tilesStored: 0, renderMsTotal: 0 };
-        if (typeof window !== 'undefined') window.__seederDrawer = this;
+        if (exposeGlobal && typeof window !== 'undefined') window.__seederDrawer = this;
 
         this._preloadIcons();
         this._bindEvents();
@@ -140,7 +232,7 @@ export class DrawSeed {
         };
     }
 
-    // ---- Public API (consumed by Seeder.js) --------------------------------
+    // ---- Public API (consumed by MapCanvas.jsx) ----------------------------
 
     clear() {
         this.spawnX = null;
@@ -149,10 +241,68 @@ export class DrawSeed {
         this.structures = {};
         this.strongholdsShown = false;
         this.spawnShown = false;
+        this.highlight = null;
+        this.pin = null;
         this.panX = this.canvas.width / 2;
         this.panZ = this.canvas.height / 2;
         this._stopGlide();
         this._markDirty();
+    }
+
+    /*
+     * Centre block (blockX, blockZ) in the viewport, at the current zoom. Animated
+     * (PAN_MS, ease-out) unless `animate` is false or the user prefers reduced motion.
+     * The animation runs on the glide's frame handle, glideRaf, so everything that
+     * stops a glide - a drag, a zoom, an arrow press, clear(), destroy() - stops it too,
+     * and "glideRaf == null" still means the map has come to rest.
+     */
+    panTo(blockX, blockZ, { animate = true } = {}) {
+        this._stopGlide();
+        const toX = this.canvas.width / 2 - (blockX / CELL_TO_BLOCK) * this.pixDim;
+        const toZ = this.canvas.height / 2 - (blockZ / CELL_TO_BLOCK) * this.pixDim;
+        if (!animate || prefersReducedMotion()) {
+            this.panX = toX;
+            this.panZ = toZ;
+            this._markDirty();
+            return;
+        }
+        const fromX = this.panX;
+        const fromZ = this.panZ;
+        let start = null;
+        // `now` is the frame's timestamp, so the animation follows the frame clock.
+        const step = (now) => {
+            start ??= now;
+            const t = Math.min(1, (now - start) / PAN_MS);
+            const eased = 1 - (1 - t) ** 3;
+            this.panX = fromX + (toX - fromX) * eased;
+            this.panZ = fromZ + (toZ - fromZ) * eased;
+            this._markDirty();
+            if (t < 1) {
+                this.glideRaf = requestAnimationFrame(step);
+            } else {
+                this.glideRaf = null;
+                this.panning = false;
+            }
+        };
+        this.panning = true;
+        this.glideRaf = requestAnimationFrame(step);
+    }
+
+    /*
+     * Mark one place on the map ({ x, z, label } in blocks), or remove the mark with
+     * null. The mark is static - a pulse would keep the render loop running for ever -
+     * and is drawn in every dimension, on top of every icon, with its label always
+     * shown. clear() (a new seed, version or dimension) and destroy() remove it.
+     */
+    setHighlight(marker) {
+        this.highlight = marker ? { x: marker.x, z: marker.z, label: marker.label } : null;
+        this._markDirty();
+    }
+
+    // Remove the tapped place's tip (its close button).
+    clearPin() {
+        this.pin = null;
+        this._emitTip();
     }
 
     setShowStructureCoords(value) {
@@ -162,7 +312,29 @@ export class DrawSeed {
         }
     }
 
-    setSeed(seed) { this.seed = seed; }
+    /*
+     * Switch a named overlay (OVERLAYS in overlays.js: 'slime', 'chunkGrid') on or off. On, it is
+     * created for the current seed and repaints the map whenever its data lands; off, it
+     * is destroyed with its cache and outstanding requests. clear() leaves overlays alone:
+     * the toggle outlives a world change, and setSeed() re-targets its data.
+     */
+    setOverlay(name, on) {
+        const current = this.overlays[name];
+        if (on && !current && OVERLAYS[name]) {
+            const overlay = new OVERLAYS[name](this.queue, { onReady: () => this._markDirty() });
+            overlay.setSeed(this.seed);
+            this.overlays[name] = overlay;
+        } else if (!on && current) {
+            current.destroy();
+            delete this.overlays[name];
+        }
+        this._markDirty();
+    }
+
+    setSeed(seed) {
+        this.seed = seed;
+        for (const overlay of Object.values(this.overlays)) overlay.setSeed(seed);
+    }
     setDimension(dimension) { this.dimension = dimension; }
     setYHeight(yHeight) { this.yHeight = yHeight; }
     setMcVersion(mcVersion) { this.mcVersion = mcVersion; }
@@ -185,7 +357,8 @@ export class DrawSeed {
     // Icons are drawn every frame from the stored coords; this just forces a repaint.
     drawStructures() { this._markDirty(); }
 
-    findSpawn(callback) {
+    // `callback(seed, x, z)`, or `onError(error)` when the engine could not find it.
+    findSpawn(callback, onError) {
         if (this.spawnX != null && this.spawnZ != null) {
             if (callback) callback(this.seed, this.spawnX, this.spawnZ);
             return;
@@ -196,7 +369,7 @@ export class DrawSeed {
             this.spawnShown = true;
             this._markDirty();
             if (callback) callback(this.seed, this.spawnX, this.spawnZ);
-        });
+        }, onError);
     }
 
     findStrongholds(callback) {
@@ -227,8 +400,8 @@ export class DrawSeed {
         });
     }
 
-    zoom() { this._setZoom(this.pixDim + 1, this.canvas.width / 2, this.canvas.height / 2); }
-    dezoom() { this._setZoom(this.pixDim - 1, this.canvas.width / 2, this.canvas.height / 2); }
+    zoom() { this._userMove(); this._setZoom(this.pixDim + 1, this.canvas.width / 2, this.canvas.height / 2); }
+    dezoom() { this._userMove(); this._setZoom(this.pixDim - 1, this.canvas.width / 2, this.canvas.height / 2); }
 
     up() { this._nudge(0, ARROW_IMPULSE); }
     down() { this._nudge(0, -ARROW_IMPULSE); }
@@ -243,10 +416,15 @@ export class DrawSeed {
 
     destroy() {
         this._stopGlide();
+        this.highlight = null;
+        for (const overlay of Object.values(this.overlays)) overlay.destroy();
+        this.overlays = {};
         if (this.rafId != null) cancelAnimationFrame(this.rafId);
         this.queue.removeResetListener?.(this._onQueueReset);
         this._unbindEvents();
         this.tiles.clear();
+        // Only our own hook: a newer instance may already have taken it over.
+        if (typeof window !== 'undefined' && window.__seederDrawer === this) delete window.__seederDrawer;
     }
 
     // ---- Zoom / pan --------------------------------------------------------
@@ -264,7 +442,17 @@ export class DrawSeed {
         this._markDirty();
     }
 
+    // The user moved the map (see opts.onUserMove): tell the page, the first time only.
+    _userMove() {
+        if (this.userMoved) return;
+        this.userMoved = true;
+        this.onUserMove?.();
+    }
+
     _nudge(impulseX, impulseZ) {
+        this._userMove();
+        // An arrow press takes over from a panTo animation, like a drag does.
+        if (this.panning) this._stopGlide();
         this.velX = this._clampVel(this.velX + impulseX);
         this.velZ = this._clampVel(this.velZ + impulseZ);
         this._ensureGlide();
@@ -298,6 +486,7 @@ export class DrawSeed {
             cancelAnimationFrame(this.glideRaf);
             this.glideRaf = null;
         }
+        this.panning = false;
         this.velX = 0;
         this.velZ = 0;
     }
@@ -316,9 +505,10 @@ export class DrawSeed {
     }
 
     _render() {
+        const ctx = this.ctx;
+        if (!ctx) return;
         const t0 = performance.now();
         this.stats.renders++;
-        const ctx = this.ctx;
         const W = this.canvas.width;
         const H = this.canvas.height;
         const tileScreen = this.TILE * this.pixDim;
@@ -364,7 +554,12 @@ export class DrawSeed {
             for (const m of missing) this._requestTile(m.tx, m.tz);
         }
 
+        // Over the biomes, under the icons and the highlight.
+        this._drawOverlays(W, H);
         this._drawStructures();
+        // After any pan, zoom, glide or new tile: the biome under a still mouse may have
+        // changed, and the pin has moved with the map.
+        this._emitTip();
         this.stats.renderMsTotal += performance.now() - t0;
     }
 
@@ -391,7 +586,7 @@ export class DrawSeed {
         this.queue.draw(reqVer, reqSeed, startX, startY, this.TILE, this.TILE, reqDim, reqY, ({ rgba, ids }) => {
             this.pending.delete(key);
             // Synchronously bake the tile into a small canvas (putImageData). Doing
-            // this inline — rather than the async createImageBitmap — lets every
+            // this inline - rather than the async createImageBitmap - lets every
             // tile a worker delivers this frame become drawable in the same frame,
             // instead of trickling in one per frame.
             const tileCanvas = document.createElement('canvas');
@@ -443,7 +638,7 @@ export class DrawSeed {
             const drawZ = this._blockToScreenZ(this.spawnZ);
             // spawn icon is 32x30
             if (drawX > 0 && drawZ > 0 && drawX < this.canvas.width && drawZ < this.canvas.height) {
-                if (this.spawnIcon.complete) this.ctx.drawImage(this.spawnIcon, drawX - 16, drawZ - 15, 32, 30);
+                this._drawIcon(this.spawnIcon, drawX - 16, drawZ - 15, 32, 30);
                 this.drawText(`(${this.spawnX}, ${this.spawnZ})`, drawX, drawZ);
             }
         }
@@ -453,7 +648,7 @@ export class DrawSeed {
                 const drawX = this._blockToScreenX(stronghold[0]);
                 const drawZ = this._blockToScreenZ(stronghold[1]);
                 if (drawX > 0 && drawZ > 0 && drawX < this.canvas.width && drawZ < this.canvas.height) {
-                    if (this.eyeIcon.complete) this.ctx.drawImage(this.eyeIcon, drawX - 15, drawZ - 15, 30, 30);
+                    this._drawIcon(this.eyeIcon, drawX - 15, drawZ - 15, 30, 30);
                     this.drawText(`(${stronghold[0]}, ${stronghold[1]})`, drawX, drawZ);
                 }
             }
@@ -468,16 +663,31 @@ export class DrawSeed {
                     const drawX = this._blockToScreenX(structure[0]);
                     const drawZ = this._blockToScreenZ(structure[1]);
                     if (drawX > 0 && drawZ > 0 && drawX < this.canvas.width && drawZ < this.canvas.height) {
-                        if (icon.complete) this.ctx.drawImage(icon, drawX - 15, drawZ - 15, 30, 30);
+                        this._drawIcon(icon, drawX - 15, drawZ - 15, 30, 30);
                         this.drawText(`(${structure[0]}, ${structure[1]})`, drawX, drawZ);
                     }
                 }
             }
         }
+
+        // Last, so it stays on top of every icon.
+        this._drawHighlight();
     }
 
-    drawText(text, x, z) {
+    // An icon at (x, y) w × h once loaded; outlined when no coordinate label goes with it.
+    _drawIcon(icon, x, y, w, h) {
+        if (!icon.complete) return;
         if (this.showStructureCoords) {
+            this.ctx.drawImage(icon, x, y, w, h);
+            return;
+        }
+        const o = ICON_OUTLINE_PX;
+        this.ctx.drawImage(outlinedIcon(icon, w, h), x - o, y - o, w + 2 * o, h + 2 * o);
+    }
+
+    // Coordinate labels follow showStructureCoords; `always` is for the highlight's label.
+    drawText(text, x, z, { always = false } = {}) {
+        if (this.showStructureCoords || always) {
             this.ctx.font = "bold 10px Minecraft";
             this.ctx.textAlign = "center";
             this.ctx.fillStyle = "#ffffffbb";
@@ -489,28 +699,109 @@ export class DrawSeed {
         }
     }
 
-    // ---- Hover -------------------------------------------------------------
+    // ---- Overlays ----------------------------------------------------------
+
+    _drawOverlays(W, H) {
+        const view = { seed: this.seed, dimension: this.dimension, panX: this.panX, panZ: this.panZ, pixDim: this.pixDim, W, H };
+        // OVERLAYS' order, whatever order they were switched on in.
+        for (const name of Object.keys(OVERLAYS)) this.overlays[name]?.draw(this.ctx, view);
+    }
+
+    // ---- Highlight ---------------------------------------------------------
+
+    _drawHighlight() {
+        const marker = this.highlight;
+        if (!marker) return;
+        const drawX = this._blockToScreenX(marker.x);
+        const drawZ = this._blockToScreenZ(marker.z);
+        if (!(drawX > 0 && drawZ > 0 && drawX < this.canvas.width && drawZ < this.canvas.height)) return;
+        const ctx = this.ctx;
+        // Whole pixels, so the pin stays crisp wherever the pan leaves the block.
+        const tipX = Math.round(drawX);
+        const tipZ = Math.round(drawZ);
+        ctx.fillStyle = PIN_SHADOW.color;
+        ctx.beginPath();
+        ctx.ellipse(tipX, tipZ, PIN_SHADOW.rx, PIN_SHADOW.rz, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        const { scale, size, rects } = HIGHLIGHT_PIN;
+        const left = tipX - (size / 2) * scale;
+        const top = tipZ - size * scale;
+        for (const [color, runs] of rects) {
+            ctx.fillStyle = color;
+            for (const [x, y, w, h] of runs) ctx.fillRect(left + x * scale, top + y * scale, w * scale, h * scale);
+        }
+        // drawText puts its box 20-32 px below the anchor: this lifts it just above the pin's head.
+        if (marker.label) this.drawText(marker.label, tipX, top - PIN_LABEL_GAP - 32, { always: true });
+    }
+
+    // ---- Hit testing and the tip -----------------------------------------------
+
+    // The biome id of world cell (cx, cz) from the cached tiles, or null (no tile yet).
+    _biomeIdAt(cx, cz) {
+        const tx = Math.floor(cx / this.TILE);
+        const tz = Math.floor(cz / this.TILE);
+        const tile = this.tiles.get(this._tileKey(tx, tz));
+        if (!tile || !tile.ids) return null;
+        const id = tile.ids[(cz - tz * this.TILE) * this.TILE + (cx - tx * this.TILE)];
+        return this.biomeIdToLabel.has(id) ? id : null;
+    }
 
     _biomeAt(x, y) {
         const cx = Math.floor((x - this.panX) / this.pixDim);
         const cz = Math.floor((y - this.panZ) / this.pixDim);
-        const tx = Math.floor(cx / this.TILE);
-        const tz = Math.floor(cz / this.TILE);
-        const tile = this.tiles.get(this._tileKey(tx, tz));
-        if (tile && tile.ids) {
-            const lx = cx - tx * this.TILE;
-            const lz = cz - tz * this.TILE;
-            const id = tile.ids[lz * this.TILE + lx];
-            const label = this.biomeIdToLabel.get(id);
-            if (label) return [CELL_TO_BLOCK * cx, CELL_TO_BLOCK * cz, label];
-        }
-        return [null, null, null];
+        const id = this._biomeIdAt(cx, cz);
+        if (id == null) return [null, null, null];
+        return [CELL_TO_BLOCK * cx, CELL_TO_BLOCK * cz, this.biomeIdToLabel.get(id)];
     }
 
-    _emitHover() {
-        if (!this.onmousemove || !this.lastPointer) return;
-        const [x, z, biome] = this._biomeAt(this.lastPointer.x, this.lastPointer.y);
-        if (biome) this.onmousemove(x, z, biome);
+    // The mouse's tip: hidden while the map is dragged or pinched, and over unloaded tiles.
+    _hoverTip() {
+        const p = this.hover;
+        if (!p || this.pinching || (this.dragging && this.moved)) return null;
+        const cx = Math.floor((p.x - this.panX) / this.pixDim);
+        const cz = Math.floor((p.y - this.panZ) / this.pixDim);
+        const id = this._biomeIdAt(cx, cz);
+        if (id == null) return null;
+        return { x: CELL_TO_BLOCK * cx, z: CELL_TO_BLOCK * cz, biome: this.biomeIdToLabel.get(id), id, left: p.x, top: p.y };
+    }
+
+    // The pin's tip, where the tapped point is now; hidden while it is off the canvas.
+    _pinTip() {
+        const pin = this.pin;
+        if (!pin) return null;
+        const left = pin.cellX * this.pixDim + this.panX;
+        const top = pin.cellZ * this.pixDim + this.panZ;
+        if (left < 0 || top < 0 || left >= this.canvas.width || top >= this.canvas.height) return null;
+        // Another Y layer can hold another biome there: re-read it once that tile is in.
+        const id = this._biomeIdAt(Math.floor(pin.cellX), Math.floor(pin.cellZ));
+        if (id != null && id !== pin.id) Object.assign(pin, { id, biome: this.biomeIdToLabel.get(id) });
+        return { x: pin.x, z: pin.z, biome: pin.biome, id: pin.id, left, top };
+    }
+
+    // Pin the biome under canvas point (x, y), if its tile is in.
+    _pinAt(x, y) {
+        const cellX = (x - this.panX) / this.pixDim;
+        const cellZ = (y - this.panZ) / this.pixDim;
+        const id = this._biomeIdAt(Math.floor(cellX), Math.floor(cellZ));
+        if (id == null) return;
+        this.pin = {
+            cellX, cellZ, id, biome: this.biomeIdToLabel.get(id),
+            x: CELL_TO_BLOCK * Math.floor(cellX), z: CELL_TO_BLOCK * Math.floor(cellZ),
+        };
+    }
+
+    /*
+     * Tell the page what to show next to the map: `hover`, the biome under a mouse or pen
+     * pointer, and `pin`, the place a finger tapped (touch screens have no hover). Each is
+     * { x, z, biome, id, left, top } - blocks, the biome's id and label, canvas px - or
+     * null. Only when something changed, so a still pointer costs the page nothing.
+     */
+    _emitTip() {
+        if (!this.ontip) return;
+        const tip = { hover: this._hoverTip(), pin: this._pinTip() };
+        if (sameTip(tip.hover, this.lastTip.hover) && sameTip(tip.pin, this.lastTip.pin)) return;
+        this.lastTip = tip;
+        this.ontip(tip);
     }
 
     // ---- Pointer / wheel input --------------------------------------------
@@ -523,7 +814,7 @@ export class DrawSeed {
         this._onWheel = this._onWheel.bind(this);
         this._onContextMenu = (e) => e.preventDefault();
 
-        this.canvas.style.cursor = 'grab';
+        // The cursor is CSS's (MapCanvas.css): a crosshair, "grabbing" while data-dragging is set.
         this.canvas.style.touchAction = 'none';
         this.canvas.style.userSelect = 'none';
 
@@ -557,12 +848,25 @@ export class DrawSeed {
         this.dragStartPanX = this.panX;
         this.dragStartPanZ = this.panZ;
         this.velSamples = [{ t, x: clientPos.x, y: clientPos.y }];
-        this.canvas.style.cursor = 'grabbing';
+        this.canvas.dataset.dragging = '';
+    }
+
+    _endDrag() {
+        this.dragging = false;
+        delete this.canvas.dataset.dragging;
+    }
+
+    // Canvas-relative position of a pointer event.
+    _local(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
 
     _onPointerDown(e) {
         this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
         try { this.canvas.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+        // A tap may come without any move: the release must not read an older position.
+        this.lastPointer = this._local(e);
 
         if (this.activePointers.size === 1) {
             this._beginDragFrom(e.pointerId, { x: e.clientX, y: e.clientY }, e.timeStamp);
@@ -584,6 +888,8 @@ export class DrawSeed {
         }
         const rect = this.canvas.getBoundingClientRect();
         this.lastPointer = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        // A finger has no hover: it pans, and its taps pin a place instead.
+        this.hover = e.pointerType === 'touch' ? null : this.lastPointer;
 
         if (this.pinching) {
             this._pinchMove(rect);
@@ -593,7 +899,10 @@ export class DrawSeed {
         if (this.dragging) {
             const dx = e.clientX - this.dragStartClientX;
             const dz = e.clientY - this.dragStartClientY;
-            if (!this.moved && Math.hypot(dx, dz) > CLICK_THRESHOLD) this.moved = true;
+            if (!this.moved && Math.hypot(dx, dz) > CLICK_THRESHOLD) {
+                this.moved = true;
+                this._userMove();
+            }
             if (this.moved) {
                 this.panX = this.dragStartPanX + dx;
                 this.panZ = this.dragStartPanZ + dz;
@@ -602,7 +911,7 @@ export class DrawSeed {
                 this._markDirty();
             }
         }
-        this._emitHover();
+        this._emitTip();
     }
 
     // Two-finger pinch: zoom about the finger midpoint (fractional scale) while also
@@ -624,6 +933,7 @@ export class DrawSeed {
             return;
         }
 
+        this._userMove();
         // Pan by midpoint movement.
         this.panX += mid.x - this.pinchLastMid.x;
         this.panZ += mid.y - this.pinchLastMid.y;
@@ -664,33 +974,44 @@ export class DrawSeed {
                 this._beginDragFrom(id, p, e.timeStamp);
                 this.moved = true;
             } else {
-                this.dragging = false;
-                this.canvas.style.cursor = 'grab';
+                this._endDrag();
             }
             return;
         }
 
         if (!this.dragging) return;
-        this.dragging = false;
-        this.canvas.style.cursor = 'grab';
+        this._endDrag();
 
         if (this.moved) {
             this._flick(e.timeStamp);
-        } else if (this.onclick && this.lastPointer) {
+        } else if (this.lastPointer) {
             const [x, z, biome] = this._biomeAt(this.lastPointer.x, this.lastPointer.y);
-            if (biome) this.onclick(x, z, biome);
+            if (biome) {
+                // A tap pins the place (a new tap moves the pin); a mouse click only clicks.
+                if (e.pointerType === 'touch') this._pinAt(this.lastPointer.x, this.lastPointer.y);
+                this.onclick?.(x, z, biome);
+            }
         }
         this.moved = false;
         this.pointerId = null;
+        // The mouse's tip comes back after a drag; a tap's pin shows at once.
+        this._emitTip();
     }
 
     _onPointerLeave() {
         this.lastPointer = null;
+        this.hover = null;
+        this._emitTip();
     }
 
-    // Launch inertial glide from the recent pointer-move velocity.
+    // Launch inertial glide from the recent pointer-move velocity - unless the pointer
+    // rested before the release, as when the user drags, stops, then lets go.
     _flick(endTime) {
         const s = this.velSamples;
+        if (s.length && endTime - s[s.length - 1].t > REST_MS) {
+            this._stopGlide();
+            return;
+        }
         if (s.length >= 2) {
             const last = s[s.length - 1];
             let first = s[0];
@@ -711,6 +1032,7 @@ export class DrawSeed {
 
     _onWheel(e) {
         e.preventDefault();
+        this._userMove();
         const rect = this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;

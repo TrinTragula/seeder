@@ -1,0 +1,229 @@
+/*
+ * The map fills whatever box its parent gives it. MapCanvas sets the canvas bitmap
+ * to that box's clientWidth x clientHeight, so 1 canvas px = 1 CSS px (no HiDPI
+ * scaling - DrawSeed's pan maths assumes it) and nothing here may stretch it: the
+ * canvas is 100% of a container that is sized by the page layout, never by the canvas.
+ *
+ * The canvas is out of flow (absolute) so that "never by the canvas" holds in every
+ * engine: in flow, Safari resolved its `height: 100%` against a flex-sized box as auto,
+ * the box took the bitmap's height, the ResizeObserver copied that into the bitmap,
+ * and the map grew taller every frame without ever painting.
+ */
+.map-canvas {
+    position: relative;
+    flex: 5;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--color-map-bg);
+}
+
+.map-canvas canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* A crosshair says "this is the spot the tip describes"; drawn white on black so it
+       shows on every biome colour. DrawSeed sets data-dragging while the map is dragged. */
+    cursor: url("/svg/crosshair.svg") 12 12, crosshair;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.map-canvas canvas[data-dragging] {
+    cursor: grabbing;
+}
+
+/* --- pan buttons on the four edges ------------------------------------------ */
+
+.map-arrow {
+    position: absolute;
+    width: 75px;
+    height: 50px;
+    padding: 0;
+    border: 0;
+    background: rgba(255, 255, 255, .56);
+    cursor: pointer;
+    user-select: none;
+}
+
+.map-arrow img {
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+/* The one arrow image points up; the others are the same button rotated. */
+.map-arrow--up {
+    top: 5px;
+    left: calc(50% - 37.5px);
+}
+
+.map-arrow--left {
+    top: calc(50% - 25px);
+    left: -7px;
+    transform: rotate(270deg);
+}
+
+.map-arrow--down {
+    top: calc(100% - 55px);
+    left: calc(50% - 37.5px);
+    transform: rotate(180deg);
+}
+
+.map-arrow--right {
+    top: calc(50% - 25px);
+    right: -7px;
+    transform: rotate(90deg);
+}
+
+/* --- biome tips (MapTip.jsx) ------------------------------------------------ */
+
+/* A zero-size box on the point (translated there); MapTip places the bubble around it. */
+.map-tip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.map-tip__bubble {
+    position: absolute;
+    width: max-content;
+    max-width: 260px;
+    padding: 6px 8px;
+    border: var(--border-1) solid rgba(255, 255, 255, .35);
+    background: rgba(17, 17, 17, .88);
+    box-shadow: var(--shadow-1);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.map-tip__biome {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.map-tip__swatch {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border: var(--border-1) solid #fff;
+}
+
+.map-tip__name {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.map-tip__coords {
+    color: rgba(255, 255, 255, .85);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.map-tip__coords b {
+    font-weight: normal;
+}
+
+/* The tapped point: white with a dark ring, like the crosshair, visible on any biome. */
+.map-tip__dot {
+    position: absolute;
+    top: -7px;
+    left: -7px;
+    width: 14px;
+    height: 14px;
+    border: 3px solid #111;
+    border-radius: 50%;
+    background: #fff;
+}
+
+/*
+ * A 32 px target for a thumb around a 10 px pixel-art cross (MapTip.jsx): the target
+ * reaches into the bubble's padding, and the cross sits at the text's right edge, centred
+ * on the name's line (-8 px top and bottom leave 16 px in flow, under the line's 16.8).
+ */
+.map-tip__close {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: flex-end;
+    width: 32px;
+    height: 32px;
+    margin: -8px -8px -8px auto;
+    padding: 0 8px 0 0;
+    border: 0;
+    background: none;
+    color: #fff;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.map-tip__close svg {
+    display: block;
+}
+
+.map-tip__close:focus-visible {
+    outline: var(--border-3) solid var(--color-accent);
+    outline-offset: calc(-1 * var(--border-3));
+}
+
+/* --- what the map can do, until it is first moved ------------------------------ */
+
+/* Centred at the bottom, just above the down arrow (5 + 50 px from the edge). */
+.map-hint {
+    --hint-bottom: 63px;
+    position: absolute;
+    bottom: var(--hint-bottom);
+    left: 50%;
+    max-width: calc(100% - 2 * var(--space-4));
+    width: max-content;
+    margin: 0;
+    padding: var(--space-1) var(--space-3);
+    background: rgba(17, 17, 17, .8);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
+    text-wrap: balance;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+@media (hover: hover) {
+    .map-hint__touch {
+        display: none;
+    }
+}
+
+@media (hover: none) {
+    .map-hint__mouse {
+        display: none;
+    }
+}
+
+.map-hint__touch > span {
+    display: block;
+}
+
+/* Phones: the collapsed bottom sheet covers the map's lower edge, so the down arrow
+   sits just above it, and the hint above the arrow. */
+@media (max-width: 767px) {
+    .map-arrow--down {
+        top: calc(100% - 55px - var(--sheet-collapsed) - var(--space-2));
+    }
+
+    .map-hint {
+        --hint-bottom: calc(63px + var(--sheet-collapsed, 0px) + var(--space-2));
+    }
+}

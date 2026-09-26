@@ -1,0 +1,984 @@
+/* /finder/: the heading, then criteria | results. Phones stack everything. */
+
+/* The title, and "Back to presets" beside it after a preset's search (below it when narrow). */
+.finder__intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.finder__intro h1 {
+    margin: 0;
+}
+
+/*
+ * Centred on the title's letters, not on its line box: the 30 px pixel font puts the
+ * capitals 11 px under the box top and the baseline 7.5 px over its bottom. At 28 px
+ * tall with 4 px on top, the button's edges meet the cap line and the baseline.
+ */
+.finder__back {
+    flex: none;
+    height: 28px;
+    margin-top: 4px;
+}
+
+/*
+ * A phone with results: title and "Presets" on one line (412 px wide phones), so the
+ * first row starts higher; narrower ones wrap the button under the title. The line
+ * box is the button's height: centring works.
+ */
+.finder__intro--compact {
+    margin-bottom: var(--space-3);
+}
+
+.finder__intro--compact h1 {
+    font-size: 18px;
+    line-height: 26px;
+}
+
+.finder__intro--compact .finder__back {
+    height: 26px;
+    margin-top: 0;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* The heading takes the focus after "Back to presets": no ring on a non-control, and a
+   little room above it when it is scrolled to the top. */
+.presets__title {
+    scroll-margin-top: var(--space-3);
+}
+
+.presets__title:focus {
+    outline: none;
+}
+
+.finder__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+}
+
+.finder__results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+/*
+ * From 768px the criteria column sits left and sticks under the viewport top while
+ * the results scroll with the document (the header is not sticky). It is capped to
+ * the viewport and scrolls on its own, so the Search button stays reachable when the
+ * Advanced fields are open; react-select menus are portalled to the body.
+ */
+@media (min-width: 768px) {
+    .finder__grid {
+        grid-template-columns: 320px minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .finder__criteria {
+        position: sticky;
+        top: var(--space-4);
+        align-self: start;
+        max-height: calc(100dvh - 2 * var(--space-4));
+        overflow-y: auto;
+    }
+}
+
+/* --- criteria form ------------------------------------------------------- */
+
+.finder__criteria {
+    padding: var(--space-4);
+    border: var(--border-3) solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.criteria-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.criteria-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+    margin: 0;
+}
+
+.criteria-form__field > label,
+.criteria-form__label-row > label,
+.criteria-form__count legend,
+.criteria-form__advanced > label {
+    font-family: var(--font-display);
+}
+
+/* A label and its "?" (HelpTip): the tip stays out of the label, and so of the field's name. */
+.criteria-form__label-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* "Results  ◉10 ○25 ○50" on one line: a legend cannot be a flex item, so it floats. */
+.criteria-form__count {
+    display: block;
+    padding: 0;
+    border: 0;
+}
+
+.criteria-form__count legend {
+    float: left;
+    margin-right: var(--space-4);
+    padding: 0;
+}
+
+.criteria-form__radio + .criteria-form__radio {
+    margin-left: var(--space-4);
+}
+
+.criteria-form__radio {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    cursor: pointer;
+}
+
+/* A disclosure, not an action: it reads as a line with a chevron, not a big button. */
+.criteria-form__advanced-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+}
+
+.criteria-form__advanced-toggle::before {
+    content: '▸';
+    transition: transform var(--motion-fast);
+}
+
+.criteria-form__advanced-toggle[aria-expanded='true']::before {
+    transform: rotate(90deg);
+}
+
+.criteria-form__advanced {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-top: var(--space-2);
+}
+
+.criteria-form__advanced[hidden] {
+    display: none;
+}
+
+.criteria-form__advanced > label:not(:first-child) {
+    margin-top: var(--space-2);
+}
+
+.criteria-form__advanced .input {
+    width: 100%;
+}
+
+.criteria-form__advanced .input[aria-invalid='true'] {
+    border-color: var(--color-danger);
+}
+
+.criteria-form__hint {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.criteria-form__removed {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Warnings (accent) and errors (danger): the same list shape, a coloured left rule. */
+.finder__warnings,
+.finder__errors {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.finder__warnings:empty,
+.finder__errors:empty {
+    display: none;
+}
+
+.finder__warnings li,
+.finder__errors li {
+    padding: var(--space-1) var(--space-2);
+    border-left: var(--border-3) solid var(--color-accent);
+    background: var(--color-paper);
+}
+
+.finder__errors li {
+    border-left-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.criteria-form__search {
+    height: 40px;
+}
+
+/* Range menu options: the label + SLOW on one line, a disabled choice's reason under it. */
+.range-option {
+    display: flex;
+    flex-direction: column;
+}
+
+.range-option__line {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.range-option__reason {
+    font-size: 12px;
+    line-height: 1.3;
+    white-space: normal;
+}
+
+/* --- presets ------------------------------------------------------------- */
+
+.presets__title {
+    margin: 0 0 var(--space-1);
+}
+
+.presets__hint {
+    margin: 0 0 var(--space-3);
+    color: var(--color-muted);
+    font-size: 14px;
+}
+
+.preset-group + .preset-group {
+    margin-top: var(--space-3);
+}
+
+/* The newest-version group: first, and framed in the accent colour. */
+.preset-group--pinned {
+    padding: var(--space-2) var(--space-3) var(--space-3);
+    border: var(--border-1) solid var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+}
+
+.preset-group__title {
+    margin: 0 0 var(--space-2);
+    font-size: 14px;
+}
+
+/* Phones: every group but the pinned one is a disclosure (see .criteria-form__advanced-toggle). */
+.preset-group__toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: 28px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.preset-group__chevron {
+    display: inline-block;
+    font-size: 18px;
+    line-height: 1;
+    transition: transform var(--motion-fast);
+}
+
+.preset-group__chevron::before {
+    content: '▸';
+}
+
+.preset-group__toggle[aria-expanded='true'] .preset-group__chevron {
+    transform: rotate(90deg);
+}
+
+/* Cards of equal width: two columns on a phone, six beside the criteria at 1280 px,
+   so a group (at most 6 presets) is one row. */
+.preset-group__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.preset-group__list[hidden] {
+    display: none;
+}
+
+/* A chip, and the reason (when disabled) or the version switch under it. */
+.preset {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* The catchy name over the plain contents; both wrap inside the chip at 360px. */
+.preset__chip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 28px;
+    flex-grow: 1;
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-2);
+    white-space: normal;
+    text-align: left;
+}
+
+.preset__name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+}
+
+.preset__caption {
+    color: var(--color-muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.preset__chip:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.preset__reason {
+    margin: var(--space-1) 0 0;
+    color: var(--color-muted);
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+/* --- results column ------------------------------------------------------ */
+
+.finder__slot:empty {
+    display: none;
+}
+
+/* Status, ad, result rows. */
+.finder__slot--results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+/* Ads are never adjacent to Search / STOP: 40px on top of the column's gap. */
+.finder__ad--results {
+    margin-top: 40px;
+}
+
+/*
+ * The status box: the stats bar and, under it, the share / export row. The box draws
+ * the border; the stats bar inside it none.
+ */
+.finder__status {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-3) solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.finder__status > .stats-bar {
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+/* --- share / export row -------------------------------------------------------- */
+
+/* One compact line: "Share [Share link]   Export [Copy seeds] [CSV] [JSON]". */
+.finder__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-6);
+}
+
+/* A run's sentence above: a hairline between the two (on a phone the toggle sits under
+   the sentence with no rule, and the row it opens under the toggle). */
+.finder__status > .stats-bar + .finder__toolbar {
+    padding-top: var(--space-2);
+    border-top: var(--border-1) solid color-mix(in srgb, var(--color-border) 20%, transparent);
+}
+
+.finder__toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+.finder__toolbar-label {
+    margin-right: var(--space-1);
+    color: var(--color-muted);
+    font-size: 12px;
+}
+
+.finder__toolbar-btn {
+    height: 26px;
+    padding: 0 var(--space-2);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Phones: "Share / export" opens the row. Its own width, not the box's. */
+.finder__toolbar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    align-self: flex-start;
+}
+
+/* A drawn triangle: the pixel font has no arrow glyph. Down when shut, up when open. */
+.finder__toolbar-caret {
+    width: 0;
+    height: 0;
+    border-top: 5px solid currentColor;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+}
+
+.finder__toolbar-toggle[aria-expanded='true'] .finder__toolbar-caret {
+    border-top: 0;
+    border-bottom: 5px solid currentColor;
+}
+
+.finder__toolbar-hint {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 12px;
+}
+
+/* --- Find more, after the rows ---------------------------------------------------- */
+
+/* 40 px clear of the last in-feed unit, which can end the list. */
+.finder__more {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.finder__more-btn {
+    min-width: 200px;
+    height: 40px;
+}
+
+/* --- phone: the criteria as one line at the top of the status box ----------- */
+
+.finder__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+/* What was searched, then (under a hairline) how it went. */
+.finder__status > .finder__summary {
+    padding-bottom: var(--space-2);
+    border-bottom: var(--border-1) solid color-mix(in srgb, var(--color-border) 20%, transparent);
+}
+
+.finder__summary-text {
+    min-width: 0;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 14px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.finder__summary .btn {
+    flex: none;
+}
+
+/* --- stats bar --------------------------------------------------------------- */
+
+.stats-bar {
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-3) solid var(--color-border);
+    background: var(--color-surface);
+}
+
+/* Not sticky: nothing may slide over an ad. */
+.stats-bar--searching {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        'text stop'
+        'progress progress';
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+}
+
+/* The sentence, then its "?" (outside the status, see StatsBar) at the line's end. */
+.stats-bar--done {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.stats-bar--done > p {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.stats-bar__text {
+    grid-area: text;
+    min-width: 0;
+}
+
+.stats-bar__line,
+.stats-bar__found,
+.stats-bar__sentence,
+.stats-bar__error {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.stats-bar__found {
+    color: var(--color-muted);
+    font-size: 14px;
+}
+
+.stats-bar__error {
+    color: var(--color-danger);
+}
+
+.stats-bar__stop {
+    grid-area: stop;
+    min-width: 88px;
+    height: 40px;
+}
+
+.stats-bar__progress {
+    grid-area: progress;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.stats-bar__scanned {
+    color: var(--color-muted);
+    font-size: 12px;
+}
+
+.stats-bar progress {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    border: var(--border-1) solid var(--color-border);
+    border-radius: var(--radius-0);
+    background: var(--color-paper);
+}
+
+.stats-bar progress::-webkit-progress-bar {
+    background: var(--color-paper);
+}
+
+.stats-bar progress::-webkit-progress-value {
+    background: var(--color-brand);
+}
+
+.stats-bar progress::-moz-progress-bar {
+    background: var(--color-brand);
+}
+
+/* --- preview map (an open row) ---------------------------------------------- */
+
+/*
+ * The same box as the thumbnail it replaces: the thumbnail
+ * is this map's first frame, so opening a row swaps the picture without a jump.
+ */
+.seed-card {
+    --preview-h: max(60vh, 320px);
+}
+
+.preview-map {
+    height: var(--preview-h);
+    background: var(--color-map-bg);
+}
+
+/* MapCanvas sizes its bitmap from this box: it must fill it exactly. */
+.preview-map .map-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* No bottom sheet here: MapCanvas' phone rule lifts the down arrow above one. */
+@media (max-width: 767px) {
+    .preview-map .map-arrow--down {
+        top: calc(100% - 55px);
+    }
+}
+
+/* --- result cards ------------------------------------------------------------ */
+
+/* One full-width row per result, in-feed units between them. */
+.results-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.results-grid > .ad {
+    margin: 0;
+}
+
+/* Dev only: where an unconfigured slot will go (production renders nothing). Same as the seed page's. */
+.ad--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border-1) dashed var(--color-muted);
+    color: var(--color-muted);
+    font-size: 12px;
+}
+
+.results-grid__item {
+    min-width: 0;
+}
+
+.seed-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+}
+
+.seed-card__head-actions {
+    display: flex;
+    flex: none;
+    gap: var(--space-2);
+}
+
+.seed-card__close {
+    height: 28px;
+    font-size: 12px;
+}
+
+.seed-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.seed-card__seed {
+    min-width: 0;
+    font-size: 15px;
+    overflow-wrap: anywhere;
+}
+
+.seed-card__copy {
+    flex: none;
+    height: 28px;
+    font-size: 12px;
+}
+
+/*
+ * The thumbnail button: the row's full width, as tall as the old preview map. The row
+ * draws its thumbnail to this box's size when it mounts (2 px per biome cell).
+ */
+.seed-card__preview {
+    display: block;
+    width: 100%;
+    height: var(--preview-h);
+    padding: 0;
+    border: 0;
+    background: var(--color-map-bg);
+    cursor: pointer;
+    line-height: 0;
+}
+
+.seed-card__preview:focus-visible {
+    outline: var(--border-3) solid var(--color-ink);
+    outline-offset: 2px;
+}
+
+.seed-card__thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.seed-card__placeholder {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-muted) 25%, var(--color-paper));
+}
+
+.seed-card__canvas,
+.seed-card__canvas canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.seed-card__canvas canvas {
+    image-rendering: pixelated;
+}
+
+/* "Click to explore the map", over the thumbnail's bottom edge. Out of flow, so the
+   box the thumbnail is drawn to keeps its size; clicks go through to the button. */
+.seed-card__cta {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: rgba(0, 0, 0, .55);
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.2;
+    pointer-events: none;
+    transition: background var(--motion-fast);
+}
+
+.seed-card__cta img {
+    flex: none;
+    image-rendering: pixelated;
+}
+
+/* One wording per input: "Click" where there is a mouse, "Tap" on touch screens. */
+@media (hover: hover) {
+    .seed-card__cta-touch {
+        display: none;
+    }
+}
+
+@media (hover: none) {
+    .seed-card__cta-mouse {
+        display: none;
+    }
+}
+
+.seed-card {
+    transition: transform var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+/* Touch screens keep :hover after a tap: only real pointers get the hover lift. */
+@media (hover: hover) {
+    .seed-card:has(.seed-card__preview:hover) {
+        box-shadow: var(--shadow-1), 0 0 0 var(--border-1) var(--color-border);
+        transform: translate(-1px, -1px);
+    }
+
+    .seed-card__preview:hover .seed-card__cta {
+        background: rgba(0, 0, 0, .75);
+    }
+}
+
+.seed-card__preview:focus-visible .seed-card__cta {
+    background: rgba(0, 0, 0, .75);
+}
+
+.seed-card__caption {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.seed-card__facts {
+    margin: 0;
+}
+
+.seed-card__fact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+}
+
+.seed-card__fact dt {
+    font-family: var(--font-display);
+}
+
+.seed-card__fact dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0;
+}
+
+.seed-card__biome {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.seed-card__structures {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    border-top: var(--border-1) solid color-mix(in srgb, var(--color-border) 20%, transparent);
+    list-style: none;
+}
+
+.seed-card__structure {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    grid-template-areas:
+        'icon main'
+        '. meta';
+    align-items: start;
+    gap: 2px var(--space-2);
+    padding: var(--space-2) 0;
+    border-bottom: var(--border-1) solid color-mix(in srgb, var(--color-border) 20%, transparent);
+}
+
+.seed-card__icon {
+    grid-area: icon;
+    image-rendering: pixelated;
+}
+
+.seed-card__structure-main {
+    grid-area: main;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    min-width: 0;
+}
+
+.seed-card__structure-name {
+    font-family: var(--font-display);
+}
+
+.seed-card__structure-meta {
+    grid-area: meta;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    font-size: 14px;
+}
+
+.seed-card__distance {
+    color: var(--color-muted);
+}
+
+/* A shared seed's structure the engine did not find in the box: name + muted badge only. */
+.seed-card__structure--unverified {
+    grid-template-areas: 'icon main';
+}
+
+.seed-card__structure--unverified .seed-card__icon {
+    opacity: .5;
+}
+
+.seed-card__unverified {
+    text-transform: none;
+}
+
+.seed-card__warning {
+    margin: 0;
+    padding: var(--space-1) var(--space-2);
+    border-left: var(--border-3) solid var(--color-danger);
+    background: var(--color-paper);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.seed-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: auto;
+    padding-top: var(--space-1);
+}
+
+.seed-card__actions .btn {
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+/* Shared with the seed page's dashboard (dashboard.css is not loaded here). */
+.swatch {
+    display: inline-block;
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border: var(--border-1) solid var(--color-border);
+}
+
+.badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+.badge-skeleton {
+    display: inline-block;
+    width: 72px;
+    height: 1.5em;
+    font-size: 11px;
+    vertical-align: middle;
+    background: color-mix(in srgb, var(--color-muted) 25%, transparent);
+    animation: finder-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes finder-pulse {
+    50% {
+        opacity: .5;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .badge-skeleton {
+        animation: none;
+    }
+}
+
+/* The app takes over from the prerendered intro (or the empty page) with a short fade, not a jump. */
+.finder {
+    animation: fade-in var(--motion-fast) ease-out;
+}

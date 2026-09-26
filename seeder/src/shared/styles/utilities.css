@@ -1,0 +1,132 @@
+/*
+ * Utility classes. Everything above the "new in v1.0" marker comes from the
+ * pre-1.0 index.css and keeps its exact names, because the pages still use them.
+ */
+.height-total {
+  height: 100%;
+}
+
+.width-total {
+  width: 100%;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-grow-1 {
+  flex-grow: 1;
+}
+
+.flex-2 {
+  flex: 2;
+}
+
+.flex-2 {
+  flex: 2;
+}
+
+.flex-3 {
+  flex: 3;
+}
+
+.flex-4 {
+  flex: 4;
+}
+
+.flex-5 {
+  flex: 5;
+}
+
+.flex-center {
+  justify-content: center;
+}
+
+.flex-align-center {
+  align-items: center;
+}
+
+.no-padding {
+  padding: 0;
+}
+
+.padding-3 {
+  padding: 3px;
+}
+
+.padding-15 {
+  padding: 15px;
+}
+
+.margin-left-15 {
+  margin-left: 15px;
+}
+
+.margin-left-10 {
+  margin-left: 10px;
+}
+
+.margin-3 {
+  margin: 3px;
+}
+
+.margin-bottom-25 {
+  margin-bottom: 25px;
+}
+
+.no-margin {
+  margin: 0;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+.overflow-y-scroll {
+  overflow-y: scroll;
+}
+
+.bordered {
+  border: 1px solid black;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.margin-v-10 {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+/* --- new in v1.0 --- */
+
+/* The social links (and other chrome) disappear on phones. */
+@media (max-width: 767px) {
+    .hide-md-down {
+        display: none !important;
+    }
+}
+
+/* Visible to screen readers only - labels for icon-only controls, table headers. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}

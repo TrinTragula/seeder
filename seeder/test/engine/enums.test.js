@@ -15,13 +15,16 @@ const AREA = [-64, -64, 128, 128];   // x, z, w, h in cells (512x512 blocks arou
 const newestMc = Math.max(...Object.values(VERSIONS));
 const newestLabel = Object.keys(VERSIONS).find((k) => VERSIONS[k] === newestMc);
 
-// Structures that do not live in the Overworld, by the label shown in the UI.
-const DIMENSION_OF = { 'Fortress': -1, 'Bastion': -1, 'End City': 1, 'End Gateway': 1 };
-// cubiomes paints The Void black on purpose.
+// cubiomes paints The Void black.
 const BLACK_BY_DESIGN = new Set([127]);
 
 let seeder;
-beforeAll(async () => { seeder = await loadSeeder(); });
+// The engine's own word on where each structure type generates on the newest version.
+let support;
+beforeAll(async () => {
+    seeder = await loadSeeder();
+    support = seeder.getVersionSupport(newestMc, [], STRUCTURES_OPTIONS.map((s) => s.value));
+});
 
 describe('constants.jsx is internally consistent', () => {
     it('VERSIONS has unique ints and VERSIONS_OPTIONS mirrors it', () => {
@@ -64,11 +67,22 @@ describe('every BIOMES id is known to the engine', () => {
         expect(a).toBe(255);
         expect(r + g + b, 'black means cubiomes does not know this id').toBeGreaterThan(0);
     });
+    it.each(BIOMES)('$label ($value) exists on at least one supported version (biome_exists)', ({ value }) => {
+        expect(Object.values(VERSIONS).some((mc) => seeder.WASMbiomeExists(mc, value) === 1)).toBe(true);
+    });
+});
+
+describe('the engine and constants.jsx agree on the newest version', () => {
+    it('mc_newest() equals the largest VERSIONS int', () => {
+        expect(seeder.WASMmcNewest()).toBe(newestMc);
+    });
 });
 
 describe(`every STRUCTURES_OPTIONS id is a real structure on ${newestLabel}`, () => {
-    it.each(STRUCTURES_OPTIONS)('$pureText ($value) yields positions in its dimension', ({ value, pureText }) => {
-        const dim = DIMENSION_OF[pureText] ?? 0;
+    it.each(STRUCTURES_OPTIONS)('$pureText ($value) is supported by structure_info and yields positions in its dimension', ({ value, pureText }) => {
+        const dim = support.structures[value];
+        expect(dim, `${pureText} unsupported on ${newestLabel} - StructureType renumbered?`).not.toBe(-100);
+        expect([-1, 0, 1]).toContain(dim);
         const found = [8, 40, 128].some((range) => SEEDS.some((seed) => seeder.getStructuresInRegions(newestMc, value, seed, range, dim).length > 0));
         expect(found, `${pureText} never found in dimension ${dim} - StructureType renumbered?`).toBe(true);
     });

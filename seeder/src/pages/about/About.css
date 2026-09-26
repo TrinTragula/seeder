@@ -1,0 +1,99 @@
+/* The About page: a reading page inside Layout's 960px column, text at a 65ch measure. */
+.about {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.about__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-3);
+}
+
+.about__title h1 {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.2;
+}
+
+.about__title small {
+    color: var(--color-muted);
+    font-family: var(--font-display);
+    font-size: 12px;
+}
+
+.about h2 {
+    margin: 0 0 var(--space-4);
+    font-size: 22px;
+    line-height: 1.3;
+}
+
+.about p,
+.about__list {
+    max-width: 65ch;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.about p + p {
+    margin-top: var(--space-3);
+}
+
+.about__list {
+    padding-left: var(--space-6);
+}
+
+.about__list li + li {
+    margin-top: var(--space-2);
+}
+
+/* Nested items (the dashboard's) sit tight under their parent. */
+.about__list ul {
+    margin: var(--space-1) 0 0;
+    padding-left: var(--space-6);
+}
+
+.about__list ul li + li {
+    margin-top: var(--space-1);
+}
+
+/* "Who": one contact per line, like the original page. */
+.about__lines {
+    max-width: 65ch;
+    margin-bottom: var(--space-3);
+    line-height: 1.6;
+}
+
+/* The same donate row as the footer's (Footer.jsx), sized the same way. */
+.about__donate {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.about__donate form {
+    margin: 0;
+}
+
+.about__donate input,
+.about__donate img {
+    border: 0;
+    vertical-align: bottom;
+}
+
+.about__donate img {
+    height: 26px;
+}
+
+/* Long addresses (the email, the repo link) must wrap at 360px, not scroll the page. */
+.about a {
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+}
+
+.about .about__ad {
+    margin: 0;
+}

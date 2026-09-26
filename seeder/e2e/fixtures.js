@@ -28,9 +28,14 @@ export { expect };
 // ---- page helpers ----------------------------------------------------------
 
 export const gotoSeed = async (page, seed, version) => {
-    await page.goto(`/?seed=${seed}&version=${version}`);
+    await page.goto(`/seed/?seed=${seed}&version=${version}`);
     await settled(page, { seed: String(seed) });
 };
+
+// Wait until the map has painted at least one tile: the cheapest "the seed page is
+// alive" signal, for tests that care about arriving on the page rather than about pixels.
+export const firstPaint = (page) => page.waitForFunction(
+    () => window.__seederDrawer?.getStats?.().tilesStored > 0, undefined, { timeout: 60_000 });
 
 // Snapshot of the renderer's state (window.__seederDrawer is set by DrawSeed).
 export const drawer = (page) => page.evaluate(() => {
@@ -46,7 +51,24 @@ export const drawer = (page) => page.evaluate(() => {
     };
 });
 
-// Wait until the map shows exactly these params and every visible tile is painted.
+// The canvas must be drawn at the size it is shown at. Every pixel assertion below
+// samples the canvas in its own coordinates, so a canvas the browser then stretches
+// or squashes would pass them while showing the user a distorted map (that happened
+// once, when the page measured its container before the app layout had constrained
+// it). Tolerance 1px: MapCanvas sizes the bitmap from the container's clientWidth /
+// clientHeight (integers) while the shown rect may be fractional.
+export const expectCanvasUndistorted = async (page) => {
+    const size = await page.evaluate(() => {
+        const canvas = document.querySelector('canvas');
+        const rect = canvas.getBoundingClientRect();
+        return { width: canvas.width, height: canvas.height, shownWidth: rect.width, shownHeight: rect.height };
+    });
+    expect(Math.abs(size.shownHeight - size.height), `canvas height ${size.height} shown as ${size.shownHeight}`).toBeLessThanOrEqual(1);
+    expect(Math.abs(size.shownWidth - size.width), `canvas width ${size.width} shown as ${size.shownWidth}`).toBeLessThanOrEqual(1);
+};
+
+// Wait until the map shows exactly these params and every visible tile is painted,
+// and check that what is painted is what the user sees (see above).
 export const settled = async (page, want = {}) => {
     await page.waitForFunction((want) => {
         const d = window.__seederDrawer;
@@ -54,6 +76,7 @@ export const settled = async (page, want = {}) => {
         for (const [k, v] of Object.entries(want)) if (d[k] !== v) return false;
         return d.pending.size === 0 && d.tiles.has(d._tileKey(0, 0)) && d.rafId == null && !!d.queue.COLORS;
     }, want, { timeout: 60_000 });
+    await expectCanvasUndistorted(page);
 };
 
 // RGBA of one canvas pixel.
@@ -89,4 +112,44 @@ export const expectCellPainted = async (page, cx, cz) => {
     const px = await pixelAt(page, d.panX + cx * d.pixDim, d.panZ + cz * d.pixDim);
     expect(px, `cell (${cx}, ${cz}) should be biome ${id}`).toEqual(d.colors[id]);
     return id;
+};
+
+// ---- bottom sheet (phone layout) ----------------------------------------------
+
+// The sheet's current snap: 'collapsed' | 'half' | 'full'.
+export const sheetSnap = (page) => page.locator('.sheet').getAttribute('data-snap');
+
+// Drag the sheet's grip with the mouse to half (the middle of the map area) or full
+// (its top), the way a finger would, and wait for it to settle there. The finger
+// rests at the target before lifting: page.mouse moves take a few ms, so releasing at
+// once is a flick, and a flick goes on to the next snap (by design).
+export const openSheet = async (page, snap = 'half') => {
+    const area = await page.locator('.sheet').boundingBox();
+    const grip = await page.locator('.sheet__grip').boundingBox();
+    const x = grip.x + grip.width / 2, y = grip.y + grip.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, area.y + area.height * (snap === 'full' ? 0.02 : 0.5), { steps: 8 });
+    await page.waitForTimeout(150);   // longer than the sheet's 80 ms velocity window
+    await page.mouse.up();
+    await expect(page.locator('.sheet')).toHaveAttribute('data-snap', snap);
+};
+
+// A real finger swipe from `from` to `to` ({ x, y } in CSS px) through the browser's
+// touch pipeline (CDP Input.dispatchTouchEvent), so touch-action, native scrolling and
+// pointercancel behave as on a phone; page.mouse and page.touchscreen.tap cannot swipe.
+// The finger rests `holdMs` at the end before lifting, so the release is not a flick.
+export const touchSwipe = async (page, from, to, { steps = 12, holdMs = 150 } = {}) => {
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', {
+        type, touchPoints: type === 'touchEnd' ? [] : [{ x: Math.round(x), y: Math.round(y), id: 1 }],
+    });
+    await touch('touchStart', from.x, from.y);
+    for (let i = 1; i <= steps; i++) {
+        await touch('touchMove', from.x + ((to.x - from.x) * i) / steps, from.y + ((to.y - from.y) * i) / steps);
+        await page.waitForTimeout(16);
+    }
+    if (holdMs) await page.waitForTimeout(holdMs);
+    await touch('touchEnd');
+    await cdp.detach();
 };

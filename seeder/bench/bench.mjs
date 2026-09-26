@@ -2,9 +2,9 @@
 //
 // Drives a headless Chromium/Brave against a running dev server and measures the
 // three things that matter for the interactive map:
-//   1. seed-change  — wall-clock until the map is fully drawn (canvas stops changing)
-//   2. pan          — frame health + blank (#333) fraction while dragging
-//   3. cacheReturn  — tiles regenerated when returning to an already-explored area
+//   1. seed-change  - wall-clock until the map is fully drawn (canvas stops changing)
+//   2. pan          - frame health + blank (#333) fraction while dragging
+//   3. cacheReturn  - tiles regenerated when returning to an already-explored area
 //
 // It reads lightweight in-app counters exposed on `window.__seederDrawer.getStats()`
 // (see src/library/draw.js) plus a black-box canvas checksum, so timings do not
@@ -47,7 +47,8 @@ function findBrowser() {
   return hit;
 }
 
-const withSeed = (seed) => `${URL_BASE}/?version=26.3&seed=${seed}`;
+// The map lives at /seed/; / is the landing and never starts the workers.
+const withSeed = (seed) => `${URL_BASE}/seed/?version=26.3&seed=${seed}`;
 
 const browser = await puppeteer.launch({
   executablePath: findBrowser(),
@@ -111,7 +112,7 @@ await page.evaluateOnNewDocument(() => {
 const coldStart = Date.now();
 await page.goto(withSeed('12345'), { waitUntil: 'domcontentloaded', timeout: 45000 });
 await page.waitForSelector('canvas', { timeout: 20000 });
-await page.waitForSelector('.panel-container input', { timeout: 20000 });
+await page.waitForSelector('input[aria-label="Seed"]', { timeout: 20000 });
 await page.waitForFunction(() => !!window.__seederDrawer, { timeout: 20000 }).catch(() => {});
 await timeToStable(coldStart, 500);
 const coldLoadMs = Date.now() - coldStart;
@@ -124,7 +125,7 @@ const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
 const seedRuns = [];
 for (const seed of SEEDS) {
   const before = await stats();
-  const input = await page.$('.panel-container input');
+  const input = await page.$('input[aria-label="Seed"]');
   await input.click({ clickCount: 3 });
   await input.type(seed);
   const t0 = Date.now();

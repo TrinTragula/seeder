@@ -1,0 +1,47 @@
+/* A reading page: one centred column that scrolls with the document. */
+.page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--space-4);
+}
+
+/* The finder: a criteria column beside the results needs more than a reading width. */
+.page--wide {
+    max-width: 1280px;
+}
+
+/* An app page: fills what is left under the header and scrolls internally. */
+.app {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/*
+ * Only app pages lock the document: 100dvh keeps the map correct while mobile
+ * browser chrome slides away, and overscroll-behavior stops pull-to-refresh
+ * firing when a drag on the map reaches the top of the page.
+ */
+body.layout-app {
+    height: 100dvh;
+    overscroll-behavior: none;
+}
+
+/*
+ * .app { flex: 1 } needs a flex-column parent. #root is only 100% tall (base.css),
+ * so on app pages it becomes the column that stacks the header over the main.
+ */
+body.layout-app #root {
+    display: flex;
+    flex-direction: column;
+    /*
+     * Pinned to the viewport's edges rather than given a height: AdSense writes
+     * `height: auto !important` inline on every ancestor of an ad unit (#root, main,
+     * the seed page…), which beats any stylesheet height, and the page then grew to the
+     * side column's length - the map ran off the bottom of the screen a moment after
+     * load. A fixed box with auto height fills its insets.
+     */
+    position: fixed;
+    inset: 0;
+}

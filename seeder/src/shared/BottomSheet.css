@@ -1,0 +1,134 @@
+/*
+ * Bottom sheet. The root fills its positioned parent and is transparent
+ * to pointers, so the map under the empty area keeps every gesture; only the panel
+ * takes them. The panel is as tall as the root and slides down by everything that
+ * is not visible: translate percentages refer to the panel itself, i.e. to the root.
+ */
+.sheet {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-sheet);
+    pointer-events: none;
+    /* cqh below = a percentage of this box, which a spacer's own % height cannot express. */
+    container-type: size;
+}
+
+.sheet[data-snap="collapsed"] .sheet__panel {
+    --visible: calc(var(--sheet-collapsed) + env(safe-area-inset-bottom, 0px));
+}
+
+.sheet[data-snap="half"] .sheet__panel {
+    --visible: 50%;
+}
+
+.sheet[data-snap="full"] .sheet__panel {
+    --visible: 100%;
+}
+
+/*
+ * As tall as the root through its four insets, not `height: 100%`: the real AdSense
+ * writes `height: auto !important` inline on every ancestor of an ad unit, this panel
+ * included, and a panel as tall as its content put every snap (a percentage of the
+ * panel's own height) in the wrong place - the sheet jumped on release. With top and bottom set, height: auto still fills the root.
+ */
+.sheet__panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-top: var(--border-3) solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-1);
+    pointer-events: auto;
+    transform: translateY(calc(100% - var(--visible)));
+    transition: transform var(--motion-base);
+}
+
+/* The finger drives the panel: no easing lag behind it. */
+.sheet__panel.is-dragging {
+    transition: none;
+}
+
+/* --- grip: drag handle + toggle ---------------------------------------------- */
+
+.sheet__grip {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    cursor: grab;
+    touch-action: none;
+}
+
+.sheet__handle {
+    width: 40px;
+    height: 4px;
+    border-radius: var(--radius-1);
+    background: var(--color-muted);
+}
+
+.sheet__toggle {
+    position: absolute;
+    top: 0;
+    right: var(--space-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+}
+
+.sheet__chevron {
+    transition: transform var(--motion-fast);
+}
+
+/* Fully open, the next toggle closes: the chevron points down. */
+.sheet[data-snap="full"] .sheet__chevron {
+    transform: rotate(180deg);
+}
+
+/* --- header (always visible) and content (scrolls natively when fully open) --- */
+
+.sheet__header {
+    flex: none;
+    padding: var(--space-2) var(--space-3);
+    touch-action: none;
+}
+
+.sheet__content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* Same width whether the content overflows or not (classic scrollbars only: a
+       narrow desktop window; phones draw overlay scrollbars, which take no width). */
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
+
+/*
+ * Collapsed or half open, a vertical swipe on the content moves the sheet (BottomSheet.jsx):
+ * the browser must leave the gesture to the pointer events instead of starting a scroll.
+ */
+.sheet:not([data-snap="full"]) .sheet__content {
+    touch-action: none;
+}
+
+/*
+ * At half the panel's lower half is below the screen, so without this the end of the
+ * content could only be reached fully open. The spacer is exactly the hidden part.
+ * Browsers without container queries ignore it and keep that behaviour.
+ */
+.sheet[data-snap="half"] .sheet__content::after {
+    content: '';
+    display: block;
+    height: 50cqh;
+}

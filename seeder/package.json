@@ -1,6 +1,6 @@
 {
   "name": "seeder",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,12 +13,13 @@
     "test:unit": "vitest run --project unit",
     "test:engine": "vitest run --project engine",
     "test:e2e": "playwright test",
-    "test:all": "vitest run && playwright test"
+    "test:all": "vitest run && playwright test",
+    "shots": "vite build && node scripts/landing-shots.mjs",
+    "og-card": "node scripts/og-card.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.1.3",
     "react-select": "^5.10.0"
   },
   "devDependencies": {

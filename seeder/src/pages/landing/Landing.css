@@ -1,0 +1,434 @@
+/*
+ * The landing. Colours, spacing and borders come from tokens.css; the
+ * font sizes are the only literals, since the tokens have no type scale.
+ */
+
+.landing {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.landing a:not(.btn) {
+    color: var(--color-ink);
+    text-underline-offset: 3px;
+}
+
+/* --- hero ------------------------------------------------------------------- */
+
+.landing-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    text-align: center;
+    padding-top: var(--space-6);
+    position: relative;
+    isolation: isolate;
+    padding-bottom: var(--space-4);
+}
+
+/*
+ * A faint biome map behind the hero, edge to edge: the engine's
+ * own picture of a mostly-land seed (backdrop.webp, `npm run shots`), scaled up with
+ * nearest-neighbour so the cells stay crisp, under a veil of the page colour, and faded
+ * out before the cards. The veil is what keeps the text readable: the map shows through
+ * at about a fifth of its strength behind the words.
+ */
+.landing-hero::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: calc(-1 * var(--space-4));
+    bottom: 0;
+    left: calc(50% - 50vw);
+    width: 100vw;
+    background:
+        linear-gradient(to bottom,
+            color-mix(in srgb, var(--color-paper) 74%, transparent),
+            color-mix(in srgb, var(--color-paper) 84%, transparent)),
+        url('/img/landing/backdrop.webp') center / cover no-repeat;
+    image-rendering: pixelated;
+    /* Faded out with a mask, not by painting the page colour over it: the bottom edge is
+       then truly transparent, with no rounding sliver of map under the last pixel row. */
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 96%);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 96%);
+}
+
+/* The backdrop is 100vw wide: never let it (and a classic scrollbar) scroll the page sideways. */
+#root:has(.landing) {
+    overflow-x: clip;
+}
+
+.landing-hero h1 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.landing-hero__name {
+    font-size: 56px;
+    line-height: 1;
+}
+
+.landing-hero__tagline {
+    font-size: 22px;
+    /* On a phone it takes two even lines, not "explorer" alone on the second. */
+    text-wrap: balance;
+}
+
+.landing-hero__lead {
+    max-width: 65ch;
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.5;
+}
+
+/*
+ * The random seed is the page's main button: as wide as the
+ * seed form under it and a size up from its buttons, without shouting.
+ */
+.landing-hero__random {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 520px;
+    height: 48px;
+    margin: var(--space-2) auto 0;
+    border-width: var(--border-3);
+    box-shadow: var(--shadow-1);
+    font-size: 18px;
+    text-decoration: none;
+}
+
+.landing-hero__random:hover {
+    filter: brightness(1.05);
+}
+
+.landing-hero__or {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: 14px;
+}
+
+/* Input and button share a row down to 360px; below that the button drops under. */
+.landing-hero__form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.landing-hero__form .input {
+    flex: 1 1 160px;
+    min-width: 0;
+    height: 40px;
+    border-width: var(--border-3);
+    /* 16px keeps phone browsers from zooming into the field on focus. */
+    font-size: 16px;
+}
+
+.landing-hero__form .btn {
+    flex: 0 0 auto;
+    height: 40px;
+    padding: 0 var(--space-4);
+    border-width: var(--border-3);
+}
+
+.landing-hero__hint {
+    max-width: 520px;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.landing-hero__badge {
+    margin: var(--space-1) 0 0;
+    padding: var(--space-1) var(--space-2);
+    border: var(--border-1) solid var(--color-border);
+    background: var(--color-surface);
+    font-family: var(--font-display);
+    font-size: 12px;
+    line-height: 1.4;
+    /* Below ~330px it takes two lines: even ones, not the version number alone on the second. */
+    text-wrap: balance;
+}
+
+/* The two numbers stand out from their labels: bold, in the brand green darkened to
+   read on white (the plain #8FCA5C is under 2:1 there). */
+.landing-hero__badge strong {
+    color: color-mix(in srgb, var(--color-brand) 55%, #000);
+    font-weight: 700;
+}
+
+/* The pixel font draws "·" as a 2px square that reads as a minus: this one glyph uses the body font. */
+.landing-hero__sep {
+    margin: 0 var(--space-1);   /* body-font spaces are half as wide as the pixel font's */
+    font-family: var(--font-body);
+    font-weight: 700;
+}
+
+/* --- section cards ------------------------------------------------------------ */
+
+.landing-cards {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+@media (min-width: 768px) {
+    .landing-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/*
+ * Each card spans four rows of the list's grid (image, title, text, actions) and
+ * shares them with its neighbours, so titles, texts and primary links line up across
+ * the row even when the Explore card lists saved worlds under its link.
+ */
+.landing-card {
+    position: relative;
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: var(--space-3);
+    align-content: start;
+    min-width: 0;
+}
+
+/*
+ * The capture runs edge to edge under the card's own 3px frame, with a rule of the
+ * same weight between it and the text. The width attribute is 960, so an explicit
+ * width is needed to scale it to the card; height follows the aspect ratio.
+ * Default (smooth) scaling: a desktop card shows the 960px capture at ~290px, and
+ * nearest-neighbour downscaling shreds the screenshots' text.
+ */
+.landing-card__image {
+    display: block;
+    width: calc(100% + 2 * var(--space-4));
+    max-width: none;
+    height: auto;
+    margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
+    border-bottom: var(--border-3) solid var(--color-border);
+    background: var(--color-map-bg);
+}
+
+.landing-card h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.landing-card p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.landing-card__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+/* The whole card is the link: the CTA's ::after covers the card, its only positioned descendant. */
+.landing-card__cta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+}
+
+.landing-card:hover {
+    box-shadow: var(--shadow-1), 0 0 0 var(--border-1) var(--color-border);
+    transform: translate(-1px, -1px);
+}
+
+.landing-card:has(.landing-card__cta:focus-visible) {
+    outline: var(--border-3) solid var(--color-ink);
+    outline-offset: 2px;
+}
+
+/* A link dressed as the primary button; it may wrap (a 19-digit seed at 360px). */
+.landing-card__cta,
+.landing-continue__cta {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    height: auto;
+    min-height: 40px;
+    padding: var(--space-2) var(--space-3);
+    border-width: var(--border-3);
+    line-height: 1.3;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+/* --- continue where you left off ---------------------------------------------- */
+
+/* It appears after hydration, only for returning visitors: fade it in rather than pop it. */
+.landing-continue {
+    animation: fade-in var(--motion-fast) ease-out;
+}
+
+.landing-continue h2 {
+    margin: 0 0 var(--space-3);
+    font-size: 20px;
+}
+
+.landing-continue__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-3) var(--space-6);
+}
+
+.landing-worlds__label {
+    margin: 0 0 var(--space-1);
+    color: var(--color-muted);
+    font-family: var(--font-display);
+    font-size: 12px;
+}
+
+.landing-worlds ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* A 40-character name with no spaces wraps inside its chip instead of running off a 360 px screen. */
+.landing-worlds {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.landing-worlds li {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.landing-worlds .chip {
+    max-width: 100%;
+    height: auto;
+    min-height: 28px;
+    white-space: normal;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+/* --- ad, sections ----------------------------------------------------------- */
+
+.landing .landing-ad {
+    margin: 0;
+}
+
+.landing-section h2 {
+    margin: 0 0 var(--space-4);
+    font-size: 22px;
+}
+
+/* FAQ: questions in the pixel font, answers in the body font at a reading measure. */
+.landing-faq {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.landing-faq details {
+    border: var(--border-3) solid var(--color-border);
+    background: var(--color-surface);
+}
+
+/* A hanging marker (the dashboard rows' chevron), so a question that wraps stays aligned. */
+.landing-faq summary {
+    position: relative;
+    padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 20px);
+    font-family: var(--font-display);
+    line-height: 1.4;
+    list-style: none;
+    cursor: pointer;
+}
+
+.landing-faq summary::-webkit-details-marker {
+    display: none;
+}
+
+.landing-faq summary::before {
+    content: '▸';
+    position: absolute;
+    top: var(--space-3);
+    left: var(--space-4);
+    width: 14px;
+    font-size: 18px;
+    line-height: 21px;          /* the summary's line box: 15px × 1.4 */
+    text-align: center;
+    transition: transform var(--motion-fast);
+}
+
+.landing-faq details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.landing-faq details[open] summary {
+    border-bottom: var(--border-1) solid var(--color-border);
+}
+
+.landing-faq details p {
+    max-width: 65ch;
+    margin: 0;
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    line-height: 1.6;
+}
+
+.landing-support {
+    max-width: 65ch;
+    margin: 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 767px) {
+    .landing-hero {
+        padding-top: var(--space-2);
+    }
+
+    .landing-hero__name {
+        font-size: 40px;
+    }
+
+    .landing-hero__tagline {
+        font-size: 18px;
+    }
+
+    .landing-hero__lead {
+        font-size: 16px;
+    }
+
+    /* One line at 360px. */
+    .landing-hero__hint {
+    max-width: 520px;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.landing-hero__badge {
+        font-size: 11px;
+    }
+
+    .landing-section h2 {
+        font-size: 20px;
+    }
+}

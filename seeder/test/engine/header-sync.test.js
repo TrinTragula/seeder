@@ -1,10 +1,10 @@
 // Source-level enum sync: parse cubiomes' C headers and check constants.jsx / draw.js
 // against them. Catches a mid-enum insertion (Nether_Fossil, Abandoned_Camp, ...) before
 // a WASM rebuild. Skipped when the submodule is not checked out.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { REPO_ROOT } from './harness.js';
+import { REPO_ROOT, loadSeeder } from './harness.js';
 import { VERSIONS, BIOMES, STRUCTURES_OPTIONS } from '../../src/util/constants';
 import { STRUCTURE_ICONS } from '../../src/library/draw';
 
@@ -73,6 +73,11 @@ describe.skipIf(!hasSubmodule)('constants.jsx matches the cubiomes headers', () 
 
     it('VERSIONS covers MC_NEWEST', () => {
         expect(Math.max(...Object.values(VERSIONS))).toBe(mcVersion.MC_NEWEST);
+    });
+
+    it('the committed api.wasm was built from these headers: mc_newest() equals MC_NEWEST', async () => {
+        const seeder = await loadSeeder();
+        expect(seeder.WASMmcNewest()).toBe(mcVersion.MC_NEWEST);
     });
 
     it.each(BIOMES)('BIOMES $label = $value equals enum BiomeID', ({ label, value }) => {

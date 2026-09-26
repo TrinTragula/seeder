@@ -1,0 +1,442 @@
+/*
+ * Component layer. Class selectors only: a class (0,1,0) always beats
+ * an element selector (0,0,1), so these rules win over any element rule in
+ * base.css without !important and without depending on import order.
+ */
+
+/* --- buttons ------------------------------------------------------------- */
+
+.btn {
+    height: 33px;
+    margin: 0;
+    padding: 0 var(--space-2);
+    border: var(--border-1) solid var(--color-border);
+    border-radius: var(--radius-0);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.btn--full {
+    width: 100%;
+}
+
+.btn--half {
+    width: 50%;
+}
+
+.btn--primary {
+    background: var(--color-brand);
+    color: var(--color-brand-ink);
+}
+
+.btn--danger {
+    background: var(--color-danger);
+    color: var(--color-surface);
+}
+
+.btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+/* --- form fields --------------------------------------------------------- */
+
+.input {
+    height: 33px;
+    padding: 0 var(--space-2);
+    border: var(--border-1) solid var(--color-border);
+    border-radius: var(--radius-0);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: inherit;
+}
+
+.input:disabled {
+    opacity: .5;
+}
+
+/* --- surfaces ------------------------------------------------------------ */
+
+.card {
+    padding: var(--space-4);
+    border: var(--border-3) solid var(--color-border);
+    border-radius: var(--radius-0);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-1);
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 var(--space-3);
+    border: var(--border-1) solid var(--color-border);
+    border-radius: var(--radius-0);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.chip--active,
+.chip[aria-current='true'] {
+    background: var(--color-brand);
+    color: var(--color-brand-ink);
+}
+
+.badge {
+    display: inline-block;
+    padding: 0 var(--space-1);
+    background: var(--color-accent);
+    color: var(--color-brand-ink);
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Tones: plain .badge is the accent (a good find); muted = a neutral fact; danger = a warning. */
+.badge--muted {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 var(--border-1) var(--color-muted);
+}
+
+.badge--danger {
+    background: var(--color-danger);
+    color: var(--color-surface);
+}
+
+/* --- tables -------------------------------------------------------------- */
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: var(--space-2);
+    border-bottom: var(--border-1) solid var(--color-border);
+    text-align: left;
+    vertical-align: top;
+}
+
+.table th {
+    font-family: var(--font-display);
+}
+
+/*
+ * Under --bp-md a table becomes a stack of cards: the header row is hidden and
+ * each cell reprints its column name from data-label, so coordinate tables stay
+ * readable at 360px without a horizontal scrollbar.
+ */
+@media (max-width: 767px) {
+
+    .table,
+    .table thead,
+    .table tbody,
+    .table tr,
+    .table th,
+    .table td {
+        display: block;
+    }
+
+    .table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+
+    .table tr {
+        margin-bottom: var(--space-2);
+        border: var(--border-1) solid var(--color-border);
+    }
+
+    .table td {
+        display: flex;
+        gap: var(--space-2);
+        justify-content: space-between;
+        border-bottom: 0;
+    }
+
+    .table td::before {
+        content: attr(data-label);
+        color: var(--color-muted);
+        font-family: var(--font-display);
+    }
+}
+
+/* --- ads ----------------------------------------------------------------- */
+
+/*
+ * The reserved ad box. Its min-height is set inline by GoogleAd so the slot is
+ * held open before AdSense answers and the page never shifts under the reader.
+ */
+.ad {
+    display: block;
+    width: 100%;
+    margin: var(--space-4) auto;
+    overflow: hidden;
+}
+
+/* An empty slot (no ad, or blocked): the support note fills the whole reserved box. */
+.ad--empty {
+    display: flex;
+    flex-direction: column;
+}
+
+/* AdSense pins an unfilled <ins> to its ad's height (inline `height: 280px`): hide it, or
+   the support note sits under that much blank space. Only while empty: a late fill
+   removes .ad--empty and the ad shows. */
+.ad--empty > ins.adsbygoogle {
+    display: none !important;
+}
+
+.support-box {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-4);
+    /* Compact enough to fit the smallest reserved slot (100 px) on a 360 px phone: the
+       note replacing an empty ad must never grow the slot and shift the page. */
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-1) dashed var(--color-border);
+    background: var(--color-surface);
+}
+
+.support-box__text {
+    flex: 1 1 24ch;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.support-box__actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+}
+
+.support-box__actions form {
+    margin: 0;
+}
+
+/* The link and the PayPal button look and line up the same. */
+.support-box__actions .btn {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    font-size: 13px;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+/* --- site header --------------------------------------------------------- */
+
+.site-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    height: 48px;
+    padding: 0 var(--space-4);
+    border-bottom: var(--border-3) solid var(--color-border);
+    background: var(--color-brand);
+    z-index: var(--z-header);
+}
+
+.brand {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--color-brand-ink);
+    text-decoration: none;
+}
+
+.site-header__nav {
+    display: flex;
+    flex-grow: 1;
+    gap: var(--space-4);
+}
+
+.site-header__social {
+    display: flex;
+    gap: var(--space-4);
+}
+
+.site-header__link {
+    font-family: var(--font-display);
+    color: var(--color-brand-ink);
+    text-decoration: none;
+}
+
+.site-header__nav .site-header__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.site-header__icon {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+}
+
+.site-header__link:hover {
+    text-shadow: 1px 1px gray;
+}
+
+/* The three icon links and the brand only fit a 360 px phone with tighter spacing. */
+@media (max-width: 400px) {
+    .site-header {
+        gap: var(--space-3);
+        padding: 0 12px;
+    }
+
+    .brand {
+        font-size: 18px;
+    }
+
+    .site-header__nav {
+        gap: 8px;
+    }
+
+    .site-header__nav .site-header__link {
+        gap: 4px;
+    }
+}
+
+.site-header__link[aria-current='page'] {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* --- site footer --------------------------------------------------------- */
+
+.site-footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+    padding: var(--space-4) 0;
+    border-top: var(--border-3) solid var(--color-border);
+}
+
+.site-footer a {
+    color: var(--color-ink);
+}
+
+.site-footer__links {
+    display: flex;
+    gap: var(--space-4);
+}
+
+.site-footer__donate {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.site-footer__donate form {
+    margin: 0;
+}
+
+.site-footer__donate input,
+.site-footer__donate img {
+    border: 0;
+    vertical-align: bottom;
+}
+
+.site-footer__donate img {
+    height: 26px;
+}
+
+.site-footer__legal {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/*
+ * The full footer is main.page's sibling, outside its column: its content lines up
+ * with the column (960px, the finder's 1280px; see Layout.css) while the rule on top
+ * spans the whole width. Percent padding is of the footer's own (full) width.
+ */
+.site-footer:not(.site-footer--compact) {
+    padding-inline: max(var(--space-4), calc((100% - 960px) / 2 + var(--space-4)));
+}
+
+.page--wide ~ .site-footer:not(.site-footer--compact) {
+    padding-inline: max(var(--space-4), calc((100% - 1280px) / 2 + var(--space-4)));
+}
+
+/* compact: one row, for pages that only need a thin strip at the bottom. */
+.site-footer--compact {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+
+/* The disclaimer takes a line of its own under the links and the donate buttons. */
+.site-footer--compact .site-footer__legal {
+    flex-basis: 100%;
+}
+
+/* --- toast (shared/toast.js) --------------------------------------------- */
+
+/* "Copied to clipboard": a small note at the bottom centre, above everything, never
+   taking a click (it covers nothing the visitor needs for its two seconds). */
+.toast {
+    position: fixed;
+    bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+    left: 50%;
+    z-index: var(--z-toast);
+    max-width: calc(100vw - 2 * var(--space-4));
+    padding: var(--space-2) var(--space-4);
+    border: var(--border-3) solid var(--color-brand);
+    background: var(--color-brand-ink);
+    box-shadow: var(--shadow-1);
+    color: var(--color-surface);
+    font-size: 14px;
+    line-height: 1.4;
+    pointer-events: none;
+    transform: translateX(-50%);
+    animation: toast-in var(--motion-base) ease-out;
+}
+
+.toast[hidden] {
+    display: none;
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 8px);
+    }
+}
+
+/* A plain fade from transparent; paired with `both` it also holds the element hidden during a delay. */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+}
+

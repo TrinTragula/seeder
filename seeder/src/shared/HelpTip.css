@@ -1,0 +1,78 @@
+/* --- "?" help tips (HelpTip.jsx) -------------------------------------------- */
+
+/*
+ * A 32 px target around the 16 px icon: the negative margins keep it the icon's size
+ * in the line, so a tip next to a label or a sentence moves nothing.
+ */
+.help-tip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: -8px -6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.help-tip img {
+    display: block;
+    image-rendering: pixelated;
+}
+
+.help-tip[aria-expanded='true'] img {
+    filter: brightness(1.15);
+}
+
+/* Fixed in the viewport, above the header and the bottom sheet (the JS places it). */
+.help-tip__bubble {
+    position: fixed;
+    z-index: var(--z-overlay);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-1);
+    width: max-content;
+    max-width: min(260px, calc(100vw - 32px));
+    padding: 8px 4px 8px 10px;
+    border: var(--border-1) solid rgba(255, 255, 255, .35);
+    background: #111;   /* opaque: the text under it must not show through */
+    box-shadow: var(--shadow-1);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: left;
+}
+
+.help-tip__text {
+    margin: 0;
+}
+
+/* The MapTip close button's 32 px target around its 10 px cross. */
+.help-tip__close {
+    display: flex;
+    flex: none;
+    align-items: flex-start;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: -8px -4px -8px 0;
+    padding: 10px 0 0;
+    border: 0;
+    background: none;
+    color: #fff;
+    cursor: pointer;
+}
+
+.help-tip__close svg {
+    display: block;
+}
+
+.help-tip__close:focus-visible {
+    outline: var(--border-3) solid var(--color-accent);
+    outline-offset: calc(-1 * var(--border-3));
+}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.ico" />
+    <title>Page not found - Seeder</title>
+    <!-- Served for every unknown path (its presence turns off the SPA fallback). No script
+         and no web font, so it renders whatever else is broken. -->
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { margin: 0; }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+            color: #111;
+            font: 15px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        header {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            background: #8FCA5C;
+            border-bottom: 3px solid #000;
+        }
+        header a { color: #1b1b1b; font-size: 20px; font-weight: 700; text-decoration: none; }
+        main { flex: 1; width: 100%; max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+        h1 { margin: 0 0 12px; font-size: 28px; line-height: 1.2; }
+        p { max-width: 65ch; margin: 0 0 24px; }
+        ul { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; padding: 0; list-style: none; }
+        ul a {
+            display: inline-block;
+            padding: 8px 12px;
+            border: 3px solid #000;
+            background: #fff;
+            color: #111;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        ul li:first-child a { background: #8FCA5C; color: #1b1b1b; }
+        a:focus-visible { outline: 3px solid #ff8c00; outline-offset: 2px; }
+        footer { padding: 16px max(16px, calc((100% - 960px) / 2 + 16px)); border-top: 3px solid #000; }
+        footer p { margin: 0; color: #555; font-size: 12px; line-height: 1.5; }
+    </style>
+</head>
+
+<body>
+    <header>
+        <a href="/">Seeder</a>
+    </header>
+    <main>
+        <h1>Page not found</h1>
+        <p>There is nothing at this address: it may have moved, or the link may be mistyped.</p>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/seed/">Seed map</a></li>
+            <li><a href="/finder/">Seed finder</a></li>
+            <li><a href="/about/">About</a></li>
+        </ul>
+    </main>
+    <footer>
+        <p>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p>
+    </footer>
+</body>
+
+</html>

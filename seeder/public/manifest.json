@@ -1,24 +1,31 @@
 {
   "short_name": "Seeder",
-  "name": "Seeder - Minecraft seeds",
+  "name": "Seeder - Minecraft seed map & finder",
+  "description": "Search and analyze any Minecraft seed. Discover biomes and structures, find seeds with the biomes you want. All in your browser!",
   "icons": [
     {
       "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "sizes": "256x256 128x128 64x64 48x48 32x32 16x16",
       "type": "image/x-icon"
     },
     {
       "src": "logo.png",
       "type": "image/png",
+      "sizes": "160x160"
+    },
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo.png",
+      "src": "icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/seed/",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#8FCA5C",
   "background_color": "#F5F5F5"

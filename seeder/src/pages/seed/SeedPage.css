@@ -1,0 +1,137 @@
+/*
+ * Seed page. Desktop: the map takes 5/7 of the width, the controls
+ * column 2/7 and scrolls on its own. Phones: the map takes it all and the controls
+ * live in the bottom sheet, which is positioned against this box (the area under
+ * the header), so its snap points are fractions of the map area.
+ */
+/*
+ * Its height comes from stretching in .app (a flex row), never from `height: 100%`:
+ * Safari resolves a percentage of a flex-sized box as auto, and then the page took the
+ * side column's full length - the map ran past the screen's bottom and the document
+ * scrolled. min-height: 0 lets it be shorter than its content.
+ */
+.seed-page {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
+/*
+ * The collapsed sheet shows the seed row and the dashboard's tab strip (SeedPage.jsx:
+ * SHEET_COLLAPSED, the same number): the sheet and the map's pan-down arrow read it.
+ */
+.seed-page {
+    --sheet-collapsed: 124px;
+}
+
+/* The app takes over from the prerendered intro (or the empty page) with a short fade, not a jump. */
+.seed-page {
+    animation: fade-in var(--motion-fast) ease-out;
+}
+
+/* The page's h1 keeps the size and weight of the panel's h3 headings. */
+.seed-page__title {
+    font-size: 1.17em;
+    font-weight: bold;
+}
+
+.seed-page .sheet__content {
+    padding: var(--space-1) var(--space-3);
+}
+
+.seed-panel {
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-1) var(--space-3) 0 var(--space-4);
+    border-left: var(--border-3) solid var(--color-border);
+    overflow-x: hidden;
+    /* A short tab (Find near me) does not overflow: without a reserved gutter its
+       scrollbar would vanish and every tab and section would widen by its ~15 px. */
+    scrollbar-gutter: stable;
+}
+
+.seed-panel hr {
+    margin-right: 0;
+    margin-left: 0;
+}
+
+.seed-panel .site-footer {
+    padding-bottom: var(--space-4);
+}
+
+/* --- seed box -------------------------------------------------------------- */
+
+/* The field may shrink below its intrinsic width; GO sits flush against it. */
+.seed-input__row .input {
+    min-width: 0;
+}
+
+.seed-input__row .btn {
+    border-left: 0;
+}
+
+.seed-input__random {
+    margin-top: var(--space-2);
+}
+
+/* --- options --------------------------------------------------------------- */
+
+.structure-coords {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 3px;
+    cursor: pointer;
+}
+
+.structure-coords__label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+}
+
+.structure-coords__hint {
+    color: var(--color-muted);
+    font-size: 13px;
+}
+
+/* --- legend (in the panel, not over the map it would hide) ----------------- */
+
+.legend {
+    max-height: 50vh;
+    margin: 3px;
+    border: var(--border-3) solid var(--color-border);
+    background: var(--color-surface);
+    font-size: 12px;
+}
+
+.legend__list {
+    min-height: 0;
+}
+
+.legend__swatch {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    border: var(--border-1) solid var(--color-border);
+}
+
+/* --- share row / finder CTA ------------------------------------------------ */
+
+.share-row .input {
+    min-width: 0;
+}
+
+.share-row .btn {
+    border-left: 0;
+}
+
+.seed-cta .btn {
+    display: inline-flex;
+    align-items: center;
+    margin-top: var(--space-2);
+    text-decoration: none;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { seedFromString, isNumeric, getInitialSeed, getInitialVersion, getRandomSeed, RANGE_OPTIONS, DEFAULT_VERSION } from './seed';
+import { seedFromString, canonicalSeed, getInitialVersion, getRandomSeed, DEFAULT_VERSION } from './seed';
 import { VERSIONS, OLD_VERSIONS } from './constants';
 
 // Java's String.hashCode, computed with BigInt so it cannot share bugs with the implementation.
@@ -25,28 +25,27 @@ describe('seedFromString (Minecraft text seeds)', () => {
     });
 });
 
-describe('isNumeric', () => {
-    it.each(['0', '42', '-7', '1.5', ' 3 ', '8091867987493326313'])('accepts %j', (s) => expect(isNumeric(s)).toBe(true));
-    it.each(['', 'abc', '12abc', 'NaN', undefined, null, 42])('rejects %j', (s) => expect(isNumeric(s)).toBe(false));
-});
-
-describe('getInitialSeed (the ?seed= URL parameter)', () => {
-    it('keeps a numeric seed verbatim, including 64-bit values that Number would round', () => {
-        expect(getInitialSeed('123')).toBe('123');
-        expect(getInitialSeed('-42')).toBe('-42');
-        expect(getInitialSeed('8091867987493326313')).toBe('8091867987493326313');
+describe('canonicalSeed (Minecraft parses a long, else hashes the text)', () => {
+    it.each([
+        ['9223372036854775807', '9223372036854775807'],
+        ['-9223372036854775808', '-9223372036854775808'],
+        ['8091867987493326313', '8091867987493326313'],
+        ['+5', '5'],
+        ['007', '7'],
+        ['-007', '-7'],
+        ['-0', '0'],
+        ['+0', '0'],
+        [' 42 ', '42'],
+        ['hello', '99162322'],
+    ])('%j -> %j', (text, seed) => {
+        expect(canonicalSeed(text)).toBe(seed);
     });
-    it('falls back to a random seed when the parameter is missing', () => {
-        for (const missing of [undefined, null, '', '   ']) {
-            const seed = getInitialSeed(missing);
-            expect(seed).toMatch(/^-?\d+$/);
-        }
-    });
-    it('hashes a non-numeric parameter like text typed in the seed box', () => {
-        expect(getInitialSeed('hello')).toBe('99162322');
-        expect(getInitialSeed('12abc')).toBe(String(seedFromString('12abc')));
-        expect(getInitialSeed('1.5')).toBe(String(seedFromString('1.5')));
-        expect(getInitialSeed(' 42 ')).toBe('42');
+    it.each(['9223372036854775808', '-9223372036854775809', '18446744073709551615', '99999999999999999999', '1.5', '12abc', '+-5', '1e3', '0x10'])
+        ('hashes %j, which Long.parseLong refuses', (text) => {
+            expect(canonicalSeed(text)).toBe(String(javaHashCode(text)));
+        });
+    it('hashes the trimmed text', () => {
+        expect(canonicalSeed('  hello ')).toBe('99162322');
     });
 });
 
@@ -71,7 +70,7 @@ describe('getInitialVersion (the ?version= URL parameter)', () => {
     });
     it('falls back to the default version for unknown or missing values', () => {
         expect(DEFAULT_VERSION in VERSIONS).toBe(true);
-        for (const bad of [undefined, '', 'nope', '999', '1.2.3.4']) expect(getInitialVersion(bad)).toBe(VERSIONS[DEFAULT_VERSION]);
+        for (const bad of [undefined, '', 'nope', '999', '1.2.3.4', '1e3', '0x10', '1e1', ' 17', '17.0', '+17', '-1']) expect(getInitialVersion(bad)).toBe(VERSIONS[DEFAULT_VERSION]);
     });
 });
 
@@ -87,12 +86,5 @@ describe('getRandomSeed', () => {
     });
     it('varies between calls', () => {
         expect(new Set(Array.from({ length: 20 }, getRandomSeed)).size).toBeGreaterThan(1);
-    });
-});
-
-describe('RANGE_OPTIONS', () => {
-    it('stores blocks / 4 (biome cells) for each preset', () => {
-        expect(RANGE_OPTIONS.map((o) => o.value)).toEqual([25, 75, 125, 187, 250, 500]);
-        expect(RANGE_OPTIONS.map((o) => o.label)).toEqual(['<100 blocks', '<300 blocks', '<500 blocks', '<750 blocks', '<1k blocks', '<2k blocks (SLOW!)']);
     });
 });

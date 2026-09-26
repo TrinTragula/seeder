@@ -2,7 +2,7 @@
 
 A small headless-browser benchmark for the interactive biome map. Use it to
 check whether an edit to the rendering pipeline (`src/library/draw.js`,
-`src/library/queue.js`, `public/workers/*`) made things faster or slower —
+`src/library/queue.js`, `public/workers/*`) made things faster or slower -
 before/after, apples to apples.
 
 ## What it measures
@@ -19,7 +19,7 @@ before/after, apples to apples.
 | `cacheReturn.generatedReturn` | tiles regenerated when panning away and back to an explored area | **0** |
 
 `cacheReturn.generatedReturn > 0` means the tile LRU (`MAX_TILES` in
-`draw.js`) is too small for the amount of panning — explored areas are being
+`draw.js`) is too small for the amount of panning - explored areas are being
 evicted and regenerated.
 
 **`coldFirstPaintMs` depends heavily on the environment.** The dev server
@@ -29,7 +29,7 @@ production build:
 
 ```sh
 npm run build
-npm run preview                             # serves build/ on :4173 with SPA fallback + wasm MIME
+npm run preview                             # serves build/ on :4173 (directory index per section + wasm MIME)
 SEEDER_BENCH_URL=http://localhost:4173 node bench.mjs prod
 ```
 
@@ -38,7 +38,7 @@ SEEDER_BENCH_URL=http://localhost:4173 node bench.mjs prod
 - Drives a real browser (Brave/Chrome/Chromium) via `puppeteer-core`.
 - Reads lightweight counters exposed on `window.__seederDrawer.getStats()`
   (defined in `src/library/draw.js`) for tile/render counts, and a black-box
-  canvas checksum for timing — so the timings don't depend on the counters and
+  canvas checksum for timing - so the timings don't depend on the counters and
   stay valid even if you rip the instrumentation out.
 - Blocks ad/analytics requests so the dev error overlay never appears and the
   main thread stays quiet.
@@ -67,12 +67,20 @@ diff <(jq . /tmp/before.json) <(jq . /tmp/after.json)
 
 ### Env overrides
 
-- `SEEDER_BENCH_URL` — app URL (default `http://localhost:3000`)
-- `SEEDER_BENCH_BROWSER` — path to a Chrome/Brave/Chromium binary (auto-detected
+- `SEEDER_BENCH_URL` - app URL (default `http://localhost:3000`)
+- `SEEDER_BENCH_BROWSER` - path to a Chrome/Brave/Chromium binary (auto-detected
   on macOS/Linux otherwise)
 
 ## Notes
 
+- The map is the `/seed/` page (`/seed/?version=26.3&seed=…`); `/` is the
+  landing and never starts the worker pool. The seed box is located by its
+  accessible name, `input[aria-label="Seed"]`, never by a CSS class - the same
+  rule the e2e tests follow, so a restyle of the panel cannot break the bench.
+- `window.__seederDrawer` is opt-in: `DrawSeed` only sets it when constructed with
+  `{ exposeGlobal: true }`, which `MapCanvas` passes for the seed page's main map and
+  for the finder's preview map (an opened result row). The finder's thumbnails are not
+  `DrawSeed`s and never take the hook; the bench only visits `/seed/`.
 - Numbers are machine- and load-dependent; only compare runs from the same
   machine in the same sitting.
 - `coldLoadMs` includes one-time Web Worker + WASM initialization; use

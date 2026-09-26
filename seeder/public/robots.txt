@@ -1,5 +1,21 @@
 # https://www.robotstxt.org/robotstxt.html
+# Everything here is public, for search engines and AI assistants alike: the seed lists
+# and the version pages are meant to be quoted and linked. The named groups say so
+# explicitly for the AI crawlers (search, answer and training bots).
 User-agent: *
 Disallow:
+
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+Allow: /
 
 Sitemap: https://mcseeder.com/sitemap.xml

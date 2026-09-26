@@ -155,3 +155,12 @@ describe('HTML entries', () => {
         expect(Object.keys({ ...pkg.dependencies, ...pkg.devDependencies })).not.toContain('react-router-dom');
     });
 });
+
+describe('site-wide structured data', () => {
+    it('the shared head carries the WebSite + WebApplication JSON-LD, which parses', () => {
+        const partial = read('src/shared/html/head-common.html');
+        const json = partial.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1];
+        const data = JSON.parse(json.replaceAll('__SITE_URL__', 'https://mcseeder.com').replaceAll('__APP_VERSION__', '1.0.0'));
+        expect(data['@graph'].map((node) => node['@type'])).toEqual(['WebSite', 'WebApplication']);
+    });
+});

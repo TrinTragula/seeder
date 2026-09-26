@@ -48,6 +48,14 @@ describe('robots.txt', () => {
         expect(robots).toMatch(/^Disallow:\s*$/m);
         expect(robots).not.toMatch(/^Disallow: *\S/m);
     });
+
+    it('welcomes the AI crawlers by name', () => {
+        const robots = text('robots.txt');
+        for (const bot of ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-SearchBot', 'Claude-User', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended', 'CCBot']) {
+            expect(robots, bot).toMatch(new RegExp(`^User-agent: ${bot}$`, 'm'));
+        }
+        expect(robots).toMatch(/^Allow: \/$/m);
+    });
 });
 
 describe('manifest.json', () => {

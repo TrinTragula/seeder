@@ -15,7 +15,8 @@
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
     "shots": "vite build && node scripts/landing-shots.mjs",
-    "og-card": "node scripts/og-card.mjs"
+    "og-card": "node scripts/og-card.mjs",
+    "indexnow": "node scripts/indexnow.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

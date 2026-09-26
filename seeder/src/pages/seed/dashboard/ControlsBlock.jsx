@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import Select, { createFilter } from 'react-select';
 import { VERSIONS, VERSIONS_OPTIONS, STRUCTURES_OPTIONS, DIMENSIONS_OPTIONS, HEIGHT_OPTIONS } from '../../../util/constants';
 import { MAX_NAME } from '../../../shared/worlds';
+import { DEFAULT_VIEW } from '../../../shared/seedUrl';
 import Legend from '../../../shared/Legend';
 import CopyButton from '../../../shared/CopyButton';
 import HelpTip from '../../../shared/HelpTip';
@@ -10,7 +11,8 @@ import { useDashboard } from './DashboardContext';
 
 // Biomes are 3D from 1.18 on; before that a height would be a lie.
 const HEIGHT_FROM = VERSIONS['1.18'];
-export const DEFAULT_HEIGHT = 256;
+// One source with the Share link's y param, which is only written when it differs.
+export const DEFAULT_HEIGHT = DEFAULT_VIEW.yHeight;
 
 // Structure options are markup (icon + name); search them by their plain text.
 const filterConfig = {

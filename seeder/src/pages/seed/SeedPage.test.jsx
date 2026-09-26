@@ -207,6 +207,120 @@ describe('share URL', () => {
     });
 });
 
+// A link carries the sender's view (structures, coords, overlays, height). The page
+// opens with it, and from then on the address bar and the Share box follow the controls.
+describe('a share link with the view', () => {
+    const VIEW_LINK = '/seed/?seed=1&version=1.21.11&structs=5,11&slime=1&y=62';
+
+    it('opens with those structures, the slime chunks and that height', async () => {
+        const user = userEvent.setup();
+        await renderAt(VIEW_LINK);
+        await answerSupport();
+        // The picker shows both structures, and the map looks them up.
+        expect(screen.getByText('Village')).toBeInTheDocument();
+        expect(screen.getByText('Ruined Portal')).toBeInTheDocument();
+        expect(drawer().setStructuresShown).toHaveBeenLastCalledWith([T.Village, T['Ruined Portal']]);
+        expect(drawer().findStructure).toHaveBeenCalledWith(T.Village);
+        expect(drawer().findStructure).toHaveBeenCalledWith(T['Ruined Portal']);
+        // The height select shows Y 62 and the map renders there.
+        expect(screen.getByText('Sea level (Y=62)')).toBeInTheDocument();
+        expect(drawer().setYHeight).toHaveBeenLastCalledWith(62);
+        // The slime overlay is on, and its toggle (Find near me, once a point is located) is pressed.
+        // Untouched options keep their defaults.
+        expect(screen.getByLabelText('Show structure coords')).toBeChecked();
+        expect(screen.getByRole('checkbox', { name: 'Show chunk grid lines' })).not.toBeChecked();
+        expect(drawer().overlays).toEqual({ slime: true });
+        window.sessionStorage.clear();                  // Find near me's last point lives there
+        await user.click(screen.getByRole('tab', { name: 'Find near me' }));
+        const where = within(document.getElementById('where'));
+        await user.type(where.getByLabelText('X coordinate'), '0');
+        await user.type(where.getByLabelText('Z coordinate'), '0');
+        await user.click(where.getByRole('button', { name: 'Locate' }));
+        expect(where.getByRole('checkbox', { name: 'Show slime chunks on the map' })).toBeChecked();
+    });
+
+    it('keeps the same params in the address bar and the Share box', async () => {
+        await renderAt(VIEW_LINK);
+        expect(screen.getByLabelText('Share URL')).toHaveValue(`https://mcseeder.com${VIEW_LINK}`);
+        expect(window.location.pathname + window.location.search).toBe(VIEW_LINK);
+    });
+    it('strips from=legacy and junk values but keeps the view, in the canonical order', async () => {
+        await renderAt('/seed/?y=62&slime=true&grid=1&from=legacy&structs=11,abc&version=1.21.11&seed=1');
+        expect(window.location.search).toBe('?seed=1&version=1.21.11&structs=11&grid=1&y=62');
+    });
+
+    it('turns the coordinates off and the chunk grid on from coords=0&grid=1', async () => {
+        await renderAt('/seed/?seed=1&version=26.3&coords=0&grid=1');
+        expect(screen.getByLabelText('Show structure coords')).not.toBeChecked();
+        expect(screen.getByRole('checkbox', { name: 'Show chunk grid lines' })).toBeChecked();
+        expect(drawer().setShowStructureCoords).toHaveBeenLastCalledWith(false);
+        expect(drawer().overlays).toEqual({ chunkGrid: true });
+        expect(screen.getByLabelText('Share URL')).toHaveValue('https://mcseeder.com/seed/?seed=1&version=26.3&coords=0&grid=1');
+        expect(window.location.search).toBe('?seed=1&version=26.3&coords=0&grid=1');
+    });
+
+    it('keeps a structure the world lacks, hidden, and in the Share box', async () => {
+        // Fortress (18) is a Nether structure: in the Overworld it stays picked but unshown.
+        await renderAt('/seed/?seed=1&version=26.3&structs=18,5');
+        await answerSupport();
+        expect(drawer().setStructuresShown).toHaveBeenLastCalledWith([T.Village]);
+        expect(screen.queryByText('Fortress')).toBeNull();
+        expect(screen.getByLabelText('Share URL').value).toContain('&structs=18,5');
+        await select('Dimension', 'Nether');
+        expect(drawer().setStructuresShown).toHaveBeenLastCalledWith([T.Fortress]);
+    });
+
+    it('falls back to the defaults on junk values, without an error', async () => {
+        await renderAt('/seed/?seed=1&version=26.3&structs=abc,999&y=9999&slime=true&grid=yes&coords=off');
+        expect(drawer().setYHeight).toHaveBeenLastCalledWith(DEFAULT_HEIGHT);
+        expect(drawer().overlays).toEqual({});
+        expect(screen.getByLabelText('Show structure coords')).toBeChecked();
+        expect(screen.getByLabelText('Share URL')).toHaveValue('https://mcseeder.com/seed/?seed=1&version=26.3');
+        expect(window.location.search).toBe('?seed=1&version=26.3');
+    });
+
+    it('the address bar and the Share box follow every view control, without pushing history', async () => {
+        const user = userEvent.setup();
+        const push = vi.spyOn(window.history, 'pushState');
+        await renderAt('/seed/?seed=1&version=26.3');
+        await answerSupport();
+        const share = () => screen.getByLabelText('Share URL').value;
+        expect(share()).toBe('https://mcseeder.com/seed/?seed=1&version=26.3');
+        await select('Structures to show', 'Mansion');
+        await select('Structures to show', 'Village');
+        await user.click(screen.getByLabelText('Show structure coords'));
+        await user.click(screen.getByRole('checkbox', { name: 'Show chunk grid lines' }));
+        await select('Biome height', 'Bedrock (Y=-64)');
+        expect(share()).toBe('https://mcseeder.com/seed/?seed=1&version=26.3&structs=9,5&coords=0&grid=1&y=-70');
+        expect(window.location.search).toBe('?seed=1&version=26.3&structs=9,5&coords=0&grid=1&y=-70');
+        // Below 1.18 the height has no control and no param.
+        await select('Minecraft version', '1.17');
+        expect(share()).toBe('https://mcseeder.com/seed/?seed=1&version=1.17&structs=9,5&coords=0&grid=1');
+        expect(window.location.search).toBe('?seed=1&version=1.17&structs=9,5&coords=0&grid=1');
+        // A new seed keeps the view.
+        await user.click(screen.getByRole('button', { name: 'Random seed' }));
+        await flush();
+        expect(search().get('seed')).not.toBe('1');
+        expect(window.location.search).toMatch(/&version=1\.17&structs=9,5&coords=0&grid=1$/);
+        // Back to the defaults: the plain canonical URL again.
+        fireEvent.keyDown(screen.getByLabelText('Structures to show'), { key: 'Backspace', code: 'Backspace' });
+        fireEvent.keyDown(screen.getByLabelText('Structures to show'), { key: 'Backspace', code: 'Backspace' });
+        await flush();
+        await user.click(screen.getByLabelText('Show structure coords'));
+        await user.click(screen.getByRole('checkbox', { name: 'Show chunk grid lines' }));
+        expect(window.location.search).toMatch(/^\?seed=-?\d+&version=1\.17$/);
+        expect(push).not.toHaveBeenCalled();
+    });
+
+    it('a plain link opens with the defaults and shares a plain link', async () => {
+        await renderAt('/seed/?seed=1&version=26.3');
+        expect(drawer().setYHeight).toHaveBeenLastCalledWith(DEFAULT_HEIGHT);
+        expect(drawer().setShowStructureCoords).toHaveBeenLastCalledWith(true);
+        expect(drawer().overlays).toEqual({});
+        expect(screen.getByLabelText('Share URL')).toHaveValue('https://mcseeder.com/seed/?seed=1&version=26.3');
+    });
+});
+
 describe('arriving from a pre-1.0 share link', () => {
     it('shows the what\'s-new card once and drops from=legacy from the URL', async () => {
         const user = userEvent.setup();

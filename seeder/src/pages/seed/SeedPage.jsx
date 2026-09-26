@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getRandomSeed } from '../../util/seed';
-import { buildSeedUrl, parseSeedPage, versionLabelOf } from '../../shared/seedUrl';
+import { DEFAULT_VIEW, buildSeedUrl, parseSeedPage, versionLabelOf } from '../../shared/seedUrl';
 import { useSearchParamsState } from '../../shared/hooks/useSearchParamsState';
 import { useQueueManager } from '../../shared/hooks/useQueueManager';
 import { ALL_BIOME_IDS, biomesIn, structureTypesIn, useVersionSupport } from '../../shared/hooks/useVersionSupport';
@@ -11,7 +11,7 @@ import WhatsNew from '../../shared/WhatsNew';
 import BottomSheet from '../../shared/BottomSheet';
 import { useIsDesktop } from '../../shared/hooks/useMediaQuery';
 import SeedPanel from './dashboard/SeedPanel';
-import ControlsBlock, { DEFAULT_HEIGHT } from './dashboard/ControlsBlock';
+import ControlsBlock from './dashboard/ControlsBlock';
 import './SeedPage.css';
 
 // The phone sheet's collapsed height: the grip, the seed row and the tab strip. Must
@@ -32,7 +32,12 @@ export default function SeedPage() {
     });
     const { seed, mcVersion, dimension } = urlState;
     // from=legacy is gone after the first replaceState, so it is read before any effect.
-    const [fromLegacy] = useState(() => parseSeedPage(window.location.search).fromLegacy);
+    // So is the view (structures, overlays, height) a link opened the page with: it seeds
+    // the controls' state once, here; from then on that state writes the URL.
+    const [{ fromLegacy, view: linkView }] = useState(() => {
+        const { fromLegacy: legacy, view } = parseSeedPage(window.location.search);
+        return { fromLegacy: legacy, view: { ...DEFAULT_VIEW, ...view } };
+    });
 
     // Re-entering the current seed keeps the state object, so nothing re-renders.
     const setSeed = useCallback((value) => setUrlState((state) => (
@@ -41,18 +46,18 @@ export default function SeedPage() {
     const setMcVersion = useCallback((value) => setUrlState((state) => ({ ...state, mcVersion: value })), [setUrlState]);
     const setDimension = useCallback((value) => setUrlState((state) => ({ ...state, dimension: value ?? 0 })), [setUrlState]);
 
-    const [yHeight, setYHeight] = useState(DEFAULT_HEIGHT);
+    const [yHeight, setYHeight] = useState(linkView.yHeight);
     // Every type ever picked; the map shows those this version has in this dimension, so
     // a pick comes back when the user returns to a world where it applies.
-    const [structuresToShow, setStructuresToShow] = useState([]);
-    const [showStructureCoords, setShowStructureCoords] = useState(true);
+    const [structuresToShow, setStructuresToShow] = useState(() => [...linkView.structures]);
+    const [showStructureCoords, setShowStructureCoords] = useState(linkView.showCoords);
     const [showLegend, setShowLegend] = useState(false);
     // The slime-chunk grid on the map. Here rather than in a section so that every section
     // offering the toggle (Find near me, Farms) shares it, and it outlives dimension changes
     // (the grid draws in the Overworld only; the sections hide the toggle elsewhere).
-    const [slimeOverlay, setSlimeOverlay] = useState(false);
+    const [slimeOverlay, setSlimeOverlay] = useState(linkView.slime);
     // Chunk grid lines on the map (the controls' checkbox; drawn from zoom 3).
-    const [showChunkGrid, setShowChunkGrid] = useState(false);
+    const [showChunkGrid, setShowChunkGrid] = useState(linkView.grid);
     const overlays = useMemo(() => ({ slime: slimeOverlay, chunkGrid: showChunkGrid }), [slimeOverlay, showChunkGrid]);
     // True from a seed change until its spawn is known: holds the Random button.
     const [busy, setBusy] = useState(false);
@@ -83,7 +88,18 @@ export default function SeedPage() {
     }, [seed, mcVersion, dimension]);
 
     const versionLabel = versionLabelOf(mcVersion);
-    const shareUrl = buildSeedUrl(urlState, { absolute: true });
+    const view = useMemo(
+        () => ({ structures: structuresToShow, showCoords: showStructureCoords, slime: slimeOverlay, grid: showChunkGrid, yHeight }),
+        [structuresToShow, showStructureCoords, slimeOverlay, showChunkGrid, yHeight],
+    );
+    // The address bar and the Share box carry the view too (owner, 2026-09-26), so a
+    // reload or a copied address keeps it. useSearchParamsState writes the canonical URL
+    // on world changes; this effect runs after it in the same commit and adds the view.
+    // replaceState, like the hook: toggles never add history entries.
+    useEffect(() => {
+        window.history.replaceState(null, '', buildSeedUrl(urlState, { view }));
+    }, [urlState, view]);
+    const shareUrl = buildSeedUrl(urlState, { absolute: true, view });
     const finderUrl = `/finder/?${new URLSearchParams({ version: versionLabel, dim: String(dimension) })}`;
 
     // First in the panel on both layouts (above the seed box on desktop).

@@ -2,9 +2,9 @@
 // bar and the legacy redirect are built here, so a change that breaks a pre-1.0
 // bookmark has to break one of these cases first.
 import { describe, it, expect } from 'vitest';
-import { SEED_PATH, SITE_URL, buildSeedUrl, parseSeedPage, versionLabelOf } from './seedUrl';
+import { DEFAULT_VIEW, SEED_PATH, SITE_URL, buildSeedUrl, parseSeedPage, versionLabelOf } from './seedUrl';
 import { DEFAULT_VERSION, seedFromString } from '../util/seed';
-import { VERSIONS } from '../util/constants';
+import { HEIGHT_OPTIONS, STRUCTURES_OPTIONS, VERSIONS } from '../util/constants';
 
 const BIG = '8091867987493326313';           // 19 digits: Number would round it
 
@@ -92,7 +92,7 @@ describe('parseSeedPage - dimension and flags', () => {
 
     it('ignores unrelated parameters', () => {
         expect(parseSeedPage('?seed=42&version=1.18&utm_source=x')).toEqual({
-            seed: '42', mcVersion: VERSIONS['1.18'], dimension: 0, fromLegacy: false,
+            seed: '42', mcVersion: VERSIONS['1.18'], dimension: 0, fromLegacy: false, view: {},
         });
     });
 });
@@ -142,14 +142,149 @@ describe('round trip', () => {
         { seed: '-98765', mcVersion: VERSIONS['1.17'], dimension: -1 },
         { seed: '0', mcVersion: VERSIONS['Beta 1.7'], dimension: 1 },
     ])('parse(build($seed, $mcVersion, $dimension)) is the same state', (state) => {
-        const { fromLegacy, ...parsed } = parseSeedPage(new URL(buildSeedUrl(state), 'http://x').search);
+        const { fromLegacy, view, ...parsed } = parseSeedPage(new URL(buildSeedUrl(state), 'http://x').search);
         expect(parsed).toEqual(state);
         expect(fromLegacy).toBe(false);
+        expect(view).toEqual({});
     });
 
     it('survives the absolute form too', () => {
         const state = { seed: BIG, mcVersion: VERSIONS['1.19.2'], dimension: 1 };
-        const { fromLegacy, ...parsed } = parseSeedPage(new URL(buildSeedUrl(state, { absolute: true })).search);
+        const { fromLegacy, view, ...parsed } = parseSeedPage(new URL(buildSeedUrl(state, { absolute: true })).search);
         expect(parsed).toEqual(state);
+    });
+});
+
+// The view params: the seed page writes them into its address bar and Share box, and reads them once at load.
+const W = { seed: '42', mcVersion: VERSIONS['1.21.11'], dimension: 0 };
+const viewOf = (url) => parseSeedPage(new URL(url, 'http://x').search).view;
+const withView = (view) => buildSeedUrl(W, { view: { ...DEFAULT_VIEW, ...view } });
+
+describe('buildSeedUrl without a view is the canonical URL, unchanged', () => {
+    // Every URL this module wrote before the view params existed, byte for byte: the
+    // address bar, saved worlds, finder links and the legacy redirect go through here.
+    it.each([
+        [{ seed: '42', mcVersion: VERSIONS['1.18'] }, {}, '/seed/?seed=42&version=1.18'],
+        [{ seed: '42', mcVersion: '1.18', dimension: -1 }, {}, '/seed/?seed=42&version=1.18&dim=-1'],
+        [{ seed: '42', mcVersion: 22, dimension: 1 }, {}, '/seed/?seed=42&version=1.18&dim=1'],
+        [{ seed: BIG, mcVersion: 35 }, { absolute: true }, `https://mcseeder.com/seed/?seed=${BIG}&version=26.3`],
+        [{ seed: '-9223372036854775808', mcVersion: VERSIONS['Beta 1.7'] }, {}, '/seed/?seed=-9223372036854775808&version=Beta+1.7'],
+        [{ seed: '1', mcVersion: 999 }, {}, `/seed/?seed=1&version=${DEFAULT_VERSION}`],
+    ])('%o %o', (state, options, url) => {
+        expect(buildSeedUrl(state, options)).toBe(url);
+        expect(buildSeedUrl(state, { ...options, view: null })).toBe(url);
+    });
+
+    it('drops view params and from= when no view is passed (saved worlds, finder links, the legacy redirect)', () => {
+        const parsed = parseSeedPage('?seed=42&version=1.21.11&structs=5,11&coords=0&slime=1&grid=1&y=62&from=legacy');
+        expect(buildSeedUrl(parsed)).toBe('/seed/?seed=42&version=1.21.11');
+    });
+});
+
+describe('buildSeedUrl with a view', () => {
+    it('writes nothing more for the default view', () => {
+        expect(withView({})).toBe('/seed/?seed=42&version=1.21.11');
+        expect(buildSeedUrl(W, { view: {} })).toBe('/seed/?seed=42&version=1.21.11');
+    });
+
+    it('writes each non-default value, after the canonical params', () => {
+        expect(withView({ structures: [5, 11] })).toBe('/seed/?seed=42&version=1.21.11&structs=5,11');
+        expect(withView({ showCoords: false })).toBe('/seed/?seed=42&version=1.21.11&coords=0');
+        expect(withView({ slime: true })).toBe('/seed/?seed=42&version=1.21.11&slime=1');
+        expect(withView({ grid: true })).toBe('/seed/?seed=42&version=1.21.11&grid=1');
+        expect(withView({ yHeight: 62 })).toBe('/seed/?seed=42&version=1.21.11&y=62');
+        expect(withView({ yHeight: DEFAULT_VIEW.yHeight })).toBe('/seed/?seed=42&version=1.21.11');
+    });
+
+    it('writes all of them in one fixed order, whatever order the view object has', () => {
+        const url = '/seed/?seed=42&version=1.21.11&dim=-1&structs=18,19&coords=0&slime=1&grid=1&y=-70';
+        expect(buildSeedUrl({ ...W, dimension: -1 }, { view: { yHeight: -70, grid: true, slime: true, showCoords: false, structures: [18, 19] } })).toBe(url);
+        expect(buildSeedUrl({ ...W, dimension: -1 }, { absolute: true, view: { structures: [18, 19], showCoords: false, slime: true, grid: true, yHeight: -70 } }))
+            .toBe(`https://mcseeder.com${url}`);
+    });
+
+    it('keeps the structures in pick order, with literal commas', () => {
+        expect(withView({ structures: [11, 5, 9] })).toContain('&structs=11,5,9');
+        expect(withView({ structures: [11, 5, 9] })).not.toContain('%2C');
+    });
+
+    it('leaves the height out before 1.18, where it has no effect and no control', () => {
+        expect(buildSeedUrl({ ...W, mcVersion: VERSIONS['1.17'] }, { view: { ...DEFAULT_VIEW, yHeight: 62, slime: true } }))
+            .toBe('/seed/?seed=42&version=1.17&slime=1');
+        expect(buildSeedUrl({ ...W, mcVersion: '1.16.5' }, { view: { ...DEFAULT_VIEW, yHeight: 62 } })).toBe('/seed/?seed=42&version=1.16.5');
+        expect(buildSeedUrl({ ...W, mcVersion: VERSIONS['1.18'] }, { view: { ...DEFAULT_VIEW, yHeight: 62 } })).toBe('/seed/?seed=42&version=1.18&y=62');
+    });
+});
+
+describe('parseSeedPage - view', () => {
+    it('sets only the keys the URL carries', () => {
+        expect(parseSeedPage('?seed=1&version=1.21.11').view).toEqual({});
+        expect(parseSeedPage('?seed=1&structs=5,11').view).toEqual({ structures: [5, 11] });
+        expect(parseSeedPage('?seed=1&coords=0').view).toEqual({ showCoords: false });
+        expect(parseSeedPage('?seed=1&slime=1').view).toEqual({ slime: true });
+        expect(parseSeedPage('?seed=1&grid=1').view).toEqual({ grid: true });
+        expect(parseSeedPage('?seed=1&y=62').view).toEqual({ yHeight: 62 });
+    });
+
+    it('tells an empty structs= (none shown) from an absent one (the default)', () => {
+        expect(parseSeedPage('?seed=1&structs=').view).toEqual({ structures: [] });
+        expect(parseSeedPage('?seed=1').view).not.toHaveProperty('structures');
+    });
+
+    it('drops unknown structure ids and duplicates, keeping the order', () => {
+        expect(parseSeedPage('?structs=abc,999').view).toEqual({ structures: [] });
+        expect(parseSeedPage('?structs=11,5,11,,-3,5.5,27,0,9').view).toEqual({ structures: [11, 5, 9] });
+        expect(parseSeedPage('?structs=%205%20').view).toEqual({ structures: [5] });
+    });
+
+    it('accepts every structure the controls offer', () => {
+        const ids = STRUCTURES_OPTIONS.map((o) => o.value);
+        expect(parseSeedPage(`?structs=${ids.join(',')}`).view.structures).toEqual(ids);
+    });
+
+    it('turns an option on or off only with its exact value', () => {
+        for (const junk of ['true', 'yes', '2', '', 'on', '01']) {
+            expect(parseSeedPage(`?slime=${junk}&grid=${junk}`).view, junk).toEqual({});
+        }
+        for (const junk of ['false', 'no', '1', '', 'off', '00']) {
+            expect(parseSeedPage(`?coords=${junk}`).view, junk).toEqual({});
+        }
+        // The defaults written out are no-ops: slime=0 is off, coords=1 is on.
+        expect(parseSeedPage('?slime=0&grid=0&coords=1').view).toEqual({});
+    });
+
+    it('accepts only a height the select offers', () => {
+        for (const { value } of HEIGHT_OPTIONS) expect(parseSeedPage(`?y=${value}`).view).toEqual({ yHeight: value });
+        for (const junk of ['9999', '64', '-64', '62.0', '6e1', 'sea', '', '0x3e']) {
+            expect(parseSeedPage(`?y=${junk}`).view, junk).toEqual({});
+        }
+    });
+
+    it('never throws on junk', () => {
+        expect(() => parseSeedPage('?structs=%%%&y=%&slime=%ZZ')).not.toThrow();
+        expect(parseSeedPage('?seed=1&structs=abc,999&y=9999&slime=true&grid=yes&coords=off').view).toEqual({ structures: [] });
+    });
+});
+
+describe('view round trip', () => {
+    it.each([
+        { structures: [5] },
+        { structures: [11, 5] },
+        { showCoords: false },
+        { slime: true },
+        { grid: true },
+        { yHeight: 62 },
+        { yHeight: -70 },
+        { structures: [5, 11, 18], showCoords: false, slime: true, grid: true, yHeight: 320 },
+    ])('parse(build(%o)) gives the same view', (view) => {
+        expect(viewOf(withView(view))).toEqual(view);
+        expect(viewOf(buildSeedUrl(W, { absolute: true, view: { ...DEFAULT_VIEW, ...view } }))).toEqual(view);
+    });
+
+    it('keeps the canonical state alongside the view', () => {
+        const state = { seed: BIG, mcVersion: VERSIONS['26.3'], dimension: 1 };
+        const { fromLegacy, view, ...parsed } = parseSeedPage(new URL(buildSeedUrl(state, { view: { ...DEFAULT_VIEW, structures: [21], grid: true } }), 'http://x').search);
+        expect(parsed).toEqual(state);
+        expect(view).toEqual({ structures: [21], grid: true });
     });
 });

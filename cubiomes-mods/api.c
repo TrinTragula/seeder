@@ -114,6 +114,7 @@ int *generate_area(int mcVersion, int64_t seed, int areaX, int areaZ, int areaWi
     // small and genBiomes wrote past it.
     applySeed(&g, dimension, seed); // -1 Nether, 0 Overworld, 1 End
     free(biomeIds);
+    biomeIds = NULL;
     biomeIds = allocCache(&g, r);
     genBiomes(&g, biomeIds, r);
     return biomeIds;
@@ -550,6 +551,7 @@ Pos *find_strongholds(int mcVersion, int64_t seed, int howMany)
     int i, N = howMany;
     static Pos *coords = NULL;
     free(coords);
+    coords = NULL;
     coords = malloc(sizeof(Pos) * howMany);
     for (i = 0; i < N; i++)
     {
@@ -600,6 +602,7 @@ Pos *get_structure_in_regions(int mcVersion, int structType, int64_t seed, int r
     int i = 0;
     static Pos *coords = NULL;
     free(coords);
+    coords = NULL;
     coords = malloc(sizeof(Pos) * 4 * range * range);
     for (regionX = -range; regionX < range; regionX++)
     {

@@ -1,4 +1,4 @@
-# Seeder v1.0.0
+# Seeder v1.0.1
 
 Find, show, share and admire Minecraft seeds (Java edition mostly, Bedrock only if you are interested in biomes).
 

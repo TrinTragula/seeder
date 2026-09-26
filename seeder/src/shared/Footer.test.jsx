@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import Footer, { DISCLAIMER } from './Footer';
 import Layout from './Layout';
 
@@ -28,5 +28,36 @@ describe('Footer', () => {
         expect(nav.querySelectorAll('a')).toHaveLength(3);
         expect(screen.getByAltText('Donate with PayPal button')).toBeInTheDocument();
         expect(screen.getByAltText('Buy Me A Coffee')).toBeInTheDocument();
+    });
+
+    describe('privacy and cookie settings', () => {
+        afterEach(() => { delete window.googlefc; });
+
+        it('is on the full and the compact footer', () => {
+            const { unmount } = render(<Footer />);
+            expect(screen.getByRole('button', { name: 'Privacy and cookie settings' })).toBeInTheDocument();
+            unmount();
+            render(<Footer compact />);
+            expect(screen.getByRole('button', { name: 'Privacy and cookie settings' })).toBeInTheDocument();
+        });
+
+        it("reopens Google's consent message once the consent script runs the queue", () => {
+            render(<Footer />);
+            fireEvent.click(screen.getByRole('button', { name: 'Privacy and cookie settings' }));
+            // Clicked before the consent script loaded: the call waits in its queue.
+            expect(window.googlefc.callbackQueue).toHaveLength(1);
+            window.googlefc.showRevocationMessage = vi.fn();
+            window.googlefc.callbackQueue.forEach((cb) => cb());
+            expect(window.googlefc.showRevocationMessage).toHaveBeenCalledTimes(1);
+        });
+
+        it('keeps a queue the consent script already set up', () => {
+            const existing = () => {};
+            window.googlefc = { callbackQueue: [existing] };
+            render(<Footer />);
+            fireEvent.click(screen.getByRole('button', { name: 'Privacy and cookie settings' }));
+            expect(window.googlefc.callbackQueue).toHaveLength(2);
+            expect(window.googlefc.callbackQueue[0]).toBe(existing);
+        });
     });
 });

@@ -342,7 +342,19 @@
 
 .site-footer__links {
     display: flex;
-    gap: var(--space-4);
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+}
+
+/* A button (it opens a dialog, it goes nowhere) that reads like the links beside it. */
+.site-footer__privacy {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-ink);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 .site-footer__donate {

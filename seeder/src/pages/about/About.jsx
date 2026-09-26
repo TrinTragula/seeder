@@ -138,7 +138,8 @@ export default function About() {
                     Seeder has no accounts and no server of its own: maps and searches run in your browser.
                     Google Analytics counts page views and Google AdSense shows ads; like any page view, they see the address of
                     the page you are on, which includes the seed, version or search criteria. Where the law asks for it, Google's
-                    own consent message lets you choose.
+                    own consent message lets you choose, and "Privacy and cookie settings" at the bottom of every page
+                    reopens it to change your choice.
                 </p>
             </section>
 

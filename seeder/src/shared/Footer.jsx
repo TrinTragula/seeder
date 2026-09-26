@@ -1,4 +1,5 @@
 import React from 'react';
+import { openPrivacySettings } from './ads';
 
 // Minecraft's usage guidelines ask every site that uses the name, brand or assets to
 // say so prominently, on every page: the footer is the one element all four
@@ -21,6 +22,10 @@ export default function Footer({ compact = false }) {
                 <a href="/about/">About</a>
                 <a href="https://github.com/TrinTragula/seeder" target="_blank" rel="noreferrer">GitHub</a>
                 <a href="https://twitter.com/McSeeder" target="_blank" rel="noreferrer">Twitter</a>
+                {/* GDPR: withdrawing consent must be as easy as giving it, on every page. */}
+                <button type="button" className="site-footer__privacy" onClick={() => openPrivacySettings()}>
+                    Privacy and cookie settings
+                </button>
             </nav>
             <div className="site-footer__donate">
                 <span>Buy me a coffee!</span>

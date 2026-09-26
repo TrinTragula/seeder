@@ -29,6 +29,18 @@
 <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
+    // Consent Mode v2: in the EEA, the UK and Switzerland nothing is stored and no ad data is
+    // used until the visitor answers Google's consent message (AdSense Privacy & messaging),
+    // which loads with the ads after mount and sends the update itself. Elsewhere, granted.
+    gtag('consent', 'default', {
+        ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied',
+        wait_for_update: 500,
+        region: ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT',
+            'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'IS', 'LI', 'NO', 'GB', 'CH'],
+    });
+    gtag('consent', 'default', {
+        ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted',
+    });
     gtag('js', new Date());
     // A legacy /?seed= hit is about to be replaced by /seed/, where the view is counted.
     if (!window.__legacyRedirect) gtag('config', 'G-CLDNC49SNT', { 'anonymize_ip': true });

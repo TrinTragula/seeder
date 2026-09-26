@@ -35,3 +35,14 @@ export function loadAds(doc = document) {
     script.crossOrigin = 'anonymous';
     doc.head.appendChild(script);
 }
+
+// Reopens Google's consent message (AdSense Privacy & messaging, GDPR) so a visitor can
+// change or withdraw their choice. The footer's "Privacy and cookie settings" button calls
+// it, next to Google's own floating shield button (which cannot be turned off: no setting,
+// no API, and its inline-styled shadow host takes no CSS). Queued, so a click before the
+// consent script has loaded still works.
+export function openPrivacySettings(win = window) {
+    win.googlefc = win.googlefc || {};
+    win.googlefc.callbackQueue = win.googlefc.callbackQueue || [];
+    win.googlefc.callbackQueue.push(() => win.googlefc.showRevocationMessage());
+}

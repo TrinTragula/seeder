@@ -73,6 +73,12 @@ describe('HTML entries', () => {
             expect(html, name).not.toMatch(/adsbygoogle\.js/);
             expect(count(html, /googletagmanager\.com\/gtag\/js\?id=G-CLDNC49SNT/g), name).toBe(1);
             expect(count(html, /gtag\('config', 'G-CLDNC49SNT'/g), name).toBe(1);
+            // Consent Mode defaults come before any hit: denied in the EEA/UK/CH until the
+            // consent message answers, so Analytics sets no cookie before consent there.
+            const consent = html.indexOf("gtag('consent', 'default'");
+            expect(consent, name).toBeGreaterThan(-1);
+            expect(consent, name).toBeLessThan(html.indexOf("gtag('js'"));
+            expect(html, name).toMatch(/analytics_storage: 'denied'[\s\S]*region: \['AT'[\s\S]*'DE'[\s\S]*'GB', 'CH'\]/);
             // A legacy redirect must not be counted as a page view.
             expect(html, name).toMatch(/if \(!window\.__legacyRedirect\) gtag\('config'/);
             expect(count(html, /<link rel="manifest" href="\/manifest\.json\?v=__APP_VERSION__"/g), name).toBe(1);

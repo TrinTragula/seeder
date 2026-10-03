@@ -1,6 +1,6 @@
 # Seeder
 
-Find, show, share and admire Minecraft seeds, for Java Edition and Bedrock Edition.
+Find, show, share and admire Minecraft seeds, for Java & Bedrock Edition.
 
 Works up to **26.3** on Java and **26.50 - 26.52** on Bedrock!
 
